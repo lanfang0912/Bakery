@@ -644,6 +644,10 @@ let registrations = {};
 let db;
 let selColor = 'orange';
 let pendingDeleteId = null;
+let cloudCfg = {};
+let pwHash = null;
+const SESSION_KEY = 'bakery_authed';
+const DEFAULT_PW  = 'bakery2026';
 
 // ── Firebase init ─────────────────────────────────────────────
 firebase.initializeApp(FB_CONFIG);
@@ -924,7 +928,6 @@ buildColorFilter();
 updateCloudBadge();
 
 // ── Cloudinary settings ───────────────────────────────────────
-let cloudCfg = {};
 function getCloudCfg() { return cloudCfg; }
 function openCloudSettings() {
   const cfg = getCloudCfg();
@@ -1533,9 +1536,6 @@ async function doImport(){
 }
 
 // ── Auth ──────────────────────────────────────────────────────
-const SESSION_KEY = 'bakery_authed';
-const DEFAULT_PW  = 'bakery2026';
-let pwHash = null; // loaded from Firebase
 
 async function sha256(str) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
