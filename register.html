@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>課程報名 | Jen 手作烘焙</title>
-<meta name="description" content="Jen 手作烘焙課程報名">
 <style>
 :root{
   --primary:#c17f3e;--primary-light:#f5e6d3;--primary-dark:#8b5a27;
@@ -17,10 +16,10 @@ body{font-family:'Segoe UI','PingFang TC','Microsoft JhengHei',sans-serif;backgr
 
 header{background:linear-gradient(135deg,var(--primary-dark),var(--primary) 55%,#e8a45a);color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 20px rgba(139,90,39,.3)}
 header h1{font-size:1.1rem;font-weight:800}
-.back-link{color:rgba(255,255,255,.9);text-decoration:none;font-size:.82rem;border:1.5px solid rgba(255,255,255,.45);padding:6px 14px;border-radius:16px;transition:all .2s}
+.back-link{color:rgba(255,255,255,.9);text-decoration:none;font-size:.82rem;border:1.5px solid rgba(255,255,255,.45);padding:6px 14px;border-radius:16px;transition:all .2s;white-space:nowrap}
 .back-link:hover{background:rgba(255,255,255,.2)}
 
-.page{max-width:520px;margin:0 auto;padding:28px 16px 48px}
+.page{max-width:560px;margin:0 auto;padding:24px 16px 56px}
 
 /* Loading */
 .loading{text-align:center;padding:80px 20px;color:var(--muted)}
@@ -28,46 +27,65 @@ header h1{font-size:1.1rem;font-weight:800}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* Course card */
-.course-card{background:var(--card);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:20px;border:1px solid var(--border)}
+.course-card{background:var(--card);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:16px;border:1px solid var(--border)}
 .course-img{width:100%;max-height:220px;object-fit:cover;display:block}
-.course-body{padding:20px 22px}
-.course-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.78rem;font-weight:700;color:#fff;margin-bottom:10px}
-.course-title{font-size:1.18rem;font-weight:800;line-height:1.4;margin-bottom:14px}
-.meta-row{display:flex;align-items:center;gap:8px;font-size:.87rem;color:var(--muted);margin-bottom:7px}
+.course-body{padding:18px 20px}
+.course-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.78rem;font-weight:700;color:#fff;margin-bottom:8px}
+.course-title{font-size:1.15rem;font-weight:800;line-height:1.4;margin-bottom:12px}
+.meta-row{display:flex;align-items:flex-start;gap:8px;font-size:.87rem;color:var(--muted);margin-bottom:6px;line-height:1.5}
 .meta-row b{color:var(--text);font-weight:600}
+.course-desc{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:.84rem;color:var(--text);line-height:1.75;white-space:pre-wrap}
+
+/* Info sections */
+.info-card{background:var(--card);border-radius:14px;padding:16px 18px;margin-bottom:14px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.info-title{font-size:.82rem;font-weight:800;color:var(--primary-dark);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.info-list{list-style:none;padding:0}
+.info-list li{font-size:.82rem;color:var(--text);line-height:1.75;padding-left:1.2em;position:relative}
+.info-list li::before{content:'•';position:absolute;left:0;color:var(--primary)}
+.bank-box{background:var(--primary-light);border-radius:10px;padding:12px 14px;margin-top:8px;font-size:.84rem;line-height:1.9}
+.bank-box b{color:var(--primary-dark)}
 
 /* Form */
-.form-card{background:var(--card);border-radius:16px;padding:24px 22px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.form-card{background:var(--card);border-radius:16px;padding:22px 20px;box-shadow:var(--shadow);border:1px solid var(--border);margin-bottom:14px}
 .form-title{font-size:1rem;font-weight:800;color:var(--primary-dark);margin-bottom:18px}
-.fg{margin-bottom:15px}
+.section-divider{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:20px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.fg{margin-bottom:14px}
 .fg label{display:block;font-size:.74rem;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
-.fg input,.fg textarea{width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-size:.92rem;font-family:inherit;color:var(--text);background:var(--bg);transition:border-color .2s;outline:none}
-.fg input:focus,.fg textarea:focus{border-color:var(--primary)}
-.fg input.err,.fg textarea.err{border-color:var(--red);animation:shake .3s}
+.fg input,.fg select,.fg textarea{width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-size:.92rem;font-family:inherit;color:var(--text);background:var(--bg);transition:border-color .2s;outline:none}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--primary)}
+.fg input.err,.fg select.err,.fg textarea.err{border-color:var(--red);animation:shake .3s}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
-.fg textarea{min-height:76px;resize:vertical}
-.reg-note{font-size:.77rem;color:var(--muted);line-height:1.7;margin-bottom:16px;padding:10px 14px;background:var(--primary-light);border-radius:10px}
-.btn-submit{width:100%;padding:14px;color:#fff;border:none;border-radius:22px;font-size:1rem;font-weight:800;cursor:pointer;transition:all .2s;background:var(--primary)}
+.fg textarea{min-height:72px;resize:vertical}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* Radio group */
+.radio-group{display:flex;flex-direction:column;gap:8px}
+.radio-opt{display:flex;align-items:center;gap:10px;padding:10px 14px;border:2px solid var(--border);border-radius:10px;cursor:pointer;transition:all .2s;font-size:.9rem}
+.radio-opt:hover{border-color:var(--primary);background:var(--primary-light)}
+.radio-opt input[type=radio]{width:18px;height:18px;accent-color:var(--primary);flex-shrink:0}
+.radio-opt.selected{border-color:var(--primary);background:var(--primary-light);font-weight:600}
+
+.btn-submit{width:100%;padding:15px;color:#fff;border:none;border-radius:22px;font-size:1rem;font-weight:800;cursor:pointer;transition:all .2s;background:var(--primary);margin-top:6px}
 .btn-submit:hover{filter:brightness(.9)}
 .btn-submit:disabled{opacity:.55;cursor:not-allowed}
+.required-hint{font-size:.74rem;color:var(--muted);margin-bottom:16px}
 
 /* Success */
 .success-card{background:var(--card);border-radius:16px;padding:44px 24px;box-shadow:var(--shadow);border:1px solid var(--border);text-align:center}
 .success-icon{font-size:4rem;margin-bottom:16px}
 .success-card h2{font-size:1.25rem;font-weight:800;color:var(--primary-dark);margin-bottom:10px}
 .success-card p{font-size:.88rem;color:var(--muted);line-height:1.9;margin-bottom:24px}
-.btn-back{display:inline-block;padding:11px 32px;background:var(--primary);color:#fff;border-radius:22px;font-size:.9rem;font-weight:700;text-decoration:none;transition:all .2s}
+.btn-back{display:inline-block;padding:11px 32px;background:var(--primary);color:#fff;border-radius:22px;font-size:.9rem;font-weight:700;text-decoration:none}
 .btn-back:hover{background:var(--primary-dark)}
 
 /* Error */
-.error-card{background:var(--card);border-radius:16px;padding:60px 24px;box-shadow:var(--shadow);border:1px solid var(--border);text-align:center}
+.error-card{background:var(--card);border-radius:16px;padding:60px 24px;text-align:center;border:1px solid var(--border)}
 .error-card .icon{font-size:3rem;margin-bottom:14px}
 .error-card p{color:var(--muted);font-size:.9rem;margin-bottom:20px}
 
-@media(max-width:520px){
-  .page{padding:20px 12px 40px}
-  .course-body{padding:16px}
-  .form-card{padding:20px 16px}
+@media(max-width:500px){
+  .page{padding:16px 12px 48px}
+  .fg-row{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -75,7 +93,7 @@ header h1{font-size:1.1rem;font-weight:800}
 
 <header>
   <h1>🥐 Jen 手作烘焙</h1>
-  <a class="back-link" href="index.html">← 課程行事曆</a>
+  <a class="back-link" href="index.html">← 行事曆</a>
 </header>
 
 <div class="page">
@@ -92,26 +110,118 @@ header h1{font-size:1.1rem;font-weight:800}
   </div>
 
   <div id="state-main" style="display:none">
+
+    <!-- 課程資訊 -->
     <div id="course-card" class="course-card"></div>
 
+    <!-- 報名須知 -->
+    <div class="info-card">
+      <div class="info-title">❤️ 報名須知</div>
+      <ul class="info-list">
+        <li>填完表格，請於一周內匯款，匯款後才算報名完成，匯款時請留言姓名及報名課程。</li>
+        <li>報名截止日為上課日前一天。</li>
+        <li>教室座位以匯款先後順序安排（前8名匯款報名成功者，可坐搖滾區）。</li>
+        <li>課程若未達開班人數，將提前告知是否取消或轉換課程。</li>
+        <li>匯款後請務必電話或 LINE 通知確認：<a href="tel:0966864079" style="color:var(--primary);font-weight:600">0966-864-079</a></li>
+      </ul>
+      <div class="bank-box">
+        💳 <b>匯款資料</b><br>
+        合作金庫銀行（006）蘇澳分行<br>
+        帳號：<b>0140765234715</b><br>
+        戶名：<b>楊宜蓁</b>
+      </div>
+    </div>
+
+    <!-- 退費說明 -->
+    <div class="info-card">
+      <div class="info-title">📋 退費注意事項</div>
+      <ul class="info-list">
+        <li>開課前 7 天取消 → 全額退費</li>
+        <li>開課 3 天前取消 → 退費 50%</li>
+        <li>開課 3 天內取消 → 恕不退費</li>
+        <li>請確認可以上課再報名</li>
+        <li>若取消課程，需酌收 15 元匯款手續費</li>
+      </ul>
+    </div>
+
+    <!-- 報名表單 -->
     <div id="form-wrap" class="form-card">
       <div class="form-title">📝 填寫報名資料</div>
-      <div class="fg">
-        <label>姓名 *</label>
-        <input type="text" id="r-name" placeholder="請輸入真實姓名" autocomplete="name">
+      <p class="required-hint">* 為必填欄位</p>
+
+      <div class="section-divider">基本資料</div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>姓名 *</label>
+          <input type="text" id="r-name" placeholder="真實姓名" autocomplete="name">
+        </div>
+        <div class="fg">
+          <label>連絡電話 *</label>
+          <input type="tel" id="r-phone" placeholder="0912-345-678" autocomplete="tel">
+        </div>
       </div>
-      <div class="fg">
-        <label>電話 *</label>
-        <input type="tel" id="r-phone" placeholder="0912-345-678" autocomplete="tel">
+      <div class="fg-row">
+        <div class="fg">
+          <label>Facebook 名稱 *</label>
+          <input type="text" id="r-fb" placeholder="FB 顯示名稱">
+        </div>
+        <div class="fg">
+          <label>LINE 名稱 *</label>
+          <input type="text" id="r-line" placeholder="LINE 顯示名稱">
+        </div>
       </div>
+
+      <div class="fg">
+        <label>是否已加入群組 *</label>
+        <div class="radio-group" id="rg-group">
+          <label class="radio-opt" onclick="selectRadio('rg-group',this)">
+            <input type="radio" name="r-group" value="Jen手作烘焙第一群"> Jen 手作烘焙第一群
+          </label>
+          <label class="radio-opt" onclick="selectRadio('rg-group',this)">
+            <input type="radio" name="r-group" value="Jen手作烘焙第二群"> Jen 手作烘焙第二群
+          </label>
+          <label class="radio-opt" onclick="selectRadio('rg-group',this)">
+            <input type="radio" name="r-group" value="尚未加入"> 否，尚未加入群組
+          </label>
+        </div>
+      </div>
+
+      <div class="section-divider">報名資訊</div>
+      <div class="fg">
+        <label>報名人數 *</label>
+        <input type="number" id="r-count" min="1" max="10" placeholder="1" style="width:120px">
+      </div>
+
+      <div class="section-divider">匯款資訊</div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>匯款日期 *</label>
+          <input type="date" id="r-remit-date">
+        </div>
+        <div class="fg">
+          <label>帳號末五碼 *</label>
+          <input type="text" id="r-remit-last5" maxlength="5" placeholder="34715" inputmode="numeric">
+        </div>
+      </div>
+
+      <div class="section-divider">其他</div>
+      <div class="fg">
+        <label>是否需要接送 *</label>
+        <div class="radio-group" id="rg-shuttle">
+          <label class="radio-opt" onclick="selectRadio('rg-shuttle',this)">
+            <input type="radio" name="r-shuttle" value="否，自行前往"> 否，自行前往
+          </label>
+          <label class="radio-opt" onclick="selectRadio('rg-shuttle',this)">
+            <input type="radio" name="r-shuttle" value="是，需要接送"> 是，需要接送（請在備註填寫到站時間）
+          </label>
+        </div>
+      </div>
+
       <div class="fg">
         <label>備註（選填）</label>
-        <textarea id="r-note" placeholder="飲食限制、過敏原或其他問題…"></textarea>
+        <textarea id="r-note" placeholder="接送到站時間、飲食限制或其他問題…"></textarea>
       </div>
-      <div class="reg-note">
-        📌 報名後請透過電話或 LINE 確認並完成匯款<br>
-        📲 聯絡：<a href="tel:0966864079" style="color:var(--primary);font-weight:600">0966-864-079</a>
-      </div>
+
       <button class="btn-submit" id="r-submit" onclick="submitReg()">確認報名</button>
     </div>
 
@@ -119,12 +229,14 @@ header h1{font-size:1.1rem;font-weight:800}
       <div class="success-icon">✅</div>
       <h2>報名成功！</h2>
       <p>感謝您的報名！<br>
-         我們會盡快與您聯絡確認名額並告知匯款方式<br>
-         📲 電話 / LINE：0966-864-079</p>
+         請於一周內完成匯款，匯款後再電話或 LINE 通知確認<br><br>
+         💳 合作金庫（006）蘇澳分行<br>
+         帳號：0140765234715 ／ 戶名：楊宜蓁<br><br>
+         📲 電話 / LINE：<a href="tel:0966864079" style="color:var(--primary);font-weight:600">0966-864-079</a></p>
       <a href="index.html" class="btn-back">← 返回課程行事曆</a>
     </div>
-  </div>
 
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -143,25 +255,20 @@ let submitColor = '#c17f3e';
 if(!eventId){ showError(); } else { loadEvent(); }
 
 async function loadEvent(){
-  // Try bundled data first (instant)
   const local = INITIAL_EVENTS.find(e => String(e.id) === eventId);
-  if(local){ renderCourse(local); }
-
+  if(local) renderCourse(local);
   try{
     const snap = await db.ref('bakery/events/' + eventId).once('value');
     const data = snap.val();
-    if(data){ renderCourse(data); }
-    else if(!local){ showError(); }
-  }catch(e){
-    if(!local) showError();
-  }
+    if(data) renderCourse(data);
+    else if(!local) showError();
+  }catch(e){ if(!local) showError(); }
 }
 
 function renderCourse(e){
   const c = colorById(e.color);
   submitColor = c.hex;
   document.title = `${e.title} 報名 | Jen 手作烘焙`;
-
   document.getElementById('course-card').innerHTML =
     (e.image ? `<img class="course-img" src="${e.image}" alt="${e.title}">` : '') +
     `<div class="course-body">
@@ -170,8 +277,8 @@ function renderCourse(e){
       <div class="meta-row">📅 <b>${formatDate(e.date)}</b></div>
       <div class="meta-row">🕐 <b>${e.start} – ${e.end}</b></div>
       ${formatFee(e.fee)?`<div class="meta-row">💵 <b>${formatFee(e.fee)}</b></div>`:''}
+      ${e.description?`<div class="course-desc">${e.description}</div>`:''}
     </div>`;
-
   document.getElementById('r-submit').style.background = c.hex;
   document.getElementById('state-loading').style.display = 'none';
   document.getElementById('state-main').style.display   = 'block';
@@ -182,23 +289,60 @@ function showError(){
   document.getElementById('state-error').style.display   = 'block';
 }
 
+function selectRadio(groupId, el){
+  document.querySelectorAll(`#${groupId} .radio-opt`).forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  el.classList.remove('err');
+}
+
+function getRadio(name){ const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : ''; }
+
 async function submitReg(){
-  const name  = document.getElementById('r-name').value.trim();
-  const phone = document.getElementById('r-phone').value.trim();
-  const note  = document.getElementById('r-note').value.trim();
-  document.getElementById('r-name').classList.toggle('err', !name);
-  document.getElementById('r-phone').classList.toggle('err', !phone);
-  if(!name || !phone) return;
+  const name       = document.getElementById('r-name').value.trim();
+  const phone      = document.getElementById('r-phone').value.trim();
+  const fb         = document.getElementById('r-fb').value.trim();
+  const line       = document.getElementById('r-line').value.trim();
+  const group      = getRadio('r-group');
+  const count      = document.getElementById('r-count').value.trim();
+  const remitDate  = document.getElementById('r-remit-date').value;
+  const remitLast5 = document.getElementById('r-remit-last5').value.trim();
+  const shuttle    = getRadio('r-shuttle');
+  const note       = document.getElementById('r-note').value.trim();
+
+  // Validate required fields
+  let ok = true;
+  const req = [
+    ['r-name', name], ['r-phone', phone], ['r-fb', fb], ['r-line', line],
+    ['r-count', count], ['r-remit-date', remitDate], ['r-remit-last5', remitLast5]
+  ];
+  req.forEach(([id, val])=>{
+    document.getElementById(id).classList.toggle('err', !val);
+    if(!val) ok = false;
+  });
+  if(!group){
+    document.querySelectorAll('#rg-group .radio-opt').forEach(o=>o.style.borderColor='var(--red)');
+    ok = false;
+  }
+  if(!shuttle){
+    document.querySelectorAll('#rg-shuttle .radio-opt').forEach(o=>o.style.borderColor='var(--red)');
+    ok = false;
+  }
+  if(!ok){ window.scrollTo({top: document.querySelector('.err, [style*="red"]')?.offsetTop - 80, behavior:'smooth'}); return; }
 
   const btn = document.getElementById('r-submit');
   btn.disabled = true; btn.textContent = '報名中…';
 
   try{
     await db.ref('bakery/registrations/' + eventId).push({
-      name, phone, note, paid: false, createdAt: Date.now()
+      name, phone, fb, line, group,
+      count: Number(count)||1,
+      remitDate, remitLast5,
+      shuttle, note,
+      paid: false, createdAt: Date.now()
     });
     document.getElementById('form-wrap').style.display    = 'none';
     document.getElementById('success-wrap').style.display = 'block';
+    window.scrollTo({top:0, behavior:'smooth'});
   }catch(err){
     btn.disabled = false; btn.textContent = '確認報名';
     alert('報名失敗，請直接電話聯絡 0966-864-079');
