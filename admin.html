@@ -850,70 +850,103 @@ function closePaste(){ document.getElementById('paste-overlay').classList.remove
 function closePasteBg(e){ if(e.target===document.getElementById('paste-overlay')) closePaste(); }
 
 function parsePaste(){
-  const text = document.getElementById('paste-text').value;
-  if(text.trim().length < 10) {
+  const raw = document.getElementById('paste-text').value;
+  if(raw.trim().length < 10){
     document.getElementById('parse-preview').style.display = 'none';
     document.getElementById('pp-save-btn').style.display = 'none';
     return;
   }
+  // Normalize full-width punctuation
+  const text = raw.replace(/[：]/g,':').replace(/[－]/g,'-').replace(/[～]/g,'~').replace(/[。，、]/g,' ');
+  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
 
-  // Date
-  const dateM = text.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
-  if(dateM) document.getElementById('pp-date').value =
-    `${dateM[1]}-${dateM[2].padStart(2,'0')}-${dateM[3].padStart(2,'0')}`;
+  // ── Date ──────────────────────────────────────────────────────
+  // 2026/6/29、2026-06-29、2026年6月29日、6/29、6月29日
+  let date = '';
+  const d4 = text.match(/(\d{4})[年\/\-](\d{1,2})[月\/\-](\d{1,2})[日号]?/);
+  if(d4){
+    date = `${d4[1]}-${d4[2].padStart(2,'0')}-${d4[3].padStart(2,'0')}`;
+  } else {
+    const d2 = text.match(/(\d{1,2})[月\/](\d{1,2})[日号]?/);
+    if(d2) date = `2026-${d2[1].padStart(2,'0')}-${d2[2].padStart(2,'0')}`;
+  }
+  if(date) document.getElementById('pp-date').value = date;
 
-  // Time
-  const timeM = text.match(/(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})/);
+  // ── Time ──────────────────────────────────────────────────────
+  // 09:00-12:30、09:00 ~ 12:30、09:00至12:30
+  const timeM = text.match(/(\d{1,2}:\d{2})\s*[-–—~至]\s*(\d{1,2}:\d{2})/);
   if(timeM){
     document.getElementById('pp-start').value = timeM[1].padStart(5,'0');
     document.getElementById('pp-end').value   = timeM[2].padStart(5,'0');
   }
 
-  // Fee
-  const feeM = text.match(/[\$＄]?\s*([\d,，]+)\s*元/);
+  // ── Fee ───────────────────────────────────────────────────────
+  // NT$1,800、$1800、1,800元、1800元
+  const feeM = text.match(/(?:NT\$|＄|\$)\s*([\d,，]+)/) || text.match(/([\d,，]{3,})\s*元/);
   if(feeM) document.getElementById('pp-fee').value = feeM[1].replace(/[,，]/g,'');
 
-  // Link
-  const linkM = text.match(/https:\/\/forms\.gle\/[A-Za-z0-9]+/);
-  if(linkM) document.getElementById('pp-link').value = linkM[0];
+  // ── Link ──────────────────────────────────────────────────────
+  const linkM = text.match(/https?:\/\/\S+/);
+  if(linkM) document.getElementById('pp-link').value = linkM[0].replace(/[）)>\]]+$/, '');
 
-  // Title: look for a bold/header-style line (first substantive non-emoji line after teacher name line)
-  // Strategy: find the first line that looks like a course title
-  const lines = text.split('\n').map(l=>l.trim()).filter(l=>l && !/^[•\-🗓⏰💵🍫🌷🔺👨🔗📲📍🚌💬✨🎓]/.test(l));
-  // First line often has: "老師名 課程名" or just course name
-  if(lines.length > 0){
-    const firstLine = lines[0].replace(/‼️|！|【|】|——.*?——/g,'').trim();
-    // Try to split teacher from title by common patterns
-    const splitM = firstLine.match(/^(.{2,8}(?:老師|師傅|合體))\s+(.+)$/);
-    if(splitM){
-      document.getElementById('pp-teacher').value = splitM[1].trim();
-      document.getElementById('pp-title').value   = splitM[2].trim();
-    } else {
-      document.getElementById('pp-title').value = firstLine;
+  // ── Teacher & Title ───────────────────────────────────────────
+  let teacher = '', title = '';
+
+  // A: "謝岳恩老師 × 蟹式甜燒餅" / "老師合體 X 課程"
+  for(const line of lines){
+    const m = line.match(/^(.{2,12}(?:老師|師傅|合體))\s*[×X｜|xX]\s*(.{3,})/);
+    if(m){ teacher = m[1].trim(); title = m[2].trim(); break; }
+  }
+
+  // B: teacher on own line
+  if(!teacher){
+    for(const line of lines){
+      if(/^.{2,12}(?:老師|師傅|合體)$/.test(line)){ teacher = line; break; }
     }
   }
 
-  // Teacher: explicit section
-  const teacherSecM = text.match(/指導老師[\s\S]{0,3}\n([^\n]+)/);
-  if(teacherSecM){
-    // Keep it as-is for manual review; or try to find a short name
-    const tLine = teacherSecM[1].trim();
-    // If line has "聯合指導" etc., look up to the first "老師" mention
-    if(!document.getElementById('pp-teacher').value || tLine.includes('老師')){
-      // Try to find the teacher name from 雙張老師合體 style or first line
+  // C: "老師：謝岳恩老師" / "指導老師 謝岳恩老師"
+  if(!teacher){
+    const m = text.match(/(?:老師|指導)[: \s]+(.{2,12}(?:老師|師傅|合體))/);
+    if(m) teacher = m[1].trim();
+  }
+
+  // D: first mention of XX老師 anywhere
+  if(!teacher){
+    for(const line of lines.slice(0,6)){
+      const m = line.match(/(.{2,8}(?:老師|師傅|合體))/);
+      if(m){ teacher = m[1].trim(); break; }
     }
   }
 
-  // Color: auto-pick based on existing teacher color (exact or partial match)
-  const teacher = document.getElementById('pp-teacher').value.trim();
-  if(teacher){
-    const exact   = events.find(e=>e.teacher===teacher);
-    const partial = events.find(e=>e.teacher.includes(teacher)||teacher.includes(e.teacher));
-    const matched = exact || partial;
+  // Title: 【課程名】 bracket
+  if(!title){
+    const bm = text.match(/[【\[「]([^】\]」\n]{3,})[】\]」]/);
+    if(bm) title = bm[1].replace(/.{2,8}(?:老師|師傅|合體)/g,'').trim();
+  }
+
+  // Title: line containing baking keywords
+  if(!title){
+    const kwRe = /課|班|酥|餅|蛋糕|月餅|麵|炒飯|塔|派|捲|餅乾|馬卡龍|泡芙|布朗尼|乳酪|起司|麻糬|湯圓|吐司|貝果|巴斯克/;
+    const noisy = /^\d|元$|http|^老師|日期|時間|費用|報名|地點|聯絡|電話|LINE/i;
+    const cands = lines.filter(l => l.length >= 4 && !noisy.test(l) && l !== teacher);
+    title = (cands.find(l=>kwRe.test(l)) || cands.find(l=>l.length>6) || '');
+    if(teacher) title = title.replace(teacher,'').replace(/^[\s×X｜|xX]+/,'').trim();
+  }
+
+  if(teacher) document.getElementById('pp-teacher').value = teacher;
+  if(title)   document.getElementById('pp-title').value   = title;
+
+  // ── Color ─────────────────────────────────────────────────────
+  const t = (document.getElementById('pp-teacher').value||'').trim();
+  if(t){
+    const tBase = t.replace(/老師|師傅|合體/g,'');
+    const matched = events.find(e=>e.teacher===t)
+      || events.find(e=>e.teacher.includes(t)||t.includes(e.teacher))
+      || (tBase.length>=2 && events.find(e=>e.teacher.includes(tBase)));
     if(matched) ppSelColor = matched.color;
   }
 
-  // Build color picker
   document.getElementById('pp-color-opts').innerHTML = COLORS.map(c=>`
     <div class="copt${c.id===ppSelColor?' sel':''}" style="background:${c.hex}" title="${c.id}"
          onclick="pickPpColor('${c.id}',this)"></div>`).join('');
