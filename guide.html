@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>後台操作手冊 | Jen 手作烘焙</title>
+<style>
+:root{
+  --primary:#c17f3e;--primary-light:#f5e6d3;--primary-dark:#8b5a27;
+  --bg:#f7f2ed;--card:#fff;--text:#3d2c1e;--muted:#8a6d5a;--border:#e3cdb6;
+  --shadow:0 2px 12px rgba(193,127,62,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI','PingFang TC','Microsoft JhengHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.7}
+
+/* Header */
+header{background:linear-gradient(135deg,#5a3a1a,var(--primary-dark) 60%,#a0622a);color:#fff;padding:28px 24px 24px;text-align:center}
+header h1{font-size:1.4rem;font-weight:800;margin-bottom:4px}
+header p{font-size:.85rem;opacity:.8}
+
+/* TOC */
+.toc{background:var(--card);border-bottom:2px solid var(--border);padding:16px 24px}
+.toc h2{font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.toc ul{list-style:none;display:flex;flex-wrap:wrap;gap:6px}
+.toc a{background:var(--primary-light);color:var(--primary-dark);text-decoration:none;padding:5px 12px;border-radius:20px;font-size:.82rem;font-weight:600}
+.toc a:hover{background:var(--primary);color:#fff}
+
+/* Main */
+main{max-width:780px;margin:0 auto;padding:24px 16px 60px}
+
+/* Section */
+section{background:var(--card);border-radius:16px;border:1px solid var(--border);padding:24px;margin-bottom:20px;box-shadow:var(--shadow)}
+.section-title{display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid var(--primary-light)}
+.section-num{background:var(--primary);color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:800;flex-shrink:0}
+.section-title h2{font-size:1.1rem;font-weight:800;color:var(--primary-dark)}
+
+/* Steps */
+.steps{counter-reset:step}
+.step{counter-increment:step;display:flex;gap:12px;margin-bottom:12px;align-items:flex-start}
+.step::before{content:counter(step);background:var(--primary-light);color:var(--primary-dark);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;margin-top:2px}
+.step p{font-size:.9rem}
+
+/* Screenshot */
+.screenshot{margin:16px 0;border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow)}
+.screenshot img{width:100%;display:block}
+.screenshot figcaption{background:var(--primary-light);color:var(--primary-dark);font-size:.76rem;font-weight:600;padding:6px 12px;text-align:center}
+
+/* Table */
+table{width:100%;border-collapse:collapse;font-size:.86rem;margin:12px 0}
+th{background:var(--primary-light);color:var(--primary-dark);padding:8px 12px;text-align:left;font-weight:700}
+td{padding:8px 12px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+
+/* Note */
+.note{background:#fffbf5;border-left:3px solid var(--primary);border-radius:0 8px 8px 0;padding:10px 14px;margin:12px 0;font-size:.85rem;color:var(--muted)}
+.warn{background:#fff8f0;border-left:3px solid #e07a3e;border-radius:0 8px 8px 0;padding:10px 14px;margin:12px 0;font-size:.85rem;color:#8a4a1a}
+
+/* Code block */
+.code-block{background:#2d1f14;color:#f0d9bf;padding:16px;border-radius:10px;font-size:.82rem;line-height:1.8;margin:12px 0;overflow-x:auto;white-space:pre-wrap}
+
+/* Badge */
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:.75rem;font-weight:700}
+.badge-green{background:#e8f5ed;color:#3e8c60}
+.badge-red{background:#fdeaea;color:#e05c5c}
+.badge-orange{background:var(--primary-light);color:var(--primary-dark)}
+
+/* FAQ */
+.faq-item{border-bottom:1px solid var(--border);padding:14px 0}
+.faq-item:last-child{border-bottom:none}
+.faq-q{font-weight:700;font-size:.9rem;margin-bottom:6px;color:var(--primary-dark)}
+.faq-a{font-size:.87rem;color:var(--muted)}
+
+/* Back to top */
+.back-top{display:block;text-align:center;color:var(--primary);font-size:.82rem;font-weight:600;text-decoration:none;padding:8px;margin-top:8px}
+
+@media(max-width:600px){
+  section{padding:18px 14px}
+  main{padding:16px 10px 60px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="font-size:2rem;margin-bottom:8px">🥐</div>
+  <h1>Jen 手作烘焙 — 後台操作手冊</h1>
+  <p>管理員使用說明</p>
+</header>
+
+<nav class="toc">
+  <h2>目錄</h2>
+  <ul>
+    <li><a href="#s1">① 登入後台</a></li>
+    <li><a href="#s2">② 課程管理</a></li>
+    <li><a href="#s3">③ 報名管理</a></li>
+    <li><a href="#s4">④ 複製報名連結</a></li>
+    <li><a href="#s5">⑤ 圖片設定</a></li>
+    <li><a href="#s6">⑥ 修改密碼</a></li>
+    <li><a href="#s7">❓ 常見問題</a></li>
+  </ul>
+</nav>
+
+<main>
+
+<!-- 1. 登入 -->
+<section id="s1">
+  <div class="section-title">
+    <div class="section-num">1</div>
+    <h2>登入後台</h2>
+  </div>
+
+  <div class="steps">
+    <div class="step"><p>用瀏覽器開啟網址：<strong>bakery.urland.com.tw/admin.html</strong></p></div>
+    <div class="step"><p>輸入管理密碼</p></div>
+    <div class="step"><p>按 <strong>登入後台</strong></p></div>
+  </div>
+
+  <figure class="screenshot">
+    <img src="docs/images/01-login.png" alt="登入畫面">
+    <figcaption>登入畫面</figcaption>
+  </figure>
+
+  <div class="note">💡 登入後系統會自動記住，下次開啟不需要重新輸入密碼。手機和電腦都可以使用，每台裝置第一次需要輸入密碼。</div>
+
+  <a class="back-top" href="#">↑ 回到頂部</a>
+</section>
+
+<!-- 2. 課程管理 -->
+<section id="s2">
+  <div class="section-title">
+    <div class="section-num">2</div>
+    <h2>課程管理</h2>
+  </div>
+
+  <p style="font-size:.9rem;margin-bottom:14px">登入後會看到課程管理主畫面，上方顯示課程總數、授課老師數等統計資訊。</p>
+
+  <figure class="screenshot">
+    <img src="docs/images/02-course-list.png" alt="課程管理主畫面">
+    <figcaption>課程管理主畫面</figcaption>
+  </figure>
+
+  <h3 style="font-size:.95rem;font-weight:700;color:var(--primary-dark);margin:18px 0 10px">新增課程</h3>
+  <div class="steps">
+    <div class="step"><p>點右上角橘色的 <strong>＋ 手動新增</strong> 按鈕</p></div>
+    <div class="step"><p>填入課程資料（見下表）</p></div>
+    <div class="step"><p>點 <strong>儲存課程</strong>，系統自動產生報名連結</p></div>
+  </div>
+
+  <figure class="screenshot">
+    <img src="docs/images/03-add-course-1.png" alt="新增課程表單（上半部）">
+    <figcaption>新增課程表單（上半部）</figcaption>
+  </figure>
+  <figure class="screenshot">
+    <img src="docs/images/04-add-course-2.png" alt="新增課程表單（下半部）">
+    <figcaption>新增課程表單（下半部）</figcaption>
+  </figure>
+
+  <table>
+    <tr><th>欄位</th><th>說明</th></tr>
+    <tr><td><strong>日期</strong></td><td>選擇課程日期</td></tr>
+    <tr><td><strong>老師姓名</strong></td><td>例如「邱穎珊老師」</td></tr>
+    <tr><td><strong>開始／結束時間</strong></td><td>例如 09:30 / 12:30</td></tr>
+    <tr><td><strong>課程名稱</strong></td><td>會顯示在行事曆和報名頁面</td></tr>
+    <tr><td><strong>費用</strong></td><td>只輸入數字，例如 <code>1800</code></td></tr>
+    <tr><td><strong>課程介紹</strong></td><td>選填，會顯示在報名頁面</td></tr>
+    <tr><td><strong>課程圖片</strong></td><td>點虛線框上傳，或貼入圖片網址</td></tr>
+    <tr><td><strong>標籤顏色</strong></td><td>點選圓圈，用來區分不同類型課程</td></tr>
+  </table>
+
+  <h3 style="font-size:.95rem;font-weight:700;color:var(--primary-dark);margin:18px 0 10px">編輯課程</h3>
+  <p style="font-size:.9rem">在課程列表找到要修改的課程，點 <strong>✏️ 編輯</strong> 按鈕，修改完成後點 <strong>儲存課程</strong>。</p>
+
+  <h3 style="font-size:.95rem;font-weight:700;color:var(--primary-dark);margin:18px 0 10px">刪除課程</h3>
+  <p style="font-size:.9rem">點課程右側的 <strong>刪除</strong> 按鈕，確認後即刪除。</p>
+  <div class="warn">⚠️ 刪除課程不會同時刪除報名資料。</div>
+
+  <h3 style="font-size:.95rem;font-weight:700;color:var(--primary-dark);margin:18px 0 10px">搜尋與篩選</h3>
+  <p style="font-size:.9rem">左上搜尋框可依<strong>課程名稱或老師名稱</strong>搜尋，也可依<strong>月份</strong>或<strong>標籤顏色</strong>篩選。</p>
+
+  <a class="back-top" href="#">↑ 回到頂部</a>
+</section>
+
+<!-- 3. 報名管理 -->
+<section id="s3">
+  <div class="section-title">
+    <div class="section-num">3</div>
+    <h2>報名管理</h2>
+  </div>
+
+  <div class="steps">
+    <div class="step"><p>點上方 <strong>📋 報名總覽</strong> 切換頁面</p></div>
+    <div class="step"><p>可以看到所有課程的總報名人數、<span class="badge badge-green">已繳費</span>、<span class="badge badge-red">未繳費</span> 統計</p></div>
+    <div class="step"><p>點右側 <strong>查看名單</strong> 進入該課程的報名者列表</p></div>
+  </div>
+
+  <figure class="screenshot">
+    <img src="docs/images/07-reg-overview.png" alt="報名總覽">
+    <figcaption>報名總覽頁面</figcaption>
+  </figure>
+
+  <figure class="screenshot">
+    <img src="docs/images/05-reg-list.png" alt="報名名單">
+    <figcaption>報名名單（每人一張卡片）</figcaption>
+  </figure>
+
+  <h3 style="font-size:.95rem;font-weight:700;color:var(--primary-dark);margin:18px 0 10px">標記繳費狀態</h3>
+  <p style="font-size:.9rem">點卡片右上角的 <span class="badge badge-red">⏳ 未繳</span> 即可切換為 <span class="badge badge-green">✅ 已繳</span>，再點一次可切換回來。</p>
+
+  <h3 style="font-size:.95rem;font-weight:700;color:var(--primary-dark);margin:18px 0 10px">手動新增報名者</h3>
+  <p style="font-size:.9rem">在查看名單視窗下方有「＋ 手動新增報名者」表單，填入姓名、電話等資料後點 <strong>新增</strong>。</p>
+
+  <h3 style="font-size:.95rem;font-weight:700;color:var(--primary-dark);margin:18px 0 10px">批次匯入名單</h3>
+  <div class="steps">
+    <div class="step"><p>點視窗右上角 <strong>📥 批次匯入</strong></p></div>
+    <div class="step"><p>從 Google 試算表複製資料貼入，或直接輸入（每行一人，用空格或逗號分隔姓名、電話、備註）</p></div>
+    <div class="step"><p>確認預覽後點 <strong>匯入</strong></p></div>
+  </div>
+
+  <a class="back-top" href="#">↑ 回到頂部</a>
+</section>
+
+<!-- 4. 複製報名連結 -->
+<section id="s4">
+  <div class="section-title">
+    <div class="section-num">4</div>
+    <h2>複製報名連結</h2>
+  </div>
+
+  <p style="font-size:.9rem;margin-bottom:14px">每堂課右側有幾個操作按鈕：</p>
+
+  <figure class="screenshot">
+    <img src="docs/images/09-course-buttons.png" alt="課程操作按鈕">
+    <figcaption>課程操作按鈕</figcaption>
+  </figure>
+
+  <table>
+    <tr><th>按鈕</th><th>功能</th></tr>
+    <tr><td><strong>👥 數字</strong></td><td>查看該課程報名人數，點擊進入名單</td></tr>
+    <tr><td><strong>🔗 報名頁</strong></td><td>開啟報名頁面（可分享給學員）</td></tr>
+    <tr><td><strong>📋 複製</strong></td><td>複製完整課程資訊＋報名連結</td></tr>
+    <tr><td><strong>✏️ 編輯</strong></td><td>編輯課程內容</td></tr>
+  </table>
+
+  <p style="font-size:.9rem;margin:14px 0 8px">點 <strong>📋 複製</strong> 後，剪貼簿的內容可以直接貼到 LINE 群組或 Facebook：</p>
+
+  <div class="code-block">【五行甜燒餅＋老麵烤蔥捲】
+🗓 日期：5/20 (三)
+⏰ 時間：13:00 – 16:00
+👩‍🏫 老師：邱穎珊老師
+💰 費用：NT$2,600 元
+
+🔗 報名連結：https://bakery.urland.com.tw/register.html?id=xxx</div>
+
+  <a class="back-top" href="#">↑ 回到頂部</a>
+</section>
+
+<!-- 5. 圖片設定 -->
+<section id="s5">
+  <div class="section-title">
+    <div class="section-num">5</div>
+    <h2>圖片設定</h2>
+  </div>
+
+  <p style="font-size:.9rem;margin-bottom:14px">課程圖片透過 Cloudinary 上傳。<strong>第一次使用前需要先完成設定</strong>，設定好之後就不需要再動。</p>
+
+  <figure class="screenshot">
+    <img src="docs/images/08-cloudinary.png" alt="圖片設定視窗">
+    <figcaption>圖片設定視窗</figcaption>
+  </figure>
+
+  <div class="steps">
+    <div class="step"><p>點上方工具列的 <strong>☁️ 圖片設定</strong></p></div>
+    <div class="step"><p>依照視窗內的說明，登入 Cloudinary 取得 <strong>Cloud Name</strong> 和 <strong>Upload Preset</strong></p></div>
+    <div class="step"><p>填入後點 <strong>儲存設定</strong></p></div>
+    <div class="step"><p>按鈕旁的圓點變成綠色 🟢 表示設定成功</p></div>
+  </div>
+
+  <div class="note">💡 不確定怎麼設定的話，請聯絡網站管理員。</div>
+
+  <a class="back-top" href="#">↑ 回到頂部</a>
+</section>
+
+<!-- 6. 修改密碼 -->
+<section id="s6">
+  <div class="section-title">
+    <div class="section-num">6</div>
+    <h2>修改密碼</h2>
+  </div>
+
+  <figure class="screenshot">
+    <img src="docs/images/06-change-password.png" alt="修改密碼視窗">
+    <figcaption>修改密碼視窗</figcaption>
+  </figure>
+
+  <div class="steps">
+    <div class="step"><p>點右上角 <strong>🔑 更改密碼</strong></p></div>
+    <div class="step"><p>輸入<strong>目前密碼</strong></p></div>
+    <div class="step"><p>輸入<strong>新密碼</strong>（至少 6 個字元）</p></div>
+    <div class="step"><p>再次輸入新密碼確認</p></div>
+    <div class="step"><p>點 <strong>儲存新密碼</strong></p></div>
+  </div>
+
+  <a class="back-top" href="#">↑ 回到頂部</a>
+</section>
+
+<!-- 7. FAQ -->
+<section id="s7">
+  <div class="section-title">
+    <div class="section-num">❓</div>
+    <h2>常見問題</h2>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">登入後畫面是空的？</div>
+    <div class="faq-a">請確認網路連線正常，系統需要連線才能載入資料。</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">圖片上傳失敗？</div>
+    <div class="faq-a">請確認圖片設定已完成（按鈕旁是綠燈）。如果是紅燈，請重新填入 Cloudinary 設定。</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">忘記密碼怎麼辦？</div>
+    <div class="faq-a">請聯絡網站管理員重設密碼。</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">在不同裝置都需要重新登入嗎？</div>
+    <div class="faq-a">每台裝置第一次需要輸入密碼，之後會自動記住，不需要每次重新輸入。</div>
+  </div>
+
+  <a class="back-top" href="#">↑ 回到頂部</a>
+</section>
+
+</main>
+
+</body>
+</html>
