@@ -125,6 +125,7 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
 .ecard{background:#fff;border-radius:12px;border:1px solid var(--border);padding:14px 16px;margin-bottom:8px;display:flex;align-items:flex-start;gap:14px;box-shadow:var(--shadow);transition:transform .2s}
 .ecard:hover{transform:translateY(-2px)}
 .ebar{width:5px;align-self:stretch;border-radius:3px;flex-shrink:0}
+.ethumb{width:80px;height:80px;object-fit:cover;border-radius:8px;flex-shrink:0}
 .einfo{flex:1;min-width:0}
 .etitle{font-size:.95rem;font-weight:700;margin-bottom:3px}
 .etime{font-size:.81rem;color:var(--muted);margin-bottom:3px}
@@ -456,7 +457,7 @@ function renderSchedule(){
       byMonth[mo][date].forEach(e=>{
         const c = colorById(e.color);
         html+=`<div class="ecard">
-          <div class="ebar" style="background:${c.hex}"></div>
+          ${e.image?`<img class="ethumb" src="${e.image}" alt="${e.title}">`:`<div class="ebar" style="background:${c.hex}"></div>`}
           <div class="einfo">
             <div class="etitle">${e.teacher}｜${e.title}</div>
             <div class="etime">🕐 ${e.start} – ${e.end}</div>
