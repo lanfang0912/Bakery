@@ -1557,7 +1557,7 @@ async function doLogin(e) {
     const hash   = await sha256(pw);
     const stored = await getStoredHash();
     if(hash === stored){
-      sessionStorage.setItem(SESSION_KEY,'1');
+      localStorage.setItem(SESSION_KEY,'1');
       document.getElementById('login-screen').classList.add('hidden');
       err.textContent='';
       document.getElementById('login-pw').value='';
@@ -1574,7 +1574,7 @@ async function doLogin(e) {
 }
 
 function doLogout() {
-  sessionStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(SESSION_KEY);
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('login-pw').focus();
 }
@@ -1610,7 +1610,7 @@ async function saveNewPw(e){
 
 // Check session on load
 (async()=>{
-  if(sessionStorage.getItem(SESSION_KEY)==='1'){
+  if(localStorage.getItem(SESSION_KEY)==='1'){
     document.getElementById('login-screen').classList.add('hidden');
   } else {
     document.getElementById('login-pw').focus();
