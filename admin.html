@@ -738,7 +738,8 @@ function renderTable(){
         <td>${e.link?`<a href="${e.link}" target="_blank" rel="noopener" style="color:var(--primary);font-size:.78rem;font-weight:600">開啟連結 ↗</a>`:'-'}</td>
         <td><div class="act-btns">
           <button class="btn-reg"    data-reg="${e.id}">👥 ${regCount(e.id)}</button>
-          <button class="btn-export" data-link="${e.id}" title="複製報名頁連結">🔗 報名連結</button>
+          <a class="btn-export" href="${location.href.replace(/admin\.html.*$/,'register.html?id='+e.id)}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center">🔗 報名頁</a>
+          <button class="btn-export" data-link="${e.id}" title="複製報名頁連結" style="background:#fff3e0;color:#c17f3e">📋 複製</button>
           <button class="btn-edit"   data-edit="${e.id}">✏️ 編輯</button>
           <button class="btn-del"    data-del="${e.id}">🗑 刪除</button>
         </div></td>
@@ -1194,7 +1195,7 @@ function renderRegOverview(){
       </div>
       <div style="display:flex;flex-direction:column;gap:5px;margin-left:4px">
         <button class="btn-reg" onclick="openRegModal('${e.id}')">查看名單</button>
-        <button class="btn-export" onclick="copyRegLink('${e.id}')" style="padding:5px 10px;font-size:.76rem">🔗 複製連結</button>
+        <a class="btn-export" href="${location.href.replace(/admin\.html.*$/,'register.html?id='+e.id)}" target="_blank" rel="noopener" style="text-decoration:none;padding:5px 10px;font-size:.76rem;display:inline-flex;align-items:center;justify-content:center">🔗 開啟頁面</a>
       </div>
     </div>`;
   }).join('');
