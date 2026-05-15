@@ -417,12 +417,21 @@ function showDetail(ev, id){
   if (window.innerWidth > 700) {
     const chip = ev.target.closest('.chip') || ev.target;
     const r    = chip.getBoundingClientRect();
-    let top    = r.bottom + 6;
-    let left   = r.left;
-    if (left + 298 > window.innerWidth)  left = window.innerWidth - 304;
-    if (left < 4)                         left = 4;
-    if (top  + 220 > window.innerHeight)  top  = r.top - 224;
-    p.style.top=top+'px'; p.style.left=left+'px';
+    // Position first, then adjust after render so we know actual height
+    p.style.top  = '0px';
+    p.style.left = '0px';
+    requestAnimationFrame(() => {
+      const ph   = p.offsetHeight;
+      const pw   = p.offsetWidth;
+      let top    = r.bottom + 6;
+      let left   = r.left;
+      if (left + pw + 4 > window.innerWidth) left = window.innerWidth - pw - 4;
+      if (left < 4) left = 4;
+      if (top + ph + 4 > window.innerHeight) top = r.top - ph - 6;
+      if (top < 4) top = 4;
+      p.style.top  = top  + 'px';
+      p.style.left = left + 'px';
+    });
   }
   p.classList.add('open');
 }
