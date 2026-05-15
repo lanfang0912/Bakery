@@ -130,6 +130,15 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
 .elink a{font-size:.79rem;color:var(--primary);text-decoration:none;font-weight:600}
 .elink a:hover{text-decoration:underline}
 
+/* ── Contact footer ── */
+.contact-footer{background:linear-gradient(135deg,var(--primary-dark),#7a4e22);color:#fff;padding:32px 36px;margin-top:40px}
+.contact-footer h3{font-size:1rem;font-weight:800;margin-bottom:20px;opacity:.9;letter-spacing:.5px}
+.contact-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.contact-item{display:flex;align-items:flex-start;gap:10px;font-size:.85rem;line-height:1.6}
+.contact-icon{font-size:1.1rem;flex-shrink:0;margin-top:1px}
+.contact-item a{color:rgba(255,255,255,.9);text-decoration:none}
+.contact-item a:hover{text-decoration:underline}
+
 /* ── Responsive ── */
 @media(max-width:700px){
   header{padding:14px 16px;flex-wrap:wrap;gap:10px}
@@ -140,6 +149,8 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
   .chip{font-size:.65rem;padding:3px 5px}
   .stats{grid-template-columns:1fr}
   .day-modal{width:98vw}
+  .contact-footer{padding:24px 16px}
+  .contact-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -181,6 +192,16 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
     <div id="schedule-list"></div>
   </div>
 </main>
+
+<div class="contact-footer">
+  <h3>📌 上課資訊</h3>
+  <div class="contact-grid">
+    <div class="contact-item"><span class="contact-icon">📍</span><span>宜蘭縣羅東鎮羅莊二街198號（可路邊停車）</span></div>
+    <div class="contact-item"><span class="contact-icon">🚌</span><span>鄰近羅莊櫻花步道，離羅東轉運站 3 分鐘（若需要可接送）</span></div>
+    <div class="contact-item"><span class="contact-icon">📲</span><span>報名匯款後請電話或 LINE 確認：<a href="tel:0966864079">0966-864-079</a></span></div>
+    <div class="contact-item"><span class="contact-icon">💬</span><span>LINE ID：<a href="https://line.me/ti/p/0966864079" target="_blank" rel="noopener">0966864079</a>（歡迎邀請朋友加入群組）</span></div>
+  </div>
+</div>
 
 <!-- Day expand modal -->
 <div id="day-overlay" class="day-overlay" onclick="closeDayModal(event)">
@@ -287,6 +308,7 @@ function openDayModal(dateStr){
         <div class="day-ev-title" style="color:${c.hex}">${e.title}</div>
         <div class="day-ev-teacher">👨‍🍳 ${e.teacher}</div>
         <div class="day-ev-time">🕐 ${e.start} – ${e.end}</div>
+        ${e.fee?`<div class="day-ev-time">💵 ${e.fee}</div>`:''}
         ${e.link?`<a class="day-reg" style="background:${c.hex}" href="${e.link}" target="_blank" rel="noopener">📝 立即報名</a>`:''}
       </div>
     </div>`;
@@ -314,6 +336,7 @@ function showDetail(ev, id){
     <p>👨‍🍳 ${e.teacher}</p>
     <p>📅 ${formatDate(e.date)}</p>
     <p>🕐 ${e.start} – ${e.end}</p>
+    ${e.fee?`<p>💵 ${e.fee}</p>`:''}
     ${e.link?`<a class="reg-btn" style="background:${c.hex}" href="${e.link}" target="_blank" rel="noopener">📝 立即報名</a>`:''}`;
   const r   = ev.target.getBoundingClientRect();
   let top   = r.bottom+window.scrollY+6;
@@ -355,7 +378,7 @@ function renderSchedule(){
           <div class="ebar" style="background:${c.hex}"></div>
           <div class="einfo">
             <div class="etitle">${e.teacher}｜${e.title}</div>
-            <div class="etime">🕐 ${e.start} – ${e.end}</div>
+            <div class="etime">🕐 ${e.start} – ${e.end}${e.fee?`　💵 ${e.fee}`:''}</div>
             ${e.link?`<div class="elink"><a href="${e.link}" target="_blank" rel="noopener">📝 立即報名</a></div>`:''}
           </div>
         </div>`;

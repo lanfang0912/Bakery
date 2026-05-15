@@ -60,6 +60,15 @@ tr:hover td{background:var(--primary-light)}
 .btn-del:hover{background:var(--red);color:#fff}
 .btn-export{background:#edfaf3;color:var(--green);border:none;padding:6px 14px;border-radius:14px;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s}
 .btn-export:hover{background:var(--green);color:#fff}
+.btn-paste{background:#f0eafc;color:#7c3fb5;border:none;padding:10px 18px;border-radius:22px;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-paste:hover{background:#7c3fb5;color:#fff}
+
+/* Smart paste modal */
+.paste-modal{background:#fff;border-radius:18px;padding:32px 36px;width:620px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.28);animation:mIn .22s ease}
+.paste-textarea{width:100%;height:180px;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-size:.84rem;font-family:inherit;resize:vertical;outline:none;transition:border-color .2s;color:var(--text);background:var(--bg)}
+.paste-textarea:focus{border-color:#7c3fb5}
+.parse-preview{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.parse-hint{font-size:.75rem;color:var(--muted);margin-top:8px}
 
 .tfoot-note{padding:10px 0;text-align:center;font-size:.77rem;color:var(--muted)}
 
@@ -188,7 +197,8 @@ tr:hover td{background:var(--primary-light)}
   </div>
   <div style="display:flex;gap:10px;align-items:center">
     <button class="btn-export" onclick="exportCSV()" style="padding:10px 18px;font-size:.85rem;font-weight:700">⬇ 匯出 CSV</button>
-    <button class="btn-add" onclick="openAdd()">＋ 新增課程</button>
+    <button class="btn-paste" onclick="openPaste()">📋 貼上新增</button>
+    <button class="btn-add" onclick="openAdd()">＋ 手動新增</button>
   </div>
 </div>
 
@@ -209,6 +219,7 @@ tr:hover td{background:var(--primary-light)}
           <th>時間</th>
           <th>老師</th>
           <th>課程名稱</th>
+          <th>費用</th>
           <th>報名連結</th>
           <th>操作</th>
         </tr>
@@ -253,6 +264,10 @@ tr:hover td{background:var(--primary-light)}
         <input type="text" id="f-title" placeholder="例：台灣市場創業小吃" required>
       </div>
       <div class="fg">
+        <label>費用</label>
+        <input type="text" id="f-fee" placeholder="例：$1,800 元">
+      </div>
+      <div class="fg">
         <label>報名連結</label>
         <input type="url" id="f-link" placeholder="https://forms.gle/…">
       </div>
@@ -276,6 +291,59 @@ tr:hover td{background:var(--primary-light)}
     <div class="confirm-btns">
       <button class="btn-no" onclick="closeConfirm()">取消</button>
       <button class="btn-yes" onclick="doDelete()">確定刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- Smart-paste modal -->
+<div id="paste-overlay" class="overlay" onclick="closePasteBg(event)">
+  <div class="paste-modal">
+    <div class="modal-hd">
+      <h3>📋 貼上課程資訊</h3>
+      <button class="modal-close" onclick="closePaste()">×</button>
+    </div>
+    <div class="fg">
+      <label>貼上課程文字（自動解析）</label>
+      <textarea class="paste-textarea" id="paste-text" placeholder="把課程公告文字直接貼在這裡，系統會自動抓取日期、時間、老師、課程名稱、費用和報名連結…" oninput="parsePaste()"></textarea>
+      <p class="parse-hint">📌 解析後請確認各欄位，再點「加入課程」儲存</p>
+    </div>
+    <div class="parse-preview" id="parse-preview" style="display:none">
+      <div class="fg">
+        <label>日期</label>
+        <input class="login-input" type="date" id="pp-date" min="2026-01-01" max="2026-12-31">
+      </div>
+      <div class="fg">
+        <label>老師</label>
+        <input class="login-input" type="text" id="pp-teacher" placeholder="老師姓名">
+      </div>
+      <div class="fg">
+        <label>開始時間</label>
+        <input class="login-input" type="time" id="pp-start">
+      </div>
+      <div class="fg">
+        <label>結束時間</label>
+        <input class="login-input" type="time" id="pp-end">
+      </div>
+      <div class="fg" style="grid-column:1/-1">
+        <label>課程名稱</label>
+        <input class="login-input" type="text" id="pp-title" placeholder="課程名稱">
+      </div>
+      <div class="fg">
+        <label>費用</label>
+        <input class="login-input" type="text" id="pp-fee" placeholder="例：$1,800 元">
+      </div>
+      <div class="fg">
+        <label>報名連結</label>
+        <input class="login-input" type="url" id="pp-link" placeholder="https://forms.gle/…">
+      </div>
+      <div class="fg" style="grid-column:1/-1">
+        <label>標籤顏色</label>
+        <div class="color-opts" id="pp-color-opts"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-cancel" onclick="closePaste()">取消</button>
+      <button type="button" class="btn-save" id="pp-save-btn" style="display:none" onclick="saveParsed()">加入課程</button>
     </div>
   </div>
 </div>
@@ -360,6 +428,7 @@ function renderTable(){
         <td style="white-space:nowrap;font-size:.8rem">${e.start} – ${e.end}</td>
         <td style="font-weight:600">${e.teacher}</td>
         <td>${e.title}</td>
+        <td style="font-size:.8rem;color:var(--muted)">${e.fee||'-'}</td>
         <td>${e.link?`<a href="${e.link}" target="_blank" rel="noopener" style="color:var(--primary);font-size:.78rem;font-weight:600">開啟連結 ↗</a>`:'-'}</td>
         <td><div class="act-btns">
           <button class="btn-edit" onclick="openEdit(${e.id})">✏️ 編輯</button>
@@ -396,12 +465,13 @@ function openEdit(id){
   const e = events.find(x=>x.id===id);
   if(!e) return;
   document.getElementById('modal-title').textContent = '編輯課程';
-  document.getElementById('edit-id').value  = id;
+  document.getElementById('edit-id').value   = id;
   document.getElementById('f-date').value    = e.date;
   document.getElementById('f-teacher').value = e.teacher;
   document.getElementById('f-start').value   = e.start;
   document.getElementById('f-end').value     = e.end;
   document.getElementById('f-title').value   = e.title;
+  document.getElementById('f-fee').value     = e.fee||'';
   document.getElementById('f-link').value    = e.link||'';
   selColor = e.color;
   buildColorPicker();
@@ -419,6 +489,7 @@ function saveEvent(e){
     start:   document.getElementById('f-start').value,
     end:     document.getElementById('f-end').value,
     title:   document.getElementById('f-title').value.trim(),
+    fee:     document.getElementById('f-fee').value.trim(),
     link:    document.getElementById('f-link').value.trim(),
     color:   selColor,
   };
@@ -483,6 +554,120 @@ function exportCSV(){
 // ── Init ─────────────────────────────────────────────────────
 buildColorFilter();
 renderTable();
+
+// ── Smart paste ───────────────────────────────────────────────
+let ppSelColor = 'orange';
+
+function openPaste(){
+  document.getElementById('paste-text').value = '';
+  document.getElementById('parse-preview').style.display = 'none';
+  document.getElementById('pp-save-btn').style.display = 'none';
+  ppSelColor = 'orange';
+  document.getElementById('paste-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('paste-text').focus(), 100);
+}
+function closePaste(){ document.getElementById('paste-overlay').classList.remove('open'); }
+function closePasteBg(e){ if(e.target===document.getElementById('paste-overlay')) closePaste(); }
+
+function parsePaste(){
+  const text = document.getElementById('paste-text').value;
+  if(text.trim().length < 10) {
+    document.getElementById('parse-preview').style.display = 'none';
+    document.getElementById('pp-save-btn').style.display = 'none';
+    return;
+  }
+
+  // Date
+  const dateM = text.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if(dateM) document.getElementById('pp-date').value =
+    `${dateM[1]}-${dateM[2].padStart(2,'0')}-${dateM[3].padStart(2,'0')}`;
+
+  // Time
+  const timeM = text.match(/(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})/);
+  if(timeM){
+    document.getElementById('pp-start').value = timeM[1].padStart(5,'0');
+    document.getElementById('pp-end').value   = timeM[2].padStart(5,'0');
+  }
+
+  // Fee
+  const feeM = text.match(/💵[^\n]*?(\$[\d,，]+\s*元)/);
+  const feeM2 = feeM || text.match(/費用[：:]\s*(\$[\d,，]+\s*元)/);
+  if(feeM2) document.getElementById('pp-fee').value = feeM2[1].trim();
+
+  // Link
+  const linkM = text.match(/https:\/\/forms\.gle\/[A-Za-z0-9]+/);
+  if(linkM) document.getElementById('pp-link').value = linkM[0];
+
+  // Title: look for a bold/header-style line (first substantive non-emoji line after teacher name line)
+  // Strategy: find the first line that looks like a course title
+  const lines = text.split('\n').map(l=>l.trim()).filter(l=>l && !/^[•\-🗓⏰💵🍫🌷🔺👨🔗📲📍🚌💬✨🎓]/.test(l));
+  // First line often has: "老師名 課程名" or just course name
+  if(lines.length > 0){
+    const firstLine = lines[0].replace(/‼️|！|【|】|——.*?——/g,'').trim();
+    // Try to split teacher from title by common patterns
+    const splitM = firstLine.match(/^(.{2,8}(?:老師|師傅|合體))\s+(.+)$/);
+    if(splitM){
+      document.getElementById('pp-teacher').value = splitM[1].trim();
+      document.getElementById('pp-title').value   = splitM[2].trim();
+    } else {
+      document.getElementById('pp-title').value = firstLine;
+    }
+  }
+
+  // Teacher: explicit section
+  const teacherSecM = text.match(/指導老師[\s\S]{0,3}\n([^\n]+)/);
+  if(teacherSecM){
+    // Keep it as-is for manual review; or try to find a short name
+    const tLine = teacherSecM[1].trim();
+    // If line has "聯合指導" etc., look up to the first "老師" mention
+    if(!document.getElementById('pp-teacher').value || tLine.includes('老師')){
+      // Try to find the teacher name from 雙張老師合體 style or first line
+    }
+  }
+
+  // Color: auto-pick based on existing teacher color if found
+  const teacher = document.getElementById('pp-teacher').value;
+  if(teacher){
+    const existing = events.find(e=>e.teacher===teacher);
+    if(existing) ppSelColor = existing.color;
+  }
+
+  // Build color picker
+  document.getElementById('pp-color-opts').innerHTML = COLORS.map(c=>`
+    <div class="copt${c.id===ppSelColor?' sel':''}" style="background:${c.hex}" title="${c.id}"
+         onclick="pickPpColor('${c.id}',this)"></div>`).join('');
+
+  document.getElementById('parse-preview').style.display = 'grid';
+  document.getElementById('pp-save-btn').style.display   = 'inline-block';
+}
+
+function pickPpColor(id, el){
+  ppSelColor = id;
+  document.querySelectorAll('#pp-color-opts .copt').forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+function saveParsed(){
+  const title   = document.getElementById('pp-title').value.trim();
+  const teacher = document.getElementById('pp-teacher').value.trim();
+  const date    = document.getElementById('pp-date').value;
+  const start   = document.getElementById('pp-start').value;
+  const end     = document.getElementById('pp-end').value;
+  if(!title||!teacher||!date||!start||!end){
+    toast('請確認課程名稱、老師、日期和時間都已填寫','error'); return;
+  }
+  events.push({
+    id: nextId++,
+    date, teacher, start, end, title,
+    fee:  document.getElementById('pp-fee').value.trim(),
+    link: document.getElementById('pp-link').value.trim(),
+    color: ppSelColor,
+  });
+  persistEvents(events);
+  closePaste();
+  renderTable();
+  toast('課程已新增 ✓','success');
+}
 
 // ── Auth ──────────────────────────────────────────────────────
 const PW_KEY      = 'bakery_pw_hash';
