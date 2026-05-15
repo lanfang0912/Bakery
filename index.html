@@ -133,6 +133,14 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
 .elink a{font-size:.79rem;color:var(--primary);text-decoration:none;font-weight:600}
 .elink a:hover{text-decoration:underline}
 
+/* ── Registration form in popup ── */
+.reg-fg{margin-bottom:8px}
+.reg-fg label{display:block;font-size:.7rem;font-weight:700;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.3px}
+.reg-fg input{width:100%;padding:7px 10px;border:2px solid var(--border);border-radius:8px;font-size:.83rem;font-family:inherit;color:var(--text);outline:none;transition:border-color .2s;background:#fff}
+.reg-fg input:focus{border-color:var(--primary)}
+.reg-fg input.err{border-color:#e05c5c;animation:fieldShake .3s}
+@keyframes fieldShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+
 /* ── Contact footer ── */
 .contact-footer{background:linear-gradient(135deg,var(--primary-dark),#7a4e22);color:#fff;padding:32px 36px;margin-top:40px}
 .contact-footer h3{font-size:1rem;font-weight:800;margin-bottom:20px;opacity:.9;letter-spacing:.5px}
@@ -384,7 +392,7 @@ function openDayModal(dateStr){
         <div class="day-ev-teacher">👨‍🍳 ${e.teacher}</div>
         <div class="day-ev-time">🕐 ${e.start} – ${e.end}</div>
         ${formatFee(e.fee)?`<div class="day-ev-time">💵 ${formatFee(e.fee)}</div>`:''}
-        ${e.link?`<a class="day-reg" style="background:${c.hex}" href="${e.link}" target="_blank" rel="noopener">📝 立即報名</a>`:''}
+        <button class="day-reg" style="background:${c.hex};border:none;cursor:pointer" onclick="openRegFromModal('${e.id}')">📝 立即報名</button>
       </div>
     </div>`;
   }).join('');
@@ -399,50 +407,117 @@ function closeDayModalBtn(){
 }
 
 // ── Chip detail popup ─────────────────────────────────────────
-function showDetail(ev, id){
-  ev.stopPropagation();
+let regEid = null;
+
+function showDetailContent(id){
   const e = events.find(x=>x.id===id);
   if(!e) return;
   const c = colorById(e.color);
-  const p = document.getElementById('dpopup');
-  p.style.borderTopColor = c.hex;
-  document.getElementById('dpopup-body').innerHTML=`
-    ${e.image?`<img src="${e.image}" style="max-width:100%;max-height:260px;width:auto;height:auto;border-radius:8px;margin-bottom:10px;display:block">`:''}
-    <h4 style="color:${c.hex}">${e.title}</h4>
+  document.getElementById('dpopup').style.borderTopColor = c.hex;
+  document.getElementById('dpopup-body').innerHTML =
+    (e.image?`<img src="${e.image}" style="max-width:100%;max-height:260px;width:auto;height:auto;border-radius:8px;margin-bottom:10px;display:block">`:'') +
+    `<h4 style="color:${c.hex}">${e.title}</h4>
     <p>👨‍🍳 ${e.teacher}</p>
     <p>📅 ${formatDate(e.date)}</p>
     <p>🕐 ${e.start} – ${e.end}</p>
     ${formatFee(e.fee)?`<p>💵 ${formatFee(e.fee)}</p>`:''}
-    ${e.link?`<a class="reg-btn" style="background:${c.hex}" href="${e.link}" target="_blank" rel="noopener">📝 立即報名</a>`:''}`;
-  // On mobile the popup is fixed at the bottom via CSS; skip JS positioning
+    <button class="reg-btn" style="background:${c.hex};border:none;cursor:pointer" onclick="openRegForm('${e.id}','${c.hex}')">📝 立即報名</button>`;
+}
+
+function showDetail(ev, id){
+  ev.stopPropagation();
+  showDetailContent(id);
+  const p = document.getElementById('dpopup');
   if (window.innerWidth > 700) {
     const chip = ev.target.closest('.chip') || ev.target;
     const r    = chip.getBoundingClientRect();
-    // Position first, then adjust after render so we know actual height
-    p.style.top  = '0px';
-    p.style.left = '0px';
-    requestAnimationFrame(() => {
-      const ph   = p.offsetHeight;
-      const pw   = p.offsetWidth;
-      let top    = r.bottom + 6;
-      let left   = r.left;
-      if (left + pw + 4 > window.innerWidth) left = window.innerWidth - pw - 4;
-      if (left < 4) left = 4;
-      if (top + ph + 4 > window.innerHeight) top = r.top - ph - 6;
-      if (top < 4) top = 4;
-      p.style.top  = top  + 'px';
-      p.style.left = left + 'px';
+    p.style.top = '0px'; p.style.left = '0px';
+    requestAnimationFrame(()=>{
+      const ph=p.offsetHeight, pw=p.offsetWidth;
+      let top=r.bottom+6, left=r.left;
+      if(left+pw+4>window.innerWidth) left=window.innerWidth-pw-4;
+      if(left<4) left=4;
+      if(top+ph+4>window.innerHeight) top=r.top-ph-6;
+      if(top<4) top=4;
+      p.style.top=top+'px'; p.style.left=left+'px';
     });
   }
   p.classList.add('open');
-  if(window.innerWidth <= 700){
-    document.getElementById('dpopup-overlay').style.display='block';
+  if(window.innerWidth<=700) document.getElementById('dpopup-overlay').style.display='block';
+}
+
+function openRegForm(eventId, colorHex){
+  regEid = eventId;
+  document.getElementById('dpopup-body').innerHTML =
+    `<div style="font-size:.85rem;font-weight:700;color:${colorHex};margin-bottom:10px">📝 填寫報名資料</div>
+    <div class="reg-fg"><label>姓名 *</label><input id="ri-name" type="text" placeholder="請輸入姓名"></div>
+    <div class="reg-fg"><label>電話 *</label><input id="ri-phone" type="tel" placeholder="0912-345-678"></div>
+    <div class="reg-fg"><label>備註</label><input id="ri-note" type="text" placeholder="飲食限制或其他問題…"></div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button onclick="showDetailContent('${eventId}')" style="padding:7px 10px;background:var(--border);color:var(--muted);border:none;border-radius:10px;font-size:.8rem;cursor:pointer">← 返回</button>
+      <button id="ri-submit" onclick="submitReg('${colorHex}')" style="flex:1;padding:7px;background:${colorHex};color:#fff;border:none;border-radius:10px;font-size:.84rem;font-weight:700;cursor:pointer">確認報名</button>
+    </div>`;
+  setTimeout(()=>{ const n=document.getElementById('ri-name'); if(n) n.focus(); }, 50);
+}
+
+async function submitReg(colorHex){
+  const name  = document.getElementById('ri-name')?.value?.trim()||'';
+  const phone = document.getElementById('ri-phone')?.value?.trim()||'';
+  const note  = document.getElementById('ri-note')?.value?.trim()||'';
+  document.getElementById('ri-name')?.classList.toggle('err', !name);
+  document.getElementById('ri-phone')?.classList.toggle('err', !phone);
+  if(!name||!phone) return;
+  const btn = document.getElementById('ri-submit');
+  if(btn){ btn.disabled=true; btn.textContent='報名中…'; }
+  try{
+    await db.ref(`bakery/registrations/${regEid}`).push({
+      name, phone, note, paid:false, createdAt:Date.now()
+    });
+    document.getElementById('dpopup-body').innerHTML =
+      `<div style="text-align:center;padding:8px 0">
+        <div style="font-size:2.4rem;margin-bottom:8px">✅</div>
+        <div style="font-weight:700;font-size:.95rem;margin-bottom:6px">報名成功！</div>
+        <div style="font-size:.82rem;color:var(--muted);line-height:1.7">我們會盡快與您確認<br>電話 / LINE：0966-864-079</div>
+        <button onclick="closeDetail()" style="margin-top:14px;padding:7px 20px;background:${colorHex};color:#fff;border:none;border-radius:12px;font-size:.83rem;cursor:pointer">關閉</button>
+      </div>`;
+  }catch(err){
+    if(btn){ btn.disabled=false; btn.textContent='確認報名'; }
+    alert('報名失敗，請直接電話聯絡 0966-864-079');
   }
+}
+
+function openRegFromModal(eventId){
+  closeDayModalBtn();
+  const e = events.find(x=>x.id===eventId);
+  if(!e) return;
+  const c = colorById(e.color);
+  const p = document.getElementById('dpopup');
+  if(window.innerWidth>700){
+    p.style.top  = Math.max(10,(window.innerHeight-420)/2)+'px';
+    p.style.left = Math.max(10,(window.innerWidth-290)/2)+'px';
+  }
+  p.classList.add('open');
+  if(window.innerWidth<=700) document.getElementById('dpopup-overlay').style.display='block';
+  openRegForm(eventId, c.hex);
 }
 function closeDetail(){ document.getElementById('dpopup').classList.remove('open'); document.getElementById('dpopup-overlay').style.display='none'; }
 document.addEventListener('click',e=>{
   if(!e.target.closest('#dpopup')&&!e.target.closest('.chip')&&!e.target.closest('.dnum')) closeDetail();
 });
+
+function openRegFromSchedule(eventId){
+  const e = events.find(x=>x.id===eventId);
+  if(!e) return;
+  const c = colorById(e.color);
+  const p = document.getElementById('dpopup');
+  if(window.innerWidth>700){
+    p.style.top  = Math.max(10,(window.innerHeight-420)/2)+'px';
+    p.style.left = Math.max(10,(window.innerWidth-290)/2)+'px';
+  }
+  p.classList.add('open');
+  if(window.innerWidth<=700) document.getElementById('dpopup-overlay').style.display='block';
+  openRegForm(eventId, c.hex);
+}
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeDetail(); closeDayModalBtn(); }});
 
 // ── Schedule list ─────────────────────────────────────────────
@@ -475,7 +550,7 @@ function renderSchedule(){
             <div class="etitle">${e.teacher}｜${e.title}</div>
             <div class="etime">🕐 ${e.start} – ${e.end}</div>
             ${formatFee(e.fee)?`<div class="efee">💵 ${formatFee(e.fee)}</div>`:''}
-            ${e.link?`<div class="elink"><a href="${e.link}" target="_blank" rel="noopener">📝 立即報名</a></div>`:''}
+            <div class="elink"><a href="#" onclick="event.preventDefault();openRegFromSchedule('${e.id}')" style="color:var(--primary);text-decoration:none;font-weight:600">📝 立即報名</a></div>
           </div>
         </div>`;
       });

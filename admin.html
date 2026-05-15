@@ -66,6 +66,11 @@ tr:hover td{background:var(--primary-light)}
 .btn-cloud:hover{background:#1a6fa8;color:#fff}
 .cloud-ok{display:inline-block;width:8px;height:8px;border-radius:50%;background:#5c9e6e;margin-left:6px;vertical-align:middle}
 .cloud-no{display:inline-block;width:8px;height:8px;border-radius:50%;background:#e05c5c;margin-left:6px;vertical-align:middle}
+.btn-reg{background:#edf8f2;color:#3e8c60;border:none;padding:6px 10px;border-radius:14px;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-reg:hover{background:#3e8c60;color:#fff}
+.paid-badge{display:inline-block;padding:3px 9px;border-radius:10px;font-size:.74rem;font-weight:600;cursor:pointer;background:#fdeaea;color:#e05c5c;transition:all .2s;white-space:nowrap;user-select:none}
+.paid-badge.paid{background:#e8f5ed;color:#5c9e6e}
+.paid-badge:hover{opacity:.8}
 .upload-progress{font-size:.8rem;color:#1a6fa8;margin-top:6px;display:none}
 
 /* Smart paste modal */
@@ -474,6 +479,17 @@ tr:hover td{background:var(--primary-light)}
   </div>
 </div>
 
+<!-- Registrations modal -->
+<div id="reg-overlay" class="overlay" onclick="if(event.target===this)closeRegModal()">
+  <div class="modal" style="width:640px">
+    <div class="modal-hd">
+      <h3 id="reg-modal-title">報名名單</h3>
+      <button class="modal-close" onclick="closeRegModal()">×</button>
+    </div>
+    <div id="reg-modal-body" style="max-height:60vh;overflow-y:auto"></div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
@@ -483,6 +499,7 @@ tr:hover td{background:var(--primary-light)}
 <script src="data.js"></script>
 <script>
 let events = [];
+let registrations = {};
 let db;
 let selColor = 'orange';
 let pendingDeleteId = null;
@@ -492,6 +509,11 @@ firebase.initializeApp(FB_CONFIG);
 db = firebase.database();
 
 function startFbListener() {
+  db.ref('bakery/registrations').on('value', snap => {
+    registrations = snap.val() || {};
+    renderTable();
+  });
+
   db.ref('bakery/events').on('value', snap => {
     const val = snap.val() || {};
     events = Object.entries(val).map(([key, e]) => ({...e, id: key}))
@@ -527,9 +549,16 @@ firebase.auth().signInAnonymously()
 document.getElementById('tbody').addEventListener('click', e => {
   const editBtn = e.target.closest('[data-edit]');
   const delBtn  = e.target.closest('[data-del]');
+  const regBtn  = e.target.closest('[data-reg]');
   if (editBtn) openEdit(editBtn.dataset.edit);
   if (delBtn)  confirmDelete(delBtn.dataset.del);
+  if (regBtn)  openRegModal(regBtn.dataset.reg);
 });
+
+function regCount(eventId) {
+  const r = registrations[eventId];
+  return r ? Object.keys(r).length : 0;
+}
 
 // ── Color filter options ──────────────────────────────────────
 function buildColorFilter(){
@@ -575,6 +604,7 @@ function renderTable(){
         <td style="font-size:.8rem;color:var(--muted)">${formatFee(e.fee)||'-'}</td>
         <td>${e.link?`<a href="${e.link}" target="_blank" rel="noopener" style="color:var(--primary);font-size:.78rem;font-weight:600">開啟連結 ↗</a>`:'-'}</td>
         <td><div class="act-btns">
+          <button class="btn-reg"  data-reg="${e.id}">👥 ${regCount(e.id)}</button>
           <button class="btn-edit" data-edit="${e.id}">✏️ 編輯</button>
           <button class="btn-del"  data-del="${e.id}">🗑 刪除</button>
         </div></td>
@@ -913,6 +943,84 @@ async function saveParsed(){
   });
   closePaste();
   toast('課程已新增 ✓','success');
+}
+
+// ── Registrations ────────────────────────────────────────────
+let currentRegEventId = null;
+
+function openRegModal(eventId) {
+  currentRegEventId = eventId;
+  const ev = events.find(e => e.id === eventId);
+  document.getElementById('reg-modal-title').textContent = ev ? `👥 ${ev.title}` : '報名名單';
+  renderRegList(eventId);
+  document.getElementById('reg-overlay').classList.add('open');
+}
+
+function renderRegList(eventId) {
+  const regs = registrations[eventId] || {};
+  const list = Object.entries(regs).map(([key, r]) => ({...r, key}))
+    .sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
+  const paidN = list.filter(r=>r.paid).length;
+
+  if(!list.length){
+    document.getElementById('reg-modal-body').innerHTML =
+      '<p style="color:var(--muted);padding:28px;text-align:center">尚無報名資料</p>';
+    return;
+  }
+
+  document.getElementById('reg-modal-body').innerHTML = `
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;padding:0 2px">
+      <span style="font-size:.82rem;background:var(--primary-light);color:var(--primary-dark);padding:4px 12px;border-radius:12px;font-weight:600">共 ${list.length} 人</span>
+      <span style="font-size:.82rem;background:#e8f5ed;color:#5c9e6e;padding:4px 12px;border-radius:12px;font-weight:600">✅ ${paidN} 人已繳</span>
+      <span style="font-size:.82rem;background:#fdeaea;color:#e05c5c;padding:4px 12px;border-radius:12px;font-weight:600">⏳ ${list.length-paidN} 人未繳</span>
+    </div>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:.84rem">
+      <thead>
+        <tr style="background:var(--primary-light)">
+          <th style="padding:9px 12px;text-align:left;font-size:.76rem;white-space:nowrap">姓名</th>
+          <th style="padding:9px 12px;text-align:left;font-size:.76rem;white-space:nowrap">電話</th>
+          <th style="padding:9px 12px;text-align:left;font-size:.76rem">備註</th>
+          <th style="padding:9px 12px;text-align:center;font-size:.76rem;white-space:nowrap">繳費狀態</th>
+          <th style="padding:9px 12px;text-align:center;font-size:.76rem">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${list.map(r=>`
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:10px 12px;font-weight:600">${r.name}</td>
+            <td style="padding:10px 12px"><a href="tel:${r.phone}" style="color:var(--primary);font-weight:600">${r.phone}</a></td>
+            <td style="padding:10px 12px;color:var(--muted);font-size:.8rem">${r.note||'—'}</td>
+            <td style="padding:10px 12px;text-align:center">
+              <span class="paid-badge${r.paid?' paid':''}" onclick="togglePaid('${eventId}','${r.key}',${!r.paid})">
+                ${r.paid?'✅ 已繳費':'⏳ 未繳費'}
+              </span>
+            </td>
+            <td style="padding:10px 12px;text-align:center">
+              <button class="btn-del" style="padding:4px 10px;font-size:.74rem" onclick="deleteReg('${eventId}','${r.key}','${r.name}')">刪除</button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    </div>`;
+}
+
+function closeRegModal(){
+  document.getElementById('reg-overlay').classList.remove('open');
+  currentRegEventId = null;
+}
+
+async function togglePaid(eventId, regKey, newPaid){
+  await db.ref(`bakery/registrations/${eventId}/${regKey}/paid`).set(newPaid);
+  toast(newPaid?'已標記為已繳費 ✓':'已標記為未繳費','success');
+  // re-render modal if open
+  if(currentRegEventId===eventId) renderRegList(eventId);
+}
+
+async function deleteReg(eventId, regKey, name){
+  if(!confirm(`確定要刪除「${name}」的報名記錄嗎？`)) return;
+  await db.ref(`bakery/registrations/${eventId}/${regKey}`).remove();
+  toast('已刪除報名記錄','success');
 }
 
 // ── Auth ──────────────────────────────────────────────────────
