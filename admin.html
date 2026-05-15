@@ -886,7 +886,7 @@ function copyRegLinkFromModal(){
     lines.push(`⏰ 時間：${ev.start} – ${ev.end}`);
     lines.push(`👩‍🏫 老師：${ev.teacher}`);
     if(ev.fee) lines.push(`💰 費用：${formatFee(ev.fee)}`);
-    if(ev.desc) lines.push(`\n${ev.desc}`);
+    if(ev.description) lines.push(`\n${ev.description}`);
     lines.push(`\n🔗 報名連結：${url}`);
     text = lines.join('\n');
   }
@@ -1259,7 +1259,7 @@ function copyRegLink(eventId){
     lines.push(`⏰ 時間：${ev.start} – ${ev.end}`);
     lines.push(`👩‍🏫 老師：${ev.teacher}`);
     if(ev.fee) lines.push(`💰 費用：${formatFee(ev.fee)}`);
-    if(ev.desc) lines.push(`\n${ev.desc}`);
+    if(ev.description) lines.push(`\n${ev.description}`);
     lines.push(`\n🔗 報名連結：${url}`);
     text = lines.join('\n');
   }
