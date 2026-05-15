@@ -159,13 +159,45 @@ tr:hover td{background:var(--primary-light)}
 .btn-logout:hover{background:rgba(255,255,255,.26)}
 
 @media(max-width:700px){
-  header,.toolbar{padding:14px 16px}
-  main{padding:14px}
-  .stats{grid-template-columns:1fr 1fr}
+  header{padding:12px 14px}
+  header h1{font-size:1rem}
+  header p{font-size:.72rem}
+  .back-link,.btn-logout{padding:6px 10px;font-size:.75rem}
+  main{padding:10px}
+  .toolbar{flex-direction:column;align-items:stretch;padding:10px 12px;gap:8px}
+  .toolbar-left{flex-wrap:wrap;gap:6px}
+  .search{width:100%;min-width:0}
+  .filter-sel{flex:1;min-width:0}
+  .stats{grid-template-columns:1fr 1fr;gap:8px}
   .fg-row{grid-template-columns:1fr}
-  .search{width:100%}
-  .toolbar{flex-direction:column;align-items:stretch}
-  .toolbar-left{flex-wrap:wrap}
+
+  /* Table → Card layout */
+  .table-wrap{overflow-x:visible;padding:0}
+  .table-wrap table{display:block}
+  .table-wrap thead{display:none}
+  .table-wrap tbody{display:flex;flex-direction:column;gap:8px}
+  .table-wrap tr{
+    display:grid;
+    grid-template-columns:52px 1fr auto;
+    grid-template-rows:auto auto auto;
+    gap:2px 8px;
+    background:#fff;border-radius:10px;
+    border:1px solid var(--border);
+    padding:10px;box-shadow:var(--shadow);
+  }
+  .table-wrap tr.empty-row{display:block;text-align:center;padding:28px}
+  .table-wrap td:nth-child(1){grid-row:1/4;grid-column:1;display:flex;align-items:flex-start}
+  .table-wrap td:nth-child(1) .img-thumb{width:48px;height:48px}
+  .table-wrap td:nth-child(6){grid-row:1;grid-column:2;font-weight:700;font-size:.92rem;line-height:1.3}
+  .table-wrap td:nth-child(5){grid-row:2;grid-column:2;font-size:.78rem;color:var(--muted)}
+  .table-wrap td:nth-child(3){grid-row:3;grid-column:2;font-size:.76rem;color:var(--muted)}
+  .table-wrap td:nth-child(4){display:none}
+  .table-wrap td:nth-child(9){grid-row:1/4;grid-column:3;display:flex;flex-direction:column;gap:5px;justify-content:center}
+  .table-wrap td:nth-child(2),
+  .table-wrap td:nth-child(7),
+  .table-wrap td:nth-child(8){display:none}
+  .act-btns{flex-direction:column;gap:5px}
+  .btn-edit,.btn-del{padding:6px 10px;font-size:.78rem;white-space:nowrap}
 }
 </style>
 </head>
