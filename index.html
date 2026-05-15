@@ -415,8 +415,6 @@ function closeDayModalBtn(){
 }
 
 // ── Chip detail popup ─────────────────────────────────────────
-let regEid = null;
-
 function showDetailContent(id){
   const e = events.find(x=>x.id===id);
   if(!e) return;
@@ -429,7 +427,7 @@ function showDetailContent(id){
     <p>📅 ${formatDate(e.date)}</p>
     <p>🕐 ${e.start} – ${e.end}</p>
     ${formatFee(e.fee)?`<p>💵 ${formatFee(e.fee)}</p>`:''}
-    <button class="reg-btn" style="background:${c.hex};border:none;cursor:pointer" onclick="openRegForm('${e.id}','${c.hex}')">📝 立即報名</button>`;
+    <a class="reg-btn" href="register.html?id=${e.id}" style="background:${c.hex};display:inline-block;margin-top:10px">📝 立即報名</a>`;
 }
 
 function showDetail(ev, id){
@@ -454,59 +452,9 @@ function showDetail(ev, id){
   if(window.innerWidth<=700) document.getElementById('dpopup-overlay').style.display='block';
 }
 
-function openRegForm(eventId, colorHex){
-  regEid = eventId;
-  document.getElementById('dpopup-body').innerHTML =
-    `<div style="font-size:.85rem;font-weight:700;color:${colorHex};margin-bottom:10px">📝 填寫報名資料</div>
-    <div class="reg-fg"><label>姓名 *</label><input id="ri-name" type="text" placeholder="請輸入姓名"></div>
-    <div class="reg-fg"><label>電話 *</label><input id="ri-phone" type="tel" placeholder="0912-345-678"></div>
-    <div class="reg-fg"><label>備註</label><input id="ri-note" type="text" placeholder="飲食限制或其他問題…"></div>
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <button onclick="showDetailContent('${eventId}')" style="padding:7px 10px;background:var(--border);color:var(--muted);border:none;border-radius:10px;font-size:.8rem;cursor:pointer">← 返回</button>
-      <button id="ri-submit" onclick="submitReg('${colorHex}')" style="flex:1;padding:7px;background:${colorHex};color:#fff;border:none;border-radius:10px;font-size:.84rem;font-weight:700;cursor:pointer">確認報名</button>
-    </div>`;
-  setTimeout(()=>{ const n=document.getElementById('ri-name'); if(n) n.focus(); }, 50);
-}
-
-async function submitReg(colorHex){
-  const name  = document.getElementById('ri-name')?.value?.trim()||'';
-  const phone = document.getElementById('ri-phone')?.value?.trim()||'';
-  const note  = document.getElementById('ri-note')?.value?.trim()||'';
-  document.getElementById('ri-name')?.classList.toggle('err', !name);
-  document.getElementById('ri-phone')?.classList.toggle('err', !phone);
-  if(!name||!phone) return;
-  const btn = document.getElementById('ri-submit');
-  if(btn){ btn.disabled=true; btn.textContent='報名中…'; }
-  try{
-    await db.ref(`bakery/registrations/${regEid}`).push({
-      name, phone, note, paid:false, createdAt:Date.now()
-    });
-    document.getElementById('dpopup-body').innerHTML =
-      `<div style="text-align:center;padding:8px 0">
-        <div style="font-size:2.4rem;margin-bottom:8px">✅</div>
-        <div style="font-weight:700;font-size:.95rem;margin-bottom:6px">報名成功！</div>
-        <div style="font-size:.82rem;color:var(--muted);line-height:1.7">我們會盡快與您確認<br>電話 / LINE：0966-864-079</div>
-        <button onclick="closeDetail()" style="margin-top:14px;padding:7px 20px;background:${colorHex};color:#fff;border:none;border-radius:12px;font-size:.83rem;cursor:pointer">關閉</button>
-      </div>`;
-  }catch(err){
-    if(btn){ btn.disabled=false; btn.textContent='確認報名'; }
-    alert('報名失敗，請直接電話聯絡 0966-864-079');
-  }
-}
 
 function openRegFromModal(eventId){
-  closeDayModalBtn();
-  const e = events.find(x=>x.id===eventId);
-  if(!e) return;
-  const c = colorById(e.color);
-  const p = document.getElementById('dpopup');
-  if(window.innerWidth>700){
-    p.style.top  = Math.max(10,(window.innerHeight-420)/2)+'px';
-    p.style.left = Math.max(10,(window.innerWidth-290)/2)+'px';
-  }
-  p.classList.add('open');
-  if(window.innerWidth<=700) document.getElementById('dpopup-overlay').style.display='block';
-  openRegForm(eventId, c.hex);
+  location.href = 'register.html?id=' + eventId;
 }
 function closeDetail(){ document.getElementById('dpopup').classList.remove('open'); document.getElementById('dpopup-overlay').style.display='none'; }
 document.addEventListener('click',e=>{
@@ -514,17 +462,7 @@ document.addEventListener('click',e=>{
 });
 
 function openRegFromSchedule(eventId){
-  const e = events.find(x=>x.id===eventId);
-  if(!e) return;
-  const c = colorById(e.color);
-  const p = document.getElementById('dpopup');
-  if(window.innerWidth>700){
-    p.style.top  = Math.max(10,(window.innerHeight-420)/2)+'px';
-    p.style.left = Math.max(10,(window.innerWidth-290)/2)+'px';
-  }
-  p.classList.add('open');
-  if(window.innerWidth<=700) document.getElementById('dpopup-overlay').style.display='block';
-  openRegForm(eventId, c.hex);
+  location.href = 'register.html?id=' + eventId;
 }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeDetail(); closeDayModalBtn(); }});
 
