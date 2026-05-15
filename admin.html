@@ -361,8 +361,8 @@ tr:hover td{background:var(--primary-light)}
         <input type="number" id="f-fee" placeholder="例：1800" min="0" step="1" style="font-size:.9rem">
       </div>
       <div class="fg">
-        <label>報名連結</label>
-        <input type="url" id="f-link" placeholder="https://forms.gle/…">
+        <label>Google 表單連結（選填，舊課程用）</label>
+        <input type="url" id="f-link" placeholder="https://forms.gle/… 留空則使用內建報名系統">
       </div>
       <div class="fg">
         <label>課程圖片</label>
@@ -590,6 +590,28 @@ tr:hover td{background:var(--primary-light)}
   </div>
 </div>
 
+<!-- New course reg link modal -->
+<div id="reglink-overlay" class="overlay" onclick="if(event.target===this)closeRegLink()">
+  <div class="modal" style="width:480px;text-align:center">
+    <div style="font-size:2.5rem;margin-bottom:10px">🎉</div>
+    <h3 style="font-size:1.1rem;font-weight:800;color:var(--primary-dark);margin-bottom:6px">課程已建立！</h3>
+    <p id="reglink-title" style="font-size:.88rem;color:var(--muted);margin-bottom:20px"></p>
+    <p style="font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:8px;text-align:left">📎 報名頁面連結（傳給學生）</p>
+    <div style="display:flex;gap:8px;margin-bottom:20px">
+      <input id="reglink-url" type="text" readonly
+        style="flex:1;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-size:.82rem;color:var(--muted);background:var(--bg);outline:none;cursor:text">
+      <button class="btn-save" onclick="copyRegLinkFromModal()" id="reglink-copy-btn" style="padding:10px 18px;white-space:nowrap">複製</button>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <a id="reglink-open" target="_blank" rel="noopener"
+        style="padding:9px 20px;background:var(--primary-light);color:var(--primary-dark);border-radius:20px;font-size:.86rem;font-weight:600;text-decoration:none;border:1.5px solid var(--border)">
+        預覽報名頁 ↗
+      </a>
+      <button class="btn-save" onclick="closeRegLink()">完成</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
@@ -786,11 +808,33 @@ async function saveEvent(e){
   if(eid){
     await db.ref('bakery/events/' + eid).update(data);
     toast('課程已更新 ✓','success');
+    closeModal();
   } else {
-    await db.ref('bakery/events').push(data);
-    toast('課程已新增 ✓','success');
+    const ref = await db.ref('bakery/events').push(data);
+    closeModal();
+    showRegLinkModal(ref.key, data.title);
   }
-  closeModal();
+}
+
+// ── Reg link modal (shown after adding new course) ────────────
+function showRegLinkModal(eventId, title){
+  const base = location.href.replace(/admin\.html.*$/, '');
+  const url  = base + 'register.html?id=' + eventId;
+  document.getElementById('reglink-title').textContent = title;
+  document.getElementById('reglink-url').value = url;
+  document.getElementById('reglink-open').href = url;
+  document.getElementById('reglink-copy-btn').textContent = '複製';
+  document.getElementById('reglink-overlay').classList.add('open');
+}
+function closeRegLink(){ document.getElementById('reglink-overlay').classList.remove('open'); }
+function copyRegLinkFromModal(){
+  const url = document.getElementById('reglink-url').value;
+  navigator.clipboard.writeText(url)
+    .then(()=>{
+      document.getElementById('reglink-copy-btn').textContent = '✓ 已複製';
+      setTimeout(()=>{ document.getElementById('reglink-copy-btn').textContent = '複製'; }, 2000);
+    })
+    .catch(()=>{ document.getElementById('reglink-url').select(); document.execCommand('copy'); });
 }
 
 // ── Delete ───────────────────────────────────────────────────
