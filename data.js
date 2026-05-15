@@ -50,9 +50,18 @@ function loadEvents() {
     const s = localStorage.getItem(STORAGE_KEY);
     if (!s) return JSON.parse(JSON.stringify(INITIAL_EVENTS));
     const stored = JSON.parse(s);
-    const storedIds = new Set(stored.map(e => e.id));
-    // Merge any new INITIAL_EVENTS ids that don't exist in stored data yet
-    INITIAL_EVENTS.forEach(e => { if (!storedIds.has(e.id)) stored.push({...e}); });
+    const storedMap = new Map(stored.map(e => [e.id, e]));
+    INITIAL_EVENTS.forEach(init => {
+      if (!storedMap.has(init.id)) {
+        // New event not yet in localStorage
+        stored.push({...init});
+      } else {
+        // Fill in any fields that exist in INITIAL_EVENTS but are missing/empty in stored
+        const ev = storedMap.get(init.id);
+        if (!ev.fee  && init.fee)  ev.fee  = init.fee;
+        if (!ev.link && init.link) ev.link = init.link;
+      }
+    });
     return stored;
   } catch { return JSON.parse(JSON.stringify(INITIAL_EVENTS)); }
 }
