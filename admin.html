@@ -529,20 +529,44 @@ tr:hover td{background:var(--primary-light)}
         <button class="modal-close" onclick="closeRegModal()">×</button>
       </div>
     </div>
-    <div id="reg-modal-body" style="max-height:46vh;overflow-y:auto;padding:0 28px 16px"></div>
-    <!-- Manual add form -->
-    <div style="padding:16px 28px 22px;border-top:2px solid var(--border);background:var(--bg)">
-      <div style="font-size:.74rem;font-weight:700;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">＋ 手動新增報名者</div>
+    <div id="reg-modal-body" style="max-height:38vh;overflow-y:auto;padding:0 28px 16px"></div>
+    <!-- Manual add / edit form -->
+    <div style="padding:14px 28px 18px;border-top:2px solid var(--border);background:var(--bg);max-height:42vh;overflow-y:auto">
+      <div style="font-size:.74rem;font-weight:700;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px" id="ma-form-label">＋ 手動新增報名者</div>
+      <input type="hidden" id="ma-edit-key">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <input type="text" id="ma-name"  class="ma-input" placeholder="姓名 *">
         <input type="tel"  id="ma-phone" class="ma-input" placeholder="電話 *">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <input type="text" id="ma-fb"   class="ma-input" placeholder="Facebook 名稱">
+        <input type="text" id="ma-line" class="ma-input" placeholder="LINE 名稱">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+        <select id="ma-group" class="ma-input">
+          <option value="">加入群組？</option>
+          <option value="Jen手作烘焙第一群">第一群</option>
+          <option value="Jen手作烘焙第二群">第二群</option>
+          <option value="尚未加入">尚未加入</option>
+        </select>
+        <input type="number" id="ma-count" class="ma-input" placeholder="人數" min="1" max="20">
+        <select id="ma-shuttle" class="ma-input">
+          <option value="">接送？</option>
+          <option value="否，自行前往">否，自行前往</option>
+          <option value="是，需要接送">是，需要接送</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <input type="date" id="ma-remit-date"  class="ma-input" placeholder="匯款日期">
+        <input type="text" id="ma-remit-last5" class="ma-input" placeholder="帳號末五碼" maxlength="5" inputmode="numeric">
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <input type="text" id="ma-note" class="ma-input" placeholder="備註（選填）" style="flex:1">
         <label style="display:flex;align-items:center;gap:5px;font-size:.83rem;white-space:nowrap;cursor:pointer;color:var(--text)">
           <input type="checkbox" id="ma-paid"> 已繳費
         </label>
-        <button class="btn-save" onclick="manualAddReg()" style="padding:9px 20px;white-space:nowrap">新增</button>
+        <button class="btn-cancel" id="ma-cancel-btn" onclick="cancelEditReg()" style="display:none;padding:9px 14px;white-space:nowrap">取消</button>
+        <button class="btn-save" id="ma-submit-btn" onclick="manualAddReg()" style="padding:9px 20px;white-space:nowrap">新增</button>
       </div>
     </div>
   </div>
@@ -1218,6 +1242,7 @@ function openRegModal(eventId) {
   currentRegEventId = eventId;
   const ev = events.find(e => e.id === eventId);
   document.getElementById('reg-modal-title').textContent = ev ? `👥 ${ev.title}` : '報名名單';
+  clearMaForm();
   renderRegList(eventId);
   document.getElementById('reg-overlay').classList.add('open');
 }
@@ -1276,8 +1301,9 @@ function renderRegList(eventId) {
                 ${r.paid?'✅ 已繳':'⏳ 未繳'}
               </span>
             </td>
-            <td style="padding:9px 10px;text-align:center">
-              <button class="btn-del" style="padding:4px 10px;font-size:.74rem" onclick="deleteReg('${eventId}','${r.key}','${r.name}')">刪除</button>
+            <td style="padding:9px 10px;text-align:center;white-space:nowrap">
+              <button class="btn-edit" style="padding:4px 10px;font-size:.74rem;margin-bottom:3px" onclick="editReg('${eventId}','${r.key}')">編輯</button>
+              <button class="btn-del"  style="padding:4px 10px;font-size:.74rem" onclick="deleteReg('${eventId}','${r.key}','${r.name}')">刪除</button>
             </td>
           </tr>`).join('')}
       </tbody>
@@ -1303,27 +1329,84 @@ async function deleteReg(eventId, regKey, name){
   toast('已刪除報名記錄','success');
 }
 
-async function manualAddReg(){
-  const name  = document.getElementById('ma-name').value.trim();
-  const phone = document.getElementById('ma-phone').value.trim();
-  const note  = document.getElementById('ma-note').value.trim();
-  const paid  = document.getElementById('ma-paid').checked;
-  document.getElementById('ma-name').classList.toggle('err', !name);
-  document.getElementById('ma-phone').classList.toggle('err', !phone);
-  if(!name || !phone){ toast('請填寫姓名和電話','error'); return; }
-  if(!currentRegEventId){ toast('請先開啟課程名單','error'); return; }
-  await db.ref(`bakery/registrations/${currentRegEventId}`).push({
-    name, phone, note, paid, createdAt: Date.now()
-  });
-  // Clear form
-  document.getElementById('ma-name').value  = '';
-  document.getElementById('ma-phone').value = '';
-  document.getElementById('ma-note').value  = '';
-  document.getElementById('ma-paid').checked = false;
-  document.getElementById('ma-name').classList.remove('err');
-  document.getElementById('ma-phone').classList.remove('err');
-  toast(`已新增「${name}」✓`, 'success');
+function getMaFormData(){
+  return {
+    name:       document.getElementById('ma-name').value.trim(),
+    phone:      document.getElementById('ma-phone').value.trim(),
+    fb:         document.getElementById('ma-fb').value.trim(),
+    line:       document.getElementById('ma-line').value.trim(),
+    group:      document.getElementById('ma-group').value,
+    count:      Number(document.getElementById('ma-count').value)||1,
+    shuttle:    document.getElementById('ma-shuttle').value,
+    remitDate:  document.getElementById('ma-remit-date').value,
+    remitLast5: document.getElementById('ma-remit-last5').value.trim(),
+    note:       document.getElementById('ma-note').value.trim(),
+    paid:       document.getElementById('ma-paid').checked,
+  };
 }
+
+function clearMaForm(){
+  ['ma-name','ma-phone','ma-fb','ma-line','ma-note','ma-remit-date','ma-remit-last5','ma-count'].forEach(id=>{
+    document.getElementById(id).value='';
+    document.getElementById(id).classList.remove('err');
+  });
+  document.getElementById('ma-group').value='';
+  document.getElementById('ma-shuttle').value='';
+  document.getElementById('ma-paid').checked=false;
+  document.getElementById('ma-edit-key').value='';
+  document.getElementById('ma-form-label').textContent='＋ 手動新增報名者';
+  document.getElementById('ma-submit-btn').textContent='新增';
+  document.getElementById('ma-submit-btn').onclick=manualAddReg;
+  document.getElementById('ma-cancel-btn').style.display='none';
+}
+
+async function manualAddReg(){
+  const d = getMaFormData();
+  document.getElementById('ma-name').classList.toggle('err', !d.name);
+  document.getElementById('ma-phone').classList.toggle('err', !d.phone);
+  if(!d.name || !d.phone){ toast('請填寫姓名和電話','error'); return; }
+  if(!currentRegEventId){ toast('請先開啟課程名單','error'); return; }
+  await db.ref(`bakery/registrations/${currentRegEventId}`).push({...d, createdAt: Date.now()});
+  clearMaForm();
+  toast(`已新增「${d.name}」✓`, 'success');
+}
+
+function editReg(eventId, regKey){
+  const r = (registrations[eventId]||{})[regKey];
+  if(!r) return;
+  document.getElementById('ma-name').value       = r.name||'';
+  document.getElementById('ma-phone').value      = r.phone||'';
+  document.getElementById('ma-fb').value         = r.fb||'';
+  document.getElementById('ma-line').value       = r.line||'';
+  document.getElementById('ma-group').value      = r.group||'';
+  document.getElementById('ma-count').value      = r.count||1;
+  document.getElementById('ma-shuttle').value    = r.shuttle||'';
+  document.getElementById('ma-remit-date').value = r.remitDate||'';
+  document.getElementById('ma-remit-last5').value= r.remitLast5||'';
+  document.getElementById('ma-note').value       = r.note||'';
+  document.getElementById('ma-paid').checked     = !!r.paid;
+  document.getElementById('ma-edit-key').value   = regKey;
+  document.getElementById('ma-form-label').textContent = `✏️ 編輯「${r.name}」`;
+  document.getElementById('ma-submit-btn').textContent = '儲存更改';
+  document.getElementById('ma-submit-btn').onclick = ()=>saveEditReg(eventId, regKey);
+  document.getElementById('ma-cancel-btn').style.display = 'inline-block';
+  document.getElementById('reg-overlay').querySelector('div').scrollTop = 9999;
+}
+
+async function saveEditReg(eventId, regKey){
+  const d = getMaFormData();
+  document.getElementById('ma-name').classList.toggle('err', !d.name);
+  document.getElementById('ma-phone').classList.toggle('err', !d.phone);
+  if(!d.name || !d.phone){ toast('請填寫姓名和電話','error'); return; }
+  const existing = (registrations[eventId]||{})[regKey]||{};
+  await db.ref(`bakery/registrations/${eventId}/${regKey}`).update({
+    ...d, createdAt: existing.createdAt||Date.now()
+  });
+  clearMaForm();
+  toast(`已更新「${d.name}」✓`, 'success');
+}
+
+function cancelEditReg(){ clearMaForm(); }
 
 // ── Batch import ─────────────────────────────────────────────
 let importRows = [];
