@@ -14,92 +14,137 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI','PingFang TC','Microsoft JhengHei',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
-/* Header */
+/* ── Header ── */
 header{background:linear-gradient(135deg,var(--primary-dark),var(--primary) 55%,var(--accent));color:#fff;padding:22px 36px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 20px rgba(139,90,39,.3)}
 header h1{font-size:1.55rem;font-weight:800;letter-spacing:1px}
-header p{font-size:.82rem;opacity:.82;margin-top:3px}
-.admin-link{background:rgba(255,255,255,.18);color:#fff;text-decoration:none;padding:8px 18px;border-radius:20px;font-size:.82rem;font-weight:600;border:2px solid rgba(255,255,255,.5);transition:all .2s}
+header p{font-size:.85rem;opacity:.82;margin-top:3px}
+.admin-link{background:rgba(255,255,255,.18);color:#fff;text-decoration:none;padding:8px 18px;border-radius:20px;font-size:.85rem;font-weight:600;border:2px solid rgba(255,255,255,.5);transition:all .2s}
 .admin-link:hover{background:rgba(255,255,255,.32)}
 
-/* Tab bar */
+/* ── Tabs ── */
 .tabs{display:flex;background:var(--card);border-bottom:2px solid var(--border);padding:0 36px}
-.tab{padding:13px 22px;cursor:pointer;font-size:.9rem;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab{padding:14px 24px;cursor:pointer;font-size:.95rem;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
 .tab:hover{color:var(--primary)}
 .tab.active{color:var(--primary);border-bottom-color:var(--primary)}
 
-main{padding:28px 36px;max-width:1240px;margin:0 auto}
+main{padding:28px 36px;max-width:1300px;margin:0 auto}
 .view{display:none}.view.active{display:block}
 
-/* ── Calendar ── */
+/* ── Calendar top ── */
 .cal-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-.cal-top h2{font-size:1.2rem;font-weight:700;color:var(--primary-dark)}
+.cal-top h2{font-size:1.25rem;font-weight:800;color:var(--primary-dark)}
 .month-btns{display:flex;gap:8px}
-.m-btn{padding:6px 18px;border:2px solid var(--border);background:#fff;border-radius:16px;cursor:pointer;font-size:.84rem;font-weight:600;color:var(--muted);transition:all .2s}
+.m-btn{padding:7px 20px;border:2px solid var(--border);background:#fff;border-radius:18px;cursor:pointer;font-size:.88rem;font-weight:700;color:var(--muted);transition:all .2s}
 .m-btn:hover,.m-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 
-.legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;padding:12px 14px;background:#fff;border-radius:10px;border:1px solid var(--border)}
-.legend-item{display:flex;align-items:center;gap:5px;font-size:.75rem;color:var(--muted)}
-.ldot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+/* ── Legend ── */
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;padding:14px 16px;background:#fff;border-radius:12px;border:1px solid var(--border)}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted);font-weight:500}
+.ldot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.ch{text-align:center;font-size:.75rem;font-weight:700;color:var(--muted);padding:7px 0;letter-spacing:.4px}
+/* ── Calendar grid ── */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.ch{text-align:center;font-size:.82rem;font-weight:700;color:var(--muted);padding:8px 0;letter-spacing:.4px}
 .ch.we{color:#e05c5c}
-.cd{min-height:108px;background:#fff;border-radius:10px;border:1px solid var(--border);padding:6px;transition:box-shadow .2s}
+
+.cd{min-height:130px;background:#fff;border-radius:12px;border:1px solid var(--border);padding:7px;transition:box-shadow .2s;position:relative}
 .cd:hover{box-shadow:var(--shadow)}
-.cd.empty{background:transparent;border-color:transparent}
+.cd.empty{background:transparent;border-color:transparent;pointer-events:none}
 .cd.today{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary-light)}
 .cd.has-ev{background:var(--primary-light)}
 .cd.we{background:#fff9f9}
 .cd.we.has-ev{background:#fdf0f0}
-.dnum{font-size:.78rem;font-weight:700;color:var(--muted);margin-bottom:4px}
-.cd.today .dnum{background:var(--primary);color:#fff;width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem}
+
+/* Day number — clickable to expand */
+.dnum{
+  font-size:.85rem;font-weight:800;color:var(--muted);margin-bottom:5px;
+  display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:24px;border-radius:50%;cursor:pointer;transition:all .15s;
+}
+.dnum:hover{background:var(--primary);color:#fff}
+.cd.today .dnum{background:var(--primary);color:#fff}
 .cd.we .dnum{color:#e05c5c}
+.cd.we.today .dnum{background:#e05c5c;color:#fff}
 
-.chip{font-size:.67rem;padding:2px 5px;border-radius:5px;margin-bottom:2px;line-height:1.3;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .2s}
-.chip:hover{opacity:.75}
+/* Event chips — show teacher + title */
+.chip{
+  font-size:.72rem;padding:4px 6px;border-radius:7px;margin-bottom:3px;
+  line-height:1.35;cursor:pointer;transition:opacity .2s;
+  overflow:hidden;
+}
+.chip:hover{opacity:.78}
+.chip-teacher{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip-title{opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip-time{font-size:.65rem;opacity:.7;margin-bottom:1px}
 
-/* Detail popup */
+/* ── Day expand modal ── */
+.day-overlay{display:none;position:fixed;inset:0;background:rgba(40,25,10,.45);z-index:800;align-items:center;justify-content:center}
+.day-overlay.open{display:flex}
+.day-modal{background:#fff;border-radius:20px;padding:0;width:440px;max-width:94vw;max-height:86vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);animation:mIn .2s ease}
+@keyframes mIn{from{transform:translateY(-16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.day-modal-hd{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.day-modal-hd h3{font-size:1.05rem;font-weight:800;color:var(--primary-dark)}
+.day-modal-hd .cnt{font-size:.8rem;color:var(--muted);background:var(--primary-light);padding:3px 10px;border-radius:12px;font-weight:600}
+.day-modal-close{background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted);line-height:1;padding:4px 6px;border-radius:8px}
+.day-modal-close:hover{background:var(--border)}
+.day-modal-body{overflow-y:auto;padding:16px 24px 24px;flex:1}
+
+.day-ev-card{display:flex;gap:12px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--border)}
+.day-ev-card:last-child{border-bottom:none}
+.day-ev-bar{width:4px;align-self:stretch;border-radius:3px;flex-shrink:0}
+.day-ev-info{flex:1;min-width:0}
+.day-ev-title{font-size:.95rem;font-weight:700;margin-bottom:2px}
+.day-ev-teacher{font-size:.82rem;color:var(--muted);margin-bottom:3px}
+.day-ev-time{font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:4px}
+.day-reg{display:inline-block;margin-top:8px;padding:5px 14px;border-radius:14px;font-size:.78rem;font-weight:600;color:#fff;text-decoration:none}
+.day-reg:hover{opacity:.85}
+
+/* ── Detail chip popup ── */
 .dpopup{display:none;position:fixed;z-index:900;background:#fff;border-radius:14px;padding:18px 20px;width:290px;box-shadow:0 8px 36px rgba(0,0,0,.22);border-top:5px solid var(--primary)}
 .dpopup.open{display:block}
-.dpopup h4{font-size:.92rem;font-weight:700;margin-bottom:9px}
-.dpopup p{font-size:.8rem;color:var(--muted);margin-bottom:5px;line-height:1.5}
+.dpopup h4{font-size:.95rem;font-weight:700;margin-bottom:9px}
+.dpopup p{font-size:.82rem;color:var(--muted);margin-bottom:5px;line-height:1.5}
 .dclose{position:absolute;top:9px;right:13px;font-size:1.15rem;cursor:pointer;color:var(--muted);background:none;border:none;line-height:1}
-.reg-btn{display:inline-block;margin-top:10px;padding:6px 16px;background:var(--primary);color:#fff;text-decoration:none;border-radius:14px;font-size:.78rem;font-weight:600}
+.reg-btn{display:inline-block;margin-top:10px;padding:6px 16px;background:var(--primary);color:#fff;text-decoration:none;border-radius:14px;font-size:.8rem;font-weight:600}
 .reg-btn:hover{background:var(--primary-dark)}
 
 /* ── Schedule list ── */
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
-.stat{background:#fff;border-radius:12px;padding:16px;border:1px solid var(--border);box-shadow:var(--shadow);text-align:center}
-.snum{font-size:1.9rem;font-weight:800;color:var(--primary);line-height:1}
-.slbl{font-size:.77rem;color:var(--muted);margin-top:3px;font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:26px}
+.stat{background:#fff;border-radius:12px;padding:18px;border:1px solid var(--border);box-shadow:var(--shadow);text-align:center}
+.snum{font-size:2rem;font-weight:800;color:var(--primary);line-height:1}
+.slbl{font-size:.8rem;color:var(--muted);margin-top:4px;font-weight:600}
 
-.msec{margin-bottom:28px}
-.mlabel{font-size:1.05rem;font-weight:700;color:var(--primary-dark);margin-bottom:12px;padding-bottom:7px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:8px}
-.mlabel::before{content:'';display:inline-block;width:5px;height:18px;background:var(--primary);border-radius:3px}
-.dgroup{margin-bottom:14px}
-.dhead{font-size:.85rem;font-weight:700;color:var(--muted);margin-bottom:7px;display:flex;align-items:center;gap:7px}
+.msec{margin-bottom:30px}
+.mlabel{font-size:1.08rem;font-weight:800;color:var(--primary-dark);margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:8px}
+.mlabel::before{content:'';display:inline-block;width:5px;height:20px;background:var(--primary);border-radius:3px}
+.dgroup{margin-bottom:16px}
+.dhead{font-size:.88rem;font-weight:700;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:7px}
 .ddot{width:7px;height:7px;background:var(--primary);border-radius:50%}
 
-.ecard{background:#fff;border-radius:12px;border:1px solid var(--border);padding:14px 16px;margin-bottom:7px;display:flex;align-items:flex-start;gap:14px;box-shadow:var(--shadow);transition:transform .2s}
+.ecard{background:#fff;border-radius:12px;border:1px solid var(--border);padding:14px 16px;margin-bottom:8px;display:flex;align-items:flex-start;gap:14px;box-shadow:var(--shadow);transition:transform .2s}
 .ecard:hover{transform:translateY(-2px)}
 .ebar{width:5px;align-self:stretch;border-radius:3px;flex-shrink:0}
 .einfo{flex:1;min-width:0}
-.etitle{font-size:.93rem;font-weight:700;margin-bottom:3px}
-.etime{font-size:.79rem;color:var(--muted);margin-bottom:3px}
-.elink a{font-size:.77rem;color:var(--primary);text-decoration:none}
+.etitle{font-size:.95rem;font-weight:700;margin-bottom:3px}
+.etime{font-size:.81rem;color:var(--muted);margin-bottom:3px}
+.elink a{font-size:.79rem;color:var(--primary);text-decoration:none;font-weight:600}
 .elink a:hover{text-decoration:underline}
 
+/* ── Responsive ── */
 @media(max-width:700px){
-  header{padding:14px;flex-wrap:wrap;gap:10px}
-  main{padding:14px}
+  header{padding:14px 16px;flex-wrap:wrap;gap:10px}
+  main{padding:14px 12px}
   .tabs{padding:0 12px;overflow-x:auto}
-  .tab{white-space:nowrap;padding:11px 12px}
-  .cd{min-height:68px}
+  .tab{white-space:nowrap;padding:12px 14px;font-size:.88rem}
+  .cd{min-height:80px;padding:5px}
+  .chip{font-size:.65rem;padding:3px 5px}
   .stats{grid-template-columns:1fr}
+  .day-modal{width:98vw}
 }
 </style>
 </head>
 <body>
+
 <header>
   <div>
     <h1>🥐 烘焙課程行事曆</h1>
@@ -137,6 +182,19 @@ main{padding:28px 36px;max-width:1240px;margin:0 auto}
   </div>
 </main>
 
+<!-- Day expand modal -->
+<div id="day-overlay" class="day-overlay" onclick="closeDayModal(event)">
+  <div class="day-modal">
+    <div class="day-modal-hd">
+      <h3 id="day-modal-date"></h3>
+      <span id="day-modal-cnt" class="cnt"></span>
+      <button class="day-modal-close" onclick="closeDayModalBtn()">×</button>
+    </div>
+    <div class="day-modal-body" id="day-modal-body"></div>
+  </div>
+</div>
+
+<!-- Chip detail popup -->
 <div id="dpopup" class="dpopup">
   <button class="dclose" onclick="closeDetail()">×</button>
   <div id="dpopup-body"></div>
@@ -168,7 +226,7 @@ function showMonth(m, btn) {
 function renderCal(y, m) {
   events = loadEvents();
   document.getElementById('cal-title').textContent = `${y}年 ${m}月`;
-  const firstDow = new Date(y,m-1,1).getDay();
+  const firstDow  = new Date(y,m-1,1).getDay();
   const totalDays = new Date(y,m,0).getDate();
   const todayStr  = new Date().toISOString().slice(0,10);
 
@@ -177,55 +235,122 @@ function renderCal(y, m) {
     html += `<div class="ch${i===0||i===6?' we':''}">${d}</div>`;
   });
   for(let i=0;i<firstDow;i++) html+=`<div class="cd empty"></div>`;
+
   for(let d=1;d<=totalDays;d++){
-    const ds=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const evts=events.filter(e=>e.date===ds).sort((a,b)=>a.start.localeCompare(b.start));
-    const dow=new Date(y,m-1,d).getDay();
-    const we=dow===0||dow===6;
-    let cls='cd'+(we?' we':'')+(ds===todayStr?' today':'')+(evts.length?' has-ev':'');
-    let chips=evts.slice(0,3).map(e=>{
-      const c=colorById(e.color);
-      return `<div class="chip" style="background:${c.bg};color:${c.hex}" onclick="showDetail(event,${e.id})" title="${e.teacher}｜${e.title}">${e.start} ${e.title.slice(0,7)}${e.title.length>7?'…':''}</div>`;
+    const ds = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const evts = events.filter(e=>e.date===ds).sort((a,b)=>a.start.localeCompare(b.start));
+    const dow  = new Date(y,m-1,d).getDay();
+    const we   = dow===0||dow===6;
+    let cls = 'cd'+(we?' we':'')+(ds===todayStr?' today':'')+(evts.length?' has-ev':'');
+
+    // Show all chips (no "+more" limit), each with teacher + title
+    let chips = evts.map(e=>{
+      const c = colorById(e.color);
+      return `<div class="chip" style="background:${c.bg};color:${c.hex}"
+              onclick="showDetail(event,${e.id})">
+        <div class="chip-time">${e.start}</div>
+        <div class="chip-teacher">${e.teacher}</div>
+        <div class="chip-title">${e.title}</div>
+      </div>`;
     }).join('');
-    if(evts.length>3) chips+=`<div class="chip" style="background:#f0ebe5;color:#999">+${evts.length-3} 更多</div>`;
-    html+=`<div class="${cls}"><div class="dnum">${d}</div>${chips}</div>`;
+
+    // Day number click → expand modal
+    html+=`<div class="${cls}">
+      <div class="dnum" onclick="openDayModal('${ds}')" title="展開 ${formatDate(ds)} 課程">${d}</div>
+      ${chips}
+    </div>`;
   }
-  document.getElementById('cal-grid').innerHTML=html;
+  document.getElementById('cal-grid').innerHTML = html;
   renderLegend();
 }
 
 function renderLegend(){
   const seen={};
-  events.forEach(e=>{if(!seen[e.teacher])seen[e.teacher]=e.color;});
-  document.getElementById('legend').innerHTML=Object.entries(seen).map(([t,c])=>{
+  events.forEach(e=>{ if(!seen[e.teacher]) seen[e.teacher]=e.color; });
+  document.getElementById('legend').innerHTML = Object.entries(seen).map(([t,c])=>{
     const col=colorById(c);
     return `<div class="legend-item"><div class="ldot" style="background:${col.hex}"></div>${t}</div>`;
-  }).join('')||'<span style="color:#bbb;font-size:.8rem">尚無課程</span>';
+  }).join('') || '<span style="color:#bbb;font-size:.8rem">尚無課程</span>';
 }
 
-// ── Schedule ─────────────────────────────────────────────────
-function renderSchedule(){
-  events=loadEvents();
-  document.getElementById('s-total').textContent=events.length;
-  document.getElementById('s-teachers').textContent=new Set(events.map(e=>e.teacher)).size;
-  document.getElementById('s-days').textContent=new Set(events.map(e=>e.date)).size;
+// ── Day expand modal ─────────────────────────────────────────
+function openDayModal(dateStr){
+  const evts = events.filter(e=>e.date===dateStr).sort((a,b)=>a.start.localeCompare(b.start));
+  if(!evts.length) return;
+  document.getElementById('day-modal-date').textContent = formatDate(dateStr);
+  document.getElementById('day-modal-cnt').textContent  = `共 ${evts.length} 堂`;
+  document.getElementById('day-modal-body').innerHTML = evts.map(e=>{
+    const c = colorById(e.color);
+    return `<div class="day-ev-card">
+      <div class="day-ev-bar" style="background:${c.hex}"></div>
+      <div class="day-ev-info">
+        <div class="day-ev-title" style="color:${c.hex}">${e.title}</div>
+        <div class="day-ev-teacher">👨‍🍳 ${e.teacher}</div>
+        <div class="day-ev-time">🕐 ${e.start} – ${e.end}</div>
+        ${e.link?`<a class="day-reg" style="background:${c.hex}" href="${e.link}" target="_blank" rel="noopener">📝 立即報名</a>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  closeDetail();
+  document.getElementById('day-overlay').classList.add('open');
+}
+function closeDayModal(e){
+  if(e.target===document.getElementById('day-overlay')) closeDayModalBtn();
+}
+function closeDayModalBtn(){
+  document.getElementById('day-overlay').classList.remove('open');
+}
 
-  const sorted=[...events].sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
-  const byMonth={};
+// ── Chip detail popup ─────────────────────────────────────────
+function showDetail(ev, id){
+  ev.stopPropagation();
+  const e = events.find(x=>x.id===id);
+  if(!e) return;
+  const c = colorById(e.color);
+  const p = document.getElementById('dpopup');
+  p.style.borderTopColor = c.hex;
+  document.getElementById('dpopup-body').innerHTML=`
+    <h4 style="color:${c.hex}">${e.title}</h4>
+    <p>👨‍🍳 ${e.teacher}</p>
+    <p>📅 ${formatDate(e.date)}</p>
+    <p>🕐 ${e.start} – ${e.end}</p>
+    ${e.link?`<a class="reg-btn" style="background:${c.hex}" href="${e.link}" target="_blank" rel="noopener">📝 立即報名</a>`:''}`;
+  const r   = ev.target.getBoundingClientRect();
+  let top   = r.bottom+window.scrollY+6;
+  let left  = r.left+window.scrollX;
+  if(left+295>window.innerWidth) left=window.innerWidth-302;
+  p.style.top=top+'px'; p.style.left=left+'px';
+  p.classList.add('open');
+}
+function closeDetail(){ document.getElementById('dpopup').classList.remove('open'); }
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#dpopup')&&!e.target.closest('.chip')&&!e.target.closest('.dnum')) closeDetail();
+});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeDetail(); closeDayModalBtn(); }});
+
+// ── Schedule list ─────────────────────────────────────────────
+function renderSchedule(){
+  events = loadEvents();
+  document.getElementById('s-total').textContent    = events.length;
+  document.getElementById('s-teachers').textContent = new Set(events.map(e=>e.teacher)).size;
+  document.getElementById('s-days').textContent     = new Set(events.map(e=>e.date)).size;
+
+  const sorted = [...events].sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
+  const byMonth = {};
   sorted.forEach(e=>{
-    const m=e.date.slice(5,7);
-    if(!byMonth[m])byMonth[m]={};
-    if(!byMonth[m][e.date])byMonth[m][e.date]=[];
-    byMonth[m][e.date].push(e);
+    const mo = e.date.slice(5,7);
+    if(!byMonth[mo]) byMonth[mo]={};
+    if(!byMonth[mo][e.date]) byMonth[mo][e.date]=[];
+    byMonth[mo][e.date].push(e);
   });
 
   let html='';
-  Object.keys(byMonth).sort().forEach(m=>{
-    html+=`<div class="msec"><div class="mlabel">2026年 ${m}月</div>`;
-    Object.keys(byMonth[m]).sort().forEach(date=>{
+  Object.keys(byMonth).sort().forEach(mo=>{
+    html+=`<div class="msec"><div class="mlabel">2026年 ${mo}月</div>`;
+    Object.keys(byMonth[mo]).sort().forEach(date=>{
       html+=`<div class="dgroup"><div class="dhead"><div class="ddot"></div>${formatDate(date)}</div>`;
-      byMonth[m][date].forEach(e=>{
-        const c=colorById(e.color);
+      byMonth[mo][date].forEach(e=>{
+        const c = colorById(e.color);
         html+=`<div class="ecard">
           <div class="ebar" style="background:${c.hex}"></div>
           <div class="einfo">
@@ -239,36 +364,11 @@ function renderSchedule(){
     });
     html+='</div>';
   });
-  document.getElementById('schedule-list').innerHTML=html||'<p style="color:#bbb;text-align:center;padding:40px">尚無課程資料</p>';
+  document.getElementById('schedule-list').innerHTML = html||'<p style="color:#bbb;text-align:center;padding:40px">尚無課程資料</p>';
 }
-
-// ── Detail popup ─────────────────────────────────────────────
-function showDetail(ev, id){
-  ev.stopPropagation();
-  const e=events.find(x=>x.id===id);
-  if(!e)return;
-  const c=colorById(e.color);
-  const p=document.getElementById('dpopup');
-  p.style.borderTopColor=c.hex;
-  document.getElementById('dpopup-body').innerHTML=`
-    <h4 style="color:${c.hex}">${e.title}</h4>
-    <p>👨‍🍳 ${e.teacher}</p>
-    <p>📅 ${formatDate(e.date)}</p>
-    <p>🕐 ${e.start} – ${e.end}</p>
-    ${e.link?`<a class="reg-btn" href="${e.link}" target="_blank" rel="noopener">📝 立即報名</a>`:''}`;
-  const r=ev.target.getBoundingClientRect();
-  let top=r.bottom+window.scrollY+6, left=r.left+window.scrollX;
-  if(left+295>window.innerWidth) left=window.innerWidth-302;
-  p.style.top=top+'px'; p.style.left=left+'px';
-  p.classList.add('open');
-}
-function closeDetail(){document.getElementById('dpopup').classList.remove('open')}
-document.addEventListener('click',e=>{
-  if(!e.target.closest('#dpopup')&&!e.target.closest('.chip'))closeDetail();
-});
 
 // ── Init ─────────────────────────────────────────────────────
-renderCal(2026,5);
+renderCal(2026, 5);
 </script>
 </body>
 </html>
