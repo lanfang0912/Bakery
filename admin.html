@@ -520,7 +520,10 @@ tr:hover td{background:var(--primary-light)}
   <div class="modal" style="width:640px;padding:0;overflow:hidden">
     <div class="modal-hd" style="padding:22px 28px 18px">
       <h3 id="reg-modal-title">報名名單</h3>
-      <button class="modal-close" onclick="closeRegModal()">×</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn-paste" onclick="openImport()" style="padding:7px 14px;font-size:.8rem">📥 批次匯入</button>
+        <button class="modal-close" onclick="closeRegModal()">×</button>
+      </div>
     </div>
     <div id="reg-modal-body" style="max-height:46vh;overflow-y:auto;padding:0 28px 16px"></div>
     <!-- Manual add form -->
@@ -537,6 +540,52 @@ tr:hover td{background:var(--primary-light)}
         </label>
         <button class="btn-save" onclick="manualAddReg()" style="padding:9px 20px;white-space:nowrap">新增</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Batch import modal -->
+<div id="import-overlay" class="overlay" onclick="if(event.target===this)closeImport()">
+  <div class="modal" style="width:700px;max-height:92vh;overflow-y:auto">
+    <div class="modal-hd">
+      <h3>📥 批次匯入報名名單</h3>
+      <button class="modal-close" onclick="closeImport()">×</button>
+    </div>
+    <p style="font-size:.82rem;color:var(--muted);margin-bottom:6px;line-height:1.7">
+      支援從 <b>Google 試算表</b>（選取欄位直接複製）或純文字名單貼入。<br>
+      格式：每行一人，<code style="background:var(--primary-light);padding:1px 5px;border-radius:4px">姓名 電話 備註</code>，欄位間用空白、Tab 或逗號分隔均可。
+    </p>
+    <div class="fg">
+      <textarea class="paste-textarea" id="import-text" rows="7"
+        placeholder="王小明&#9;0912-345-678&#9;素食&#10;李大華&#9;0923-456-789&#10;&#10;或直接從 Google 試算表複製貼上…"
+        oninput="parseImport()"></textarea>
+    </div>
+    <div id="import-preview" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span id="import-count" style="font-size:.84rem;font-weight:600;color:var(--primary-dark)"></span>
+        <label style="font-size:.82rem;cursor:pointer;display:flex;align-items:center;gap:6px">
+          <input type="checkbox" id="import-all-paid"> 全部標記已繳費
+        </label>
+      </div>
+      <div style="overflow-x:auto;max-height:280px;overflow-y:auto;border-radius:10px;border:1px solid var(--border)">
+        <table style="width:100%;border-collapse:collapse;font-size:.83rem">
+          <thead>
+            <tr style="background:var(--primary-light);position:sticky;top:0;z-index:1">
+              <th style="padding:8px 12px;text-align:left;font-size:.74rem;width:32px">#</th>
+              <th style="padding:8px 12px;text-align:left;font-size:.74rem">姓名</th>
+              <th style="padding:8px 12px;text-align:left;font-size:.74rem">電話</th>
+              <th style="padding:8px 12px;text-align:left;font-size:.74rem">備註</th>
+              <th style="padding:8px 12px;text-align:center;font-size:.74rem;width:60px">刪除</th>
+            </tr>
+          </thead>
+          <tbody id="import-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="import-warn" style="display:none;font-size:.8rem;color:#e05c5c;margin-top:8px;padding:8px 12px;background:#fdeaea;border-radius:8px"></div>
+    <div class="modal-foot">
+      <button type="button" class="btn-cancel" onclick="closeImport()">取消</button>
+      <button type="button" class="btn-save" id="import-btn" style="display:none" onclick="doImport()">匯入全部</button>
     </div>
   </div>
 </div>
@@ -1208,6 +1257,130 @@ async function manualAddReg(){
   document.getElementById('ma-name').classList.remove('err');
   document.getElementById('ma-phone').classList.remove('err');
   toast(`已新增「${name}」✓`, 'success');
+}
+
+// ── Batch import ─────────────────────────────────────────────
+let importRows = [];
+
+function openImport(){
+  if(!currentRegEventId){ toast('請先開啟課程名單','error'); return; }
+  document.getElementById('import-text').value = '';
+  document.getElementById('import-preview').style.display = 'none';
+  document.getElementById('import-btn').style.display = 'none';
+  document.getElementById('import-warn').style.display = 'none';
+  importRows = [];
+  document.getElementById('import-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('import-text').focus(), 100);
+}
+function closeImport(){ document.getElementById('import-overlay').classList.remove('open'); }
+
+function parseImport(){
+  const text = document.getElementById('import-text').value;
+  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+  importRows = [];
+  const skipped = [];
+
+  for(const line of lines){
+    // Skip header-like lines
+    if(/^(時間戳記|timestamp|姓名|name|電話|phone|日期|#)/i.test(line)) continue;
+
+    // Split by tab, comma, or 2+ spaces
+    const cols = line.split(/\t|,|，|　|  +/).map(c=>c.trim()).filter(Boolean);
+
+    // Extract phone: look for anything matching mobile pattern
+    let phone='', name='', note='';
+    const phoneCols = [];
+    const otherCols = [];
+
+    for(const col of cols){
+      const stripped = col.replace(/[-\s]/g,'');
+      // Mobile: 09xx or 886-9xx
+      if(/^(0[6-9]\d{8}|886[6-9]\d{8}|\+886[6-9]\d{8})$/.test(stripped) ||
+         /^0[6-9]\d{2}[-\s]?\d{3}[-\s]?\d{3}$/.test(col) ||
+         /^0[6-9]\d{2}[-\s]?\d{4}[-\s]?\d{3}$/.test(col)){
+        phoneCols.push(col);
+      } else {
+        otherCols.push(col);
+      }
+    }
+
+    if(!phoneCols.length){
+      skipped.push(line.slice(0,30));
+      continue;
+    }
+
+    phone = phoneCols[0];
+    // Skip timestamp-like first column
+    const nameCol = otherCols.find(c=>/[\u4e00-\u9fff]/.test(c) && c.length<=8 && !/\d{4}/.test(c));
+    name = nameCol || otherCols.find(c=>c.length>=2 && !/\d{4,}/.test(c)) || '';
+    note = otherCols.filter(c=>c!==name && !/\d{4}\/\d/.test(c)).slice(1).join(' ').trim();
+
+    if(name.length >= 1){
+      importRows.push({ name, phone, note, paid: false });
+    } else {
+      skipped.push(line.slice(0,30));
+    }
+  }
+
+  if(!importRows.length && !skipped.length){
+    document.getElementById('import-preview').style.display = 'none';
+    document.getElementById('import-btn').style.display = 'none';
+    return;
+  }
+
+  // Render preview
+  document.getElementById('import-count').textContent = `解析到 ${importRows.length} 筆，可匯入`;
+  document.getElementById('import-tbody').innerHTML = importRows.map((r,i)=>`
+    <tr id="irow-${i}" style="border-bottom:1px solid var(--border)">
+      <td style="padding:7px 12px;color:var(--muted);font-size:.76rem">${i+1}</td>
+      <td style="padding:7px 12px"><input class="ma-input" style="padding:4px 8px;font-size:.82rem" value="${r.name}" oninput="importRows[${i}].name=this.value"></td>
+      <td style="padding:7px 12px"><input class="ma-input" style="padding:4px 8px;font-size:.82rem" value="${r.phone}" oninput="importRows[${i}].phone=this.value"></td>
+      <td style="padding:7px 12px"><input class="ma-input" style="padding:4px 8px;font-size:.82rem" value="${r.note||''}" placeholder="—" oninput="importRows[${i}].note=this.value"></td>
+      <td style="padding:7px 12px;text-align:center">
+        <button class="btn-del" style="padding:3px 8px;font-size:.72rem" onclick="removeImportRow(${i})">✕</button>
+      </td>
+    </tr>`).join('');
+
+  if(skipped.length){
+    document.getElementById('import-warn').style.display = 'block';
+    document.getElementById('import-warn').innerHTML =
+      `⚠️ 無法辨識 ${skipped.length} 行（找不到手機號碼）：<br>${skipped.map(s=>`<code>${s}</code>`).join('、')}`;
+  } else {
+    document.getElementById('import-warn').style.display = 'none';
+  }
+
+  document.getElementById('import-preview').style.display = 'block';
+  document.getElementById('import-btn').style.display = importRows.length ? 'inline-block' : 'none';
+  document.getElementById('import-btn').textContent = `匯入全部 ${importRows.length} 人`;
+}
+
+function removeImportRow(i){
+  importRows.splice(i,1);
+  parseImport(); // re-render with current text (or just re-render rows)
+  const tbody = document.getElementById('import-tbody');
+  if(tbody){
+    // Simpler: just re-number and re-render
+    document.getElementById('import-count').textContent = `解析到 ${importRows.length} 筆，可匯入`;
+    document.getElementById('import-btn').textContent = `匯入全部 ${importRows.length} 人`;
+    document.getElementById('import-btn').style.display = importRows.length ? 'inline-block' : 'none';
+  }
+}
+
+async function doImport(){
+  if(!importRows.length || !currentRegEventId) return;
+  const allPaid = document.getElementById('import-all-paid').checked;
+  const btn = document.getElementById('import-btn');
+  btn.disabled = true; btn.textContent = '匯入中…';
+  const updates = {};
+  const ts = Date.now();
+  importRows.forEach((r,i)=>{
+    const key = db.ref('bakery/registrations/'+currentRegEventId).push().key;
+    updates[key] = { name:r.name.trim(), phone:r.phone.trim(), note:r.note||'',
+                     paid: allPaid || r.paid, createdAt: ts + i };
+  });
+  await db.ref('bakery/registrations/'+currentRegEventId).update(updates);
+  toast(`✅ 成功匯入 ${importRows.length} 人`, 'success');
+  closeImport();
 }
 
 // ── Auth ──────────────────────────────────────────────────────
