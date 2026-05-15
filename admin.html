@@ -518,6 +518,7 @@ function closeConfirm(){
 }
 function doDelete(){
   if(pendingDeleteId===null) return;
+  markDeleted(pendingDeleteId);
   events = events.filter(e=>e.id!==pendingDeleteId);
   persistEvents(events);
   closeConfirm();
