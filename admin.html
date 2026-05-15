@@ -306,7 +306,6 @@ tr:hover td{background:var(--primary-light)}
             <th>老師</th>
             <th>課程名稱</th>
             <th>費用</th>
-            <th>Google 表單</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -363,10 +362,6 @@ tr:hover td{background:var(--primary-light)}
       <div class="fg">
         <label>課程介紹（選填）</label>
         <textarea id="f-desc" placeholder="課程內容介紹，將顯示在報名頁面上…" style="min-height:80px"></textarea>
-      </div>
-      <div class="fg">
-        <label>Google 表單連結（選填，舊課程用）</label>
-        <input type="url" id="f-link" placeholder="https://forms.gle/… 留空則使用內建報名系統">
       </div>
       <div class="fg">
         <label>課程圖片</label>
@@ -444,10 +439,6 @@ tr:hover td{background:var(--primary-light)}
       <div class="fg">
         <label>費用</label>
         <input class="login-input" type="number" id="pp-fee" placeholder="例：1800" min="0" step="1">
-      </div>
-      <div class="fg">
-        <label>報名連結</label>
-        <input class="login-input" type="url" id="pp-link" placeholder="https://forms.gle/…">
       </div>
       <div class="fg" style="grid-column:1/-1">
         <label>標籤顏色</label>
@@ -761,7 +752,6 @@ function renderTable(){
         <td style="font-weight:600">${e.teacher}</td>
         <td>${e.title}</td>
         <td style="font-size:.8rem;color:var(--muted)">${formatFee(e.fee)||'-'}</td>
-        <td>${e.link?`<a href="${e.link}" target="_blank" rel="noopener" style="color:var(--primary);font-size:.78rem;font-weight:600">開啟連結 ↗</a>`:'-'}</td>
         <td><div class="act-btns">
           <button class="btn-reg"    data-reg="${e.id}">👥 ${regCount(e.id)}</button>
           <a class="btn-export" href="${location.href.replace(/admin\.html.*$/,'register.html?id='+e.id)}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center">🔗 報名頁</a>
@@ -814,7 +804,6 @@ function openEdit(id){
   setImagePreview('f-image','f-img-preview','f-img-ph','f-img-clear', e.image||'');
   const urlInp = document.getElementById('f-img-url');
   if (urlInp) urlInp.value = (e.image && e.image.startsWith('http')) ? e.image : '';
-  document.getElementById('f-link').value    = e.link||'';
   document.getElementById('f-desc').value    = e.description||'';
   selColor = e.color;
   buildColorPicker();
@@ -834,7 +823,6 @@ async function saveEvent(e){
     title:   document.getElementById('f-title').value.trim(),
     fee:         Number(document.getElementById('f-fee').value) || '',
     image:       document.getElementById('f-image').value || '',
-    link:        document.getElementById('f-link').value.trim(),
     description: document.getElementById('f-desc').value.trim(),
     color:       selColor,
   };
@@ -904,10 +892,10 @@ function exportCSV(){
     .sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start))
     .map(e=>{
       const dow=WEEKDAYS[new Date(e.date).getDay()];
-      return [e.date,dow,e.start,e.end,e.teacher,e.title,e.link||'']
+      return [e.date,dow,e.start,e.end,e.teacher,e.title]
         .map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
     });
-  const csv='﻿'+['日期,星期,開始時間,結束時間,老師,課程名稱,報名連結',...rows].join('\n');
+  const csv='﻿'+['日期,星期,開始時間,結束時間,老師,課程名稱',...rows].join('\n');
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='烘焙課程2026.csv'; a.click();
@@ -1075,7 +1063,6 @@ function parsePaste(){
 
   // ── Link ──────────────────────────────────────────────────────
   const linkM = text.match(/https?:\/\/\S+/);
-  if(linkM) document.getElementById('pp-link').value = linkM[0].replace(/[）)>\]]+$/, '');
 
   // ── Teacher & Title ───────────────────────────────────────────
   let teacher = '', title = '';
@@ -1161,7 +1148,6 @@ async function saveParsed(){
   await db.ref('bakery/events').push({
     date, teacher, start, end, title,
     fee:  Number(document.getElementById('pp-fee').value) || '',
-    link: document.getElementById('pp-link').value.trim(),
     color: ppSelColor,
   });
   closePaste();
