@@ -864,9 +864,11 @@ async function saveEvent(e){
 }
 
 // ── Reg link modal (shown after adding new course) ────────────
+let _regLinkEventId = null;
 function showRegLinkModal(eventId, title){
   const base = location.href.replace(/admin\.html.*$/, '');
   const url  = base + 'register.html?id=' + eventId;
+  _regLinkEventId = eventId;
   document.getElementById('reglink-title').textContent = title;
   document.getElementById('reglink-url').value = url;
   document.getElementById('reglink-open').href = url;
@@ -876,7 +878,19 @@ function showRegLinkModal(eventId, title){
 function closeRegLink(){ document.getElementById('reglink-overlay').classList.remove('open'); }
 function copyRegLinkFromModal(){
   const url = document.getElementById('reglink-url').value;
-  navigator.clipboard.writeText(url)
+  const ev = _regLinkEventId ? events.find(e => e.id === _regLinkEventId) : null;
+  let text = url;
+  if(ev){
+    const lines = [`【${ev.title}】`];
+    lines.push(`🗓 日期：${formatDate(ev.date)}`);
+    lines.push(`⏰ 時間：${ev.start} – ${ev.end}`);
+    lines.push(`👩‍🏫 老師：${ev.teacher}`);
+    if(ev.fee) lines.push(`💰 費用：${formatFee(ev.fee)}`);
+    if(ev.desc) lines.push(`\n${ev.desc}`);
+    lines.push(`\n🔗 報名連結：${url}`);
+    text = lines.join('\n');
+  }
+  navigator.clipboard.writeText(text)
     .then(()=>{
       document.getElementById('reglink-copy-btn').textContent = '✓ 已複製';
       setTimeout(()=>{ document.getElementById('reglink-copy-btn').textContent = '複製'; }, 2000);
@@ -1237,9 +1251,21 @@ function renderRegOverview(){
 function copyRegLink(eventId){
   const base = location.href.replace(/admin\.html.*$/, '');
   const url  = base + 'register.html?id=' + eventId;
-  navigator.clipboard.writeText(url)
-    .then(()=>toast('報名連結已複製 ✓','success'))
-    .catch(()=>{ prompt('複製此連結：', url); });
+  const ev = events.find(e => e.id === eventId);
+  let text = url;
+  if(ev){
+    const lines = [`【${ev.title}】`];
+    lines.push(`🗓 日期：${formatDate(ev.date)}`);
+    lines.push(`⏰ 時間：${ev.start} – ${ev.end}`);
+    lines.push(`👩‍🏫 老師：${ev.teacher}`);
+    if(ev.fee) lines.push(`💰 費用：${formatFee(ev.fee)}`);
+    if(ev.desc) lines.push(`\n${ev.desc}`);
+    lines.push(`\n🔗 報名連結：${url}`);
+    text = lines.join('\n');
+  }
+  navigator.clipboard.writeText(text)
+    .then(()=>toast('課程資訊與報名連結已複製 ✓','success'))
+    .catch(()=>{ prompt('複製此內容：', text); });
 }
 
 // ── Registrations ────────────────────────────────────────────
