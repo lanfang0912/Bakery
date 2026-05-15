@@ -490,25 +490,38 @@ let pendingDeleteId = null;
 // ── Firebase init ─────────────────────────────────────────────
 firebase.initializeApp(FB_CONFIG);
 db = firebase.database();
-firebase.auth().signInAnonymously().catch(()=>{});
-db.ref('bakery/events').on('value', snap => {
-  const val = snap.val() || {};
-  events = Object.entries(val).map(([key, e]) => ({...e, id: key})).sort((a,b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
-  renderTable();
-});
 
-// Seed initial data if DB is empty
-db.ref('bakery/events').once('value').then(snap => {
-  if (!snap.val()) {
-    const updates = {};
-    INITIAL_EVENTS.forEach(e => {
-      const {id, ...ev} = e;
-      const key = db.ref('bakery/events').push().key;
-      updates[key] = ev;
-    });
-    db.ref('bakery/events').update(updates);
-  }
-});
+function startFbListener() {
+  db.ref('bakery/events').on('value', snap => {
+    const val = snap.val() || {};
+    events = Object.entries(val).map(([key, e]) => ({...e, id: key}))
+      .sort((a,b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
+    renderTable();
+  }, err => {
+    document.getElementById('tbody').innerHTML =
+      `<tr class="empty-row"><td colspan="9" style="color:#e05c5c">
+        ⚠️ 無法讀取課程資料（${err.code}）<br>
+        <small>請到 Firebase Console → Realtime Database → 規則，確認已加入 bakery/events 的讀取規則</small>
+      </td></tr>`;
+  });
+
+  // Seed initial data if DB is empty
+  db.ref('bakery/events').once('value').then(snap => {
+    if (!snap.val()) {
+      const updates = {};
+      INITIAL_EVENTS.forEach(e => {
+        const {id, ...ev} = e;
+        const key = db.ref('bakery/events').push().key;
+        updates[key] = ev;
+      });
+      db.ref('bakery/events').update(updates).catch(e => console.warn('Seed failed:', e));
+    }
+  });
+}
+
+firebase.auth().signInAnonymously()
+  .then(startFbListener)
+  .catch(() => startFbListener()); // still try even if anon auth fails
 
 // ── Table button delegation ───────────────────────────────────
 document.getElementById('tbody').addEventListener('click', e => {
