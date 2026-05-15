@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>資料搬移</title>
+<style>
+body{font-family:'PingFang TC','Microsoft JhengHei',sans-serif;background:#f7f2ed;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+.box{background:#fff;border-radius:18px;padding:40px 36px;width:420px;max-width:92vw;box-shadow:0 8px 40px rgba(0,0,0,.15);text-align:center}
+h2{color:#8b5a27;margin-bottom:8px}
+p{color:#8a6d5a;font-size:.9rem;line-height:1.7;margin-bottom:24px}
+.btn{display:inline-block;background:#c17f3e;color:#fff;padding:14px 32px;border-radius:24px;font-size:1rem;font-weight:700;border:none;cursor:pointer;text-decoration:none;transition:background .2s}
+.btn:hover{background:#8b5a27}
+.ok{color:#5c9e6e;font-size:1.1rem;font-weight:700}
+.err{color:#e05c5c;font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="box">
+  <div id="content"></div>
+</div>
+<script>
+const KEYS = ['bakery_events_v1','bakery_deleted_ids','bakery_pw_hash','bakery_cloudinary'];
+const TARGET = 'https://bakery.urland.com.tw/migrate.html';
+const el = document.getElementById('content');
+
+const hash = location.hash.slice(1);
+
+if (hash) {
+  // ── Step 2: arrived at new domain with data ──
+  try {
+    const data = JSON.parse(decodeURIComponent(hash));
+    KEYS.forEach(k => {
+      if (data[k] != null) localStorage.setItem(k, data[k]);
+    });
+    el.innerHTML = `
+      <div class="ok">✅ 資料搬移成功！</div>
+      <p style="margin-top:12px">所有課程資料已複製到新網域。</p>
+      <a class="btn" href="admin.html">進入管理後台</a>`;
+    history.replaceState(null, '', location.pathname);
+  } catch(e) {
+    el.innerHTML = `<div class="err">❌ 搬移失敗：${e.message}</div>`;
+  }
+} else {
+  // ── Step 1: on old domain, export data ──
+  const data = {};
+  KEYS.forEach(k => { const v = localStorage.getItem(k); if (v) data[k] = v; });
+  const hasData = Object.keys(data).length > 0;
+
+  if (!hasData) {
+    el.innerHTML = `
+      <h2>找不到資料</h2>
+      <p>這個網域的 localStorage 沒有烘焙課程資料。<br>
+         請確認你是在 <b>lanfang0912.github.io</b> 上開啟這個頁面。</p>`;
+  } else {
+    const encoded = encodeURIComponent(JSON.stringify(data));
+    const url = TARGET + '#' + encoded;
+    el.innerHTML = `
+      <h2>🔄 資料搬移</h2>
+      <p>找到 ${JSON.parse(data['bakery_events_v1']||'[]').length} 筆課程資料。<br>
+         點下方按鈕，自動複製到新網域。</p>
+      <a class="btn" href="${url}">一鍵搬移到新網址 →</a>`;
+  }
+}
+</script>
+</body>
+</html>
