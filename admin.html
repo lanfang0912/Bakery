@@ -107,6 +107,29 @@ tr:hover td{background:var(--primary-light)}
 .toast.success{background:var(--green)}
 .toast.error{background:var(--red)}
 
+/* ── Login screen ── */
+#login-screen{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#3d1f08 0%,var(--primary-dark) 45%,#b07030 100%);display:flex;align-items:center;justify-content:center}
+#login-screen.hidden{display:none}
+.login-box{background:#fff;border-radius:24px;padding:44px 40px;width:380px;max-width:92vw;box-shadow:0 28px 80px rgba(0,0,0,.4);text-align:center;animation:mIn .3s ease}
+.login-logo{font-size:2.8rem;margin-bottom:10px}
+.login-box h2{font-size:1.3rem;font-weight:800;color:var(--primary-dark);margin-bottom:4px}
+.login-box p{font-size:.82rem;color:var(--muted);margin-bottom:28px}
+.login-box .fg{text-align:left;margin-bottom:16px}
+.login-box .fg label{display:block;font-size:.77rem;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.login-input{width:100%;padding:12px 16px;border:2px solid var(--border);border-radius:10px;font-size:.95rem;font-family:inherit;color:var(--text);background:var(--bg);transition:border-color .2s;outline:none}
+.login-input:focus{border-color:var(--primary)}
+.login-input.error{border-color:var(--red);animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.login-err{font-size:.8rem;color:var(--red);margin-top:-8px;margin-bottom:12px;min-height:18px;font-weight:600}
+.btn-login{width:100%;padding:13px;background:var(--primary);color:#fff;border:none;border-radius:22px;font-size:.95rem;font-weight:800;cursor:pointer;transition:all .2s;margin-top:4px}
+.btn-login:hover{background:var(--primary-dark);transform:translateY(-1px)}
+.login-hint{font-size:.75rem;color:var(--muted);margin-top:18px}
+
+/* Change-password modal */
+.chpw-modal{background:#fff;border-radius:18px;padding:32px 36px;width:400px;max-width:94vw;box-shadow:0 24px 70px rgba(0,0,0,.28);animation:mIn .22s ease}
+.btn-logout{background:rgba(255,255,255,.14);color:#fff;text-decoration:none;padding:8px 18px;border-radius:20px;font-size:.82rem;font-weight:600;border:2px solid rgba(255,255,255,.4);cursor:pointer;transition:all .2s}
+.btn-logout:hover{background:rgba(255,255,255,.26)}
+
 @media(max-width:700px){
   header,.toolbar{padding:14px 16px}
   main{padding:14px}
@@ -119,12 +142,35 @@ tr:hover td{background:var(--primary-light)}
 </style>
 </head>
 <body>
+
+<!-- ── Login screen ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🥐</div>
+    <h2>課程管理後台</h2>
+    <p>請輸入管理密碼以繼續</p>
+    <form onsubmit="doLogin(event)">
+      <div class="fg">
+        <label>管理密碼</label>
+        <input class="login-input" type="password" id="login-pw" placeholder="請輸入密碼" autocomplete="current-password">
+      </div>
+      <div class="login-err" id="login-err"></div>
+      <button type="submit" class="btn-login">登入後台</button>
+    </form>
+    <p class="login-hint">預設密碼：bakery2026　（登入後可於後台更改）</p>
+  </div>
+</div>
+
 <header>
   <div>
     <h1>⚙️ 課程管理後台</h1>
     <p>新增、編輯、刪除烘焙課程資料</p>
   </div>
-  <a class="back-link" href="index.html">← 返回行事曆</a>
+  <div style="display:flex;gap:10px;align-items:center">
+    <a class="back-link" href="index.html">← 返回行事曆</a>
+    <button class="btn-logout" onclick="openChangePw()">🔑 更改密碼</button>
+    <button class="btn-logout" onclick="doLogout()">登出</button>
+  </div>
 </header>
 
 <div class="toolbar">
@@ -231,6 +277,35 @@ tr:hover td{background:var(--primary-light)}
       <button class="btn-no" onclick="closeConfirm()">取消</button>
       <button class="btn-yes" onclick="doDelete()">確定刪除</button>
     </div>
+  </div>
+</div>
+
+<!-- Change-password modal -->
+<div id="chpw-overlay" class="overlay" onclick="closeChpwBg(event)">
+  <div class="chpw-modal">
+    <div class="modal-hd">
+      <h3>更改管理密碼</h3>
+      <button class="modal-close" onclick="closeChpw()">×</button>
+    </div>
+    <form onsubmit="saveNewPw(event)">
+      <div class="fg">
+        <label>目前密碼</label>
+        <input class="login-input" type="password" id="cp-old" placeholder="請輸入目前密碼" required>
+      </div>
+      <div class="fg">
+        <label>新密碼</label>
+        <input class="login-input" type="password" id="cp-new" placeholder="至少 6 個字元" minlength="6" required>
+      </div>
+      <div class="fg">
+        <label>確認新密碼</label>
+        <input class="login-input" type="password" id="cp-confirm" placeholder="再輸入一次新密碼" required>
+      </div>
+      <div class="login-err" id="chpw-err"></div>
+      <div class="modal-foot">
+        <button type="button" class="btn-cancel" onclick="closeChpw()">取消</button>
+        <button type="submit" class="btn-save">儲存新密碼</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -408,6 +483,84 @@ function exportCSV(){
 // ── Init ─────────────────────────────────────────────────────
 buildColorFilter();
 renderTable();
+
+// ── Auth ──────────────────────────────────────────────────────
+const PW_KEY      = 'bakery_pw_hash';
+const SESSION_KEY = 'bakery_authed';
+const DEFAULT_PW  = 'bakery2026';
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function getStoredHash() {
+  return localStorage.getItem(PW_KEY) || await sha256(DEFAULT_PW);
+}
+
+async function doLogin(e) {
+  e.preventDefault();
+  const pw  = document.getElementById('login-pw').value;
+  const inp = document.getElementById('login-input') || document.getElementById('login-pw');
+  const err = document.getElementById('login-err');
+  if(!pw){ err.textContent='請輸入密碼'; return; }
+  const hash = await sha256(pw);
+  const stored = await getStoredHash();
+  if(hash === stored){
+    sessionStorage.setItem(SESSION_KEY,'1');
+    document.getElementById('login-screen').classList.add('hidden');
+    err.textContent='';
+    document.getElementById('login-pw').value='';
+  } else {
+    err.textContent='密碼錯誤，請再試一次';
+    document.getElementById('login-pw').classList.add('error');
+    setTimeout(()=>document.getElementById('login-pw').classList.remove('error'),400);
+    document.getElementById('login-pw').value='';
+    document.getElementById('login-pw').focus();
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem(SESSION_KEY);
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-pw').focus();
+}
+
+// Change password
+function openChangePw(){
+  document.getElementById('cp-old').value='';
+  document.getElementById('cp-new').value='';
+  document.getElementById('cp-confirm').value='';
+  document.getElementById('chpw-err').textContent='';
+  document.getElementById('chpw-overlay').classList.add('open');
+}
+function closeChpw(){ document.getElementById('chpw-overlay').classList.remove('open'); }
+function closeChpwBg(e){ if(e.target===document.getElementById('chpw-overlay')) closeChpw(); }
+
+async function saveNewPw(e){
+  e.preventDefault();
+  const oldVal = document.getElementById('cp-old').value;
+  const newVal = document.getElementById('cp-new').value;
+  const cfmVal = document.getElementById('cp-confirm').value;
+  const errEl  = document.getElementById('chpw-err');
+  if(newVal !== cfmVal){ errEl.textContent='新密碼兩次輸入不一致'; return; }
+  const oldHash    = await sha256(oldVal);
+  const storedHash = await getStoredHash();
+  if(oldHash !== storedHash){ errEl.textContent='目前密碼錯誤'; return; }
+  const newHash = await sha256(newVal);
+  localStorage.setItem(PW_KEY, newHash);
+  closeChpw();
+  toast('密碼已更新 ✓','success');
+}
+
+// Check session on load
+(async()=>{
+  if(sessionStorage.getItem(SESSION_KEY)==='1'){
+    document.getElementById('login-screen').classList.add('hidden');
+  } else {
+    document.getElementById('login-pw').focus();
+  }
+})();
 </script>
 </body>
 </html>
