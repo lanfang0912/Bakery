@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>烘焙課程行事曆 2026</title>
+<style>
+:root {
+  --primary:#c17f3e; --primary-light:#f5e6d3; --primary-dark:#8b5a27;
+  --accent:#e8a45a; --bg:#fdf8f3; --card:#fff; --text:#3d2c1e;
+  --muted:#8a6d5a; --border:#e8d5c0;
+  --shadow:0 2px 14px rgba(193,127,62,.13);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI','PingFang TC','Microsoft JhengHei',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* Header */
+header{background:linear-gradient(135deg,var(--primary-dark),var(--primary) 55%,var(--accent));color:#fff;padding:22px 36px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 20px rgba(139,90,39,.3)}
+header h1{font-size:1.55rem;font-weight:800;letter-spacing:1px}
+header p{font-size:.82rem;opacity:.82;margin-top:3px}
+.admin-link{background:rgba(255,255,255,.18);color:#fff;text-decoration:none;padding:8px 18px;border-radius:20px;font-size:.82rem;font-weight:600;border:2px solid rgba(255,255,255,.5);transition:all .2s}
+.admin-link:hover{background:rgba(255,255,255,.32)}
+
+/* Tab bar */
+.tabs{display:flex;background:var(--card);border-bottom:2px solid var(--border);padding:0 36px}
+.tab{padding:13px 22px;cursor:pointer;font-size:.9rem;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab:hover{color:var(--primary)}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+
+main{padding:28px 36px;max-width:1240px;margin:0 auto}
+.view{display:none}.view.active{display:block}
+
+/* ── Calendar ── */
+.cal-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.cal-top h2{font-size:1.2rem;font-weight:700;color:var(--primary-dark)}
+.month-btns{display:flex;gap:8px}
+.m-btn{padding:6px 18px;border:2px solid var(--border);background:#fff;border-radius:16px;cursor:pointer;font-size:.84rem;font-weight:600;color:var(--muted);transition:all .2s}
+.m-btn:hover,.m-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;padding:12px 14px;background:#fff;border-radius:10px;border:1px solid var(--border)}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:.75rem;color:var(--muted)}
+.ldot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.ch{text-align:center;font-size:.75rem;font-weight:700;color:var(--muted);padding:7px 0;letter-spacing:.4px}
+.ch.we{color:#e05c5c}
+.cd{min-height:108px;background:#fff;border-radius:10px;border:1px solid var(--border);padding:6px;transition:box-shadow .2s}
+.cd:hover{box-shadow:var(--shadow)}
+.cd.empty{background:transparent;border-color:transparent}
+.cd.today{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary-light)}
+.cd.has-ev{background:var(--primary-light)}
+.cd.we{background:#fff9f9}
+.cd.we.has-ev{background:#fdf0f0}
+.dnum{font-size:.78rem;font-weight:700;color:var(--muted);margin-bottom:4px}
+.cd.today .dnum{background:var(--primary);color:#fff;width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem}
+.cd.we .dnum{color:#e05c5c}
+
+.chip{font-size:.67rem;padding:2px 5px;border-radius:5px;margin-bottom:2px;line-height:1.3;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .2s}
+.chip:hover{opacity:.75}
+
+/* Detail popup */
+.dpopup{display:none;position:fixed;z-index:900;background:#fff;border-radius:14px;padding:18px 20px;width:290px;box-shadow:0 8px 36px rgba(0,0,0,.22);border-top:5px solid var(--primary)}
+.dpopup.open{display:block}
+.dpopup h4{font-size:.92rem;font-weight:700;margin-bottom:9px}
+.dpopup p{font-size:.8rem;color:var(--muted);margin-bottom:5px;line-height:1.5}
+.dclose{position:absolute;top:9px;right:13px;font-size:1.15rem;cursor:pointer;color:var(--muted);background:none;border:none;line-height:1}
+.reg-btn{display:inline-block;margin-top:10px;padding:6px 16px;background:var(--primary);color:#fff;text-decoration:none;border-radius:14px;font-size:.78rem;font-weight:600}
+.reg-btn:hover{background:var(--primary-dark)}
+
+/* ── Schedule list ── */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.stat{background:#fff;border-radius:12px;padding:16px;border:1px solid var(--border);box-shadow:var(--shadow);text-align:center}
+.snum{font-size:1.9rem;font-weight:800;color:var(--primary);line-height:1}
+.slbl{font-size:.77rem;color:var(--muted);margin-top:3px;font-weight:600}
+
+.msec{margin-bottom:28px}
+.mlabel{font-size:1.05rem;font-weight:700;color:var(--primary-dark);margin-bottom:12px;padding-bottom:7px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:8px}
+.mlabel::before{content:'';display:inline-block;width:5px;height:18px;background:var(--primary);border-radius:3px}
+.dgroup{margin-bottom:14px}
+.dhead{font-size:.85rem;font-weight:700;color:var(--muted);margin-bottom:7px;display:flex;align-items:center;gap:7px}
+.ddot{width:7px;height:7px;background:var(--primary);border-radius:50%}
+
+.ecard{background:#fff;border-radius:12px;border:1px solid var(--border);padding:14px 16px;margin-bottom:7px;display:flex;align-items:flex-start;gap:14px;box-shadow:var(--shadow);transition:transform .2s}
+.ecard:hover{transform:translateY(-2px)}
+.ebar{width:5px;align-self:stretch;border-radius:3px;flex-shrink:0}
+.einfo{flex:1;min-width:0}
+.etitle{font-size:.93rem;font-weight:700;margin-bottom:3px}
+.etime{font-size:.79rem;color:var(--muted);margin-bottom:3px}
+.elink a{font-size:.77rem;color:var(--primary);text-decoration:none}
+.elink a:hover{text-decoration:underline}
+
+@media(max-width:700px){
+  header{padding:14px;flex-wrap:wrap;gap:10px}
+  main{padding:14px}
+  .tabs{padding:0 12px;overflow-x:auto}
+  .tab{white-space:nowrap;padding:11px 12px}
+  .cd{min-height:68px}
+  .stats{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🥐 烘焙課程行事曆</h1>
+    <p>2026年 5月 – 7月 課程總覽</p>
+  </div>
+  <a class="admin-link" href="admin.html">⚙️ 管理後台</a>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('calendar',this)">📅 月曆</div>
+  <div class="tab" onclick="switchTab('schedule',this)">📋 課程清單</div>
+</div>
+
+<main>
+  <div id="view-calendar" class="view active">
+    <div class="cal-top">
+      <h2 id="cal-title">2026年 5月</h2>
+      <div class="month-btns">
+        <button class="m-btn active" onclick="showMonth(5,this)">5月</button>
+        <button class="m-btn" onclick="showMonth(6,this)">6月</button>
+        <button class="m-btn" onclick="showMonth(7,this)">7月</button>
+      </div>
+    </div>
+    <div id="legend" class="legend"></div>
+    <div id="cal-grid" class="cal-grid"></div>
+  </div>
+
+  <div id="view-schedule" class="view">
+    <div class="stats">
+      <div class="stat"><div class="snum" id="s-total">0</div><div class="slbl">課程總數</div></div>
+      <div class="stat"><div class="snum" id="s-teachers">0</div><div class="slbl">授課老師</div></div>
+      <div class="stat"><div class="snum" id="s-days">0</div><div class="slbl">課程天數</div></div>
+    </div>
+    <div id="schedule-list"></div>
+  </div>
+</main>
+
+<div id="dpopup" class="dpopup">
+  <button class="dclose" onclick="closeDetail()">×</button>
+  <div id="dpopup-body"></div>
+</div>
+
+<script src="data.js"></script>
+<script>
+let events = loadEvents();
+let curMonth = 5;
+
+function switchTab(name, el) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  el.classList.add('active');
+  if (name==='calendar') renderCal(2026, curMonth);
+  if (name==='schedule') renderSchedule();
+  closeDetail();
+}
+
+// ── Calendar ─────────────────────────────────────────────────
+function showMonth(m, btn) {
+  curMonth = m;
+  document.querySelectorAll('.m-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCal(2026, m);
+}
+
+function renderCal(y, m) {
+  events = loadEvents();
+  document.getElementById('cal-title').textContent = `${y}年 ${m}月`;
+  const firstDow = new Date(y,m-1,1).getDay();
+  const totalDays = new Date(y,m,0).getDate();
+  const todayStr  = new Date().toISOString().slice(0,10);
+
+  let html = '';
+  ['日','一','二','三','四','五','六'].forEach((d,i)=>{
+    html += `<div class="ch${i===0||i===6?' we':''}">${d}</div>`;
+  });
+  for(let i=0;i<firstDow;i++) html+=`<div class="cd empty"></div>`;
+  for(let d=1;d<=totalDays;d++){
+    const ds=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const evts=events.filter(e=>e.date===ds).sort((a,b)=>a.start.localeCompare(b.start));
+    const dow=new Date(y,m-1,d).getDay();
+    const we=dow===0||dow===6;
+    let cls='cd'+(we?' we':'')+(ds===todayStr?' today':'')+(evts.length?' has-ev':'');
+    let chips=evts.slice(0,3).map(e=>{
+      const c=colorById(e.color);
+      return `<div class="chip" style="background:${c.bg};color:${c.hex}" onclick="showDetail(event,${e.id})" title="${e.teacher}｜${e.title}">${e.start} ${e.title.slice(0,7)}${e.title.length>7?'…':''}</div>`;
+    }).join('');
+    if(evts.length>3) chips+=`<div class="chip" style="background:#f0ebe5;color:#999">+${evts.length-3} 更多</div>`;
+    html+=`<div class="${cls}"><div class="dnum">${d}</div>${chips}</div>`;
+  }
+  document.getElementById('cal-grid').innerHTML=html;
+  renderLegend();
+}
+
+function renderLegend(){
+  const seen={};
+  events.forEach(e=>{if(!seen[e.teacher])seen[e.teacher]=e.color;});
+  document.getElementById('legend').innerHTML=Object.entries(seen).map(([t,c])=>{
+    const col=colorById(c);
+    return `<div class="legend-item"><div class="ldot" style="background:${col.hex}"></div>${t}</div>`;
+  }).join('')||'<span style="color:#bbb;font-size:.8rem">尚無課程</span>';
+}
+
+// ── Schedule ─────────────────────────────────────────────────
+function renderSchedule(){
+  events=loadEvents();
+  document.getElementById('s-total').textContent=events.length;
+  document.getElementById('s-teachers').textContent=new Set(events.map(e=>e.teacher)).size;
+  document.getElementById('s-days').textContent=new Set(events.map(e=>e.date)).size;
+
+  const sorted=[...events].sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
+  const byMonth={};
+  sorted.forEach(e=>{
+    const m=e.date.slice(5,7);
+    if(!byMonth[m])byMonth[m]={};
+    if(!byMonth[m][e.date])byMonth[m][e.date]=[];
+    byMonth[m][e.date].push(e);
+  });
+
+  let html='';
+  Object.keys(byMonth).sort().forEach(m=>{
+    html+=`<div class="msec"><div class="mlabel">2026年 ${m}月</div>`;
+    Object.keys(byMonth[m]).sort().forEach(date=>{
+      html+=`<div class="dgroup"><div class="dhead"><div class="ddot"></div>${formatDate(date)}</div>`;
+      byMonth[m][date].forEach(e=>{
+        const c=colorById(e.color);
+        html+=`<div class="ecard">
+          <div class="ebar" style="background:${c.hex}"></div>
+          <div class="einfo">
+            <div class="etitle">${e.teacher}｜${e.title}</div>
+            <div class="etime">🕐 ${e.start} – ${e.end}</div>
+            ${e.link?`<div class="elink"><a href="${e.link}" target="_blank" rel="noopener">📝 立即報名</a></div>`:''}
+          </div>
+        </div>`;
+      });
+      html+='</div>';
+    });
+    html+='</div>';
+  });
+  document.getElementById('schedule-list').innerHTML=html||'<p style="color:#bbb;text-align:center;padding:40px">尚無課程資料</p>';
+}
+
+// ── Detail popup ─────────────────────────────────────────────
+function showDetail(ev, id){
+  ev.stopPropagation();
+  const e=events.find(x=>x.id===id);
+  if(!e)return;
+  const c=colorById(e.color);
+  const p=document.getElementById('dpopup');
+  p.style.borderTopColor=c.hex;
+  document.getElementById('dpopup-body').innerHTML=`
+    <h4 style="color:${c.hex}">${e.title}</h4>
+    <p>👨‍🍳 ${e.teacher}</p>
+    <p>📅 ${formatDate(e.date)}</p>
+    <p>🕐 ${e.start} – ${e.end}</p>
+    ${e.link?`<a class="reg-btn" href="${e.link}" target="_blank" rel="noopener">📝 立即報名</a>`:''}`;
+  const r=ev.target.getBoundingClientRect();
+  let top=r.bottom+window.scrollY+6, left=r.left+window.scrollX;
+  if(left+295>window.innerWidth) left=window.innerWidth-302;
+  p.style.top=top+'px'; p.style.left=left+'px';
+  p.classList.add('open');
+}
+function closeDetail(){document.getElementById('dpopup').classList.remove('open')}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#dpopup')&&!e.target.closest('.chip'))closeDetail();
+});
+
+// ── Init ─────────────────────────────────────────────────────
+renderCal(2026,5);
+</script>
+</body>
+</html>

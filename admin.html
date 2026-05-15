@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理後台 | 烘焙課程行事曆</title>
+<style>
+:root{
+  --primary:#c17f3e;--primary-light:#f5e6d3;--primary-dark:#8b5a27;
+  --accent:#e8a45a;--bg:#f7f2ed;--card:#fff;--text:#3d2c1e;
+  --muted:#8a6d5a;--border:#e3cdb6;
+  --red:#e05c5c;--green:#5c9e6e;
+  --shadow:0 2px 12px rgba(193,127,62,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI','PingFang TC','Microsoft JhengHei',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* Header */
+header{background:linear-gradient(135deg,#5a3a1a,var(--primary-dark) 60%,#a0622a);color:#fff;padding:20px 36px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 18px rgba(90,58,26,.4)}
+header h1{font-size:1.35rem;font-weight:800}
+header p{font-size:.8rem;opacity:.75;margin-top:2px}
+.back-link{background:rgba(255,255,255,.16);color:#fff;text-decoration:none;padding:8px 18px;border-radius:20px;font-size:.82rem;font-weight:600;border:2px solid rgba(255,255,255,.45);transition:all .2s}
+.back-link:hover{background:rgba(255,255,255,.28)}
+
+/* Toolbar */
+.toolbar{background:var(--card);border-bottom:2px solid var(--border);padding:14px 36px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.toolbar-left{display:flex;align-items:center;gap:12px}
+.search{padding:9px 14px;border:2px solid var(--border);border-radius:22px;font-size:.86rem;font-family:inherit;width:240px;outline:none;transition:border-color .2s}
+.search:focus{border-color:var(--primary)}
+.filter-sel{padding:9px 14px;border:2px solid var(--border);border-radius:22px;font-size:.86rem;font-family:inherit;color:var(--text);background:#fff;outline:none;cursor:pointer}
+.btn-add{background:var(--primary);color:#fff;border:none;padding:10px 22px;border-radius:22px;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+.btn-add:hover{background:var(--primary-dark);transform:translateY(-1px)}
+
+main{padding:24px 36px;max-width:1280px;margin:0 auto}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.stat{background:var(--card);border-radius:12px;padding:16px 18px;border:1px solid var(--border);box-shadow:var(--shadow);text-align:center}
+.snum{font-size:1.9rem;font-weight:800;color:var(--primary);line-height:1}
+.slbl{font-size:.75rem;color:var(--muted);margin-top:3px;font-weight:600}
+
+/* Table */
+.table-wrap{overflow-x:auto;border-radius:14px;box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;background:var(--card)}
+thead{position:sticky;top:0;z-index:10}
+th{background:var(--primary-dark);color:#fff;font-size:.78rem;font-weight:700;padding:13px 16px;text-align:left;letter-spacing:.4px;white-space:nowrap}
+th:first-child{border-radius:14px 0 0 0}th:last-child{border-radius:0 14px 0 0}
+td{padding:12px 16px;font-size:.84rem;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--primary-light)}
+.empty-row td{text-align:center;color:var(--muted);padding:40px;font-size:.9rem}
+
+.cdot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:6px}
+.tag{display:inline-block;padding:2px 9px;border-radius:10px;font-size:.73rem;font-weight:600}
+
+.act-btns{display:flex;gap:6px;white-space:nowrap}
+.btn-edit{background:#edf2fc;color:#3a5ea8;border:none;padding:6px 14px;border-radius:14px;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-edit:hover{background:#3a5ea8;color:#fff}
+.btn-del{background:#fdeaea;color:var(--red);border:none;padding:6px 14px;border-radius:14px;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-del:hover{background:var(--red);color:#fff}
+.btn-export{background:#edfaf3;color:var(--green);border:none;padding:6px 14px;border-radius:14px;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-export:hover{background:var(--green);color:#fff}
+
+.tfoot-note{padding:10px 0;text-align:center;font-size:.77rem;color:var(--muted)}
+
+/* Modal */
+.overlay{display:none;position:fixed;inset:0;background:rgba(30,20,10,.55);z-index:1000;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:18px;padding:32px 36px;width:540px;max-width:95vw;max-height:92vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.28);animation:mIn .22s ease}
+@keyframes mIn{from{transform:translateY(-18px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
+.modal-hd h3{font-size:1.1rem;font-weight:800;color:var(--primary-dark)}
+.modal-close{background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted);line-height:1;padding:4px}
+.modal-close:hover{color:var(--text)}
+
+.fg{margin-bottom:18px}
+.fg label{display:block;font-size:.77rem;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.fg input,.fg select,.fg textarea{width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:9px;font-size:.88rem;font-family:inherit;color:var(--text);background:var(--bg);transition:border-color .2s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--primary)}
+.fg textarea{resize:vertical;min-height:60px}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+.color-opts{display:flex;gap:8px;flex-wrap:wrap}
+.copt{width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform .15s}
+.copt:hover{transform:scale(1.15)}
+.copt.sel{border-color:var(--text);transform:scale(1.1)}
+
+.modal-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:26px;padding-top:18px;border-top:1px solid var(--border)}
+.btn-cancel{background:var(--border);color:var(--muted);padding:10px 24px;border:none;border-radius:22px;cursor:pointer;font-size:.86rem;font-weight:600}
+.btn-cancel:hover{background:#d5bea9}
+.btn-save{background:var(--primary);color:#fff;padding:10px 24px;border:none;border-radius:22px;cursor:pointer;font-size:.86rem;font-weight:700}
+.btn-save:hover{background:var(--primary-dark)}
+
+/* Confirm dialog */
+.confirm-overlay{display:none;position:fixed;inset:0;background:rgba(30,20,10,.55);z-index:1100;align-items:center;justify-content:center}
+.confirm-overlay.open{display:flex}
+.confirm-box{background:#fff;border-radius:16px;padding:28px 32px;width:380px;max-width:92vw;box-shadow:0 16px 50px rgba(0,0,0,.25);text-align:center}
+.confirm-box h4{font-size:1rem;font-weight:700;margin-bottom:10px;color:var(--text)}
+.confirm-box p{font-size:.85rem;color:var(--muted);margin-bottom:22px}
+.confirm-btns{display:flex;gap:10px;justify-content:center}
+.btn-no{background:var(--border);color:var(--muted);padding:9px 22px;border:none;border-radius:20px;cursor:pointer;font-size:.84rem;font-weight:600}
+.btn-yes{background:var(--red);color:#fff;padding:9px 22px;border:none;border-radius:20px;cursor:pointer;font-size:.84rem;font-weight:700}
+
+/* Toast */
+.toast{position:fixed;bottom:28px;right:28px;background:#333;color:#fff;padding:12px 22px;border-radius:12px;font-size:.84rem;font-weight:600;z-index:2000;opacity:0;transform:translateY(14px);transition:all .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+
+@media(max-width:700px){
+  header,.toolbar{padding:14px 16px}
+  main{padding:14px}
+  .stats{grid-template-columns:1fr 1fr}
+  .fg-row{grid-template-columns:1fr}
+  .search{width:100%}
+  .toolbar{flex-direction:column;align-items:stretch}
+  .toolbar-left{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>⚙️ 課程管理後台</h1>
+    <p>新增、編輯、刪除烘焙課程資料</p>
+  </div>
+  <a class="back-link" href="index.html">← 返回行事曆</a>
+</header>
+
+<div class="toolbar">
+  <div class="toolbar-left">
+    <input class="search" type="text" id="search" placeholder="🔍 搜尋課程或老師…" oninput="renderTable()">
+    <select class="filter-sel" id="filter-month" onchange="renderTable()">
+      <option value="">全部月份</option>
+      <option value="05">5月</option>
+      <option value="06">6月</option>
+      <option value="07">7月</option>
+    </select>
+    <select class="filter-sel" id="filter-color" onchange="renderTable()">
+      <option value="">全部顏色</option>
+    </select>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <button class="btn-export" onclick="exportCSV()" style="padding:10px 18px;font-size:.85rem;font-weight:700">⬇ 匯出 CSV</button>
+    <button class="btn-add" onclick="openAdd()">＋ 新增課程</button>
+  </div>
+</div>
+
+<main>
+  <div class="stats">
+    <div class="stat"><div class="snum" id="s-total">0</div><div class="slbl">課程總數</div></div>
+    <div class="stat"><div class="snum" id="s-teachers">0</div><div class="slbl">授課老師</div></div>
+    <div class="stat"><div class="snum" id="s-days">0</div><div class="slbl">課程天數</div></div>
+    <div class="stat"><div class="snum" id="s-filtered">0</div><div class="slbl">目前篩選筆數</div></div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>顏色</th>
+          <th>日期</th>
+          <th>時間</th>
+          <th>老師</th>
+          <th>課程名稱</th>
+          <th>報名連結</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <p class="tfoot-note" id="tfoot-note"></p>
+</main>
+
+<!-- Add/Edit Modal -->
+<div id="overlay" class="overlay" onclick="closeModalBg(event)">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3 id="modal-title">新增課程</h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <form id="event-form" onsubmit="saveEvent(event)">
+      <input type="hidden" id="edit-id">
+      <div class="fg-row">
+        <div class="fg">
+          <label>日期</label>
+          <input type="date" id="f-date" required min="2026-01-01" max="2026-12-31">
+        </div>
+        <div class="fg">
+          <label>老師姓名</label>
+          <input type="text" id="f-teacher" placeholder="例：鄭元勳老師" required>
+        </div>
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>開始時間</label>
+          <input type="time" id="f-start" required>
+        </div>
+        <div class="fg">
+          <label>結束時間</label>
+          <input type="time" id="f-end" required>
+        </div>
+      </div>
+      <div class="fg">
+        <label>課程名稱</label>
+        <input type="text" id="f-title" placeholder="例：台灣市場創業小吃" required>
+      </div>
+      <div class="fg">
+        <label>報名連結</label>
+        <input type="url" id="f-link" placeholder="https://forms.gle/…">
+      </div>
+      <div class="fg">
+        <label>標籤顏色</label>
+        <div class="color-opts" id="color-opts"></div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn-cancel" onclick="closeModal()">取消</button>
+        <button type="submit" class="btn-save">儲存課程</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Confirm delete dialog -->
+<div id="confirm-overlay" class="confirm-overlay">
+  <div class="confirm-box">
+    <h4>確認刪除</h4>
+    <p id="confirm-msg">確定要刪除這筆課程嗎？此操作無法復原。</p>
+    <div class="confirm-btns">
+      <button class="btn-no" onclick="closeConfirm()">取消</button>
+      <button class="btn-yes" onclick="doDelete()">確定刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<script src="data.js"></script>
+<script>
+let events = loadEvents();
+let nextId  = Math.max(...events.map(e=>e.id), 0) + 1;
+let selColor = 'orange';
+let pendingDeleteId = null;
+
+// ── Color filter options ──────────────────────────────────────
+function buildColorFilter(){
+  const sel = document.getElementById('filter-color');
+  sel.innerHTML = '<option value="">全部顏色</option>';
+  COLORS.forEach(c=>{
+    sel.innerHTML += `<option value="${c.id}">${c.id}</option>`;
+  });
+}
+
+// ── Render table ─────────────────────────────────────────────
+function renderTable(){
+  events = loadEvents();
+  const q    = document.getElementById('search').value.trim().toLowerCase();
+  const mth  = document.getElementById('filter-month').value;
+  const col  = document.getElementById('filter-color').value;
+
+  let filtered = [...events].sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
+  if(q)   filtered = filtered.filter(e=>(e.title+e.teacher).toLowerCase().includes(q));
+  if(mth) filtered = filtered.filter(e=>e.date.slice(5,7)===mth);
+  if(col) filtered = filtered.filter(e=>e.color===col);
+
+  // Stats
+  document.getElementById('s-total').textContent = events.length;
+  document.getElementById('s-teachers').textContent = new Set(events.map(e=>e.teacher)).size;
+  document.getElementById('s-days').textContent = new Set(events.map(e=>e.date)).size;
+  document.getElementById('s-filtered').textContent = filtered.length;
+  document.getElementById('tfoot-note').textContent =
+    filtered.length===events.length ? `共 ${events.length} 筆課程資料` : `篩選結果：${filtered.length} / ${events.length} 筆`;
+
+  let html = '';
+  if(!filtered.length){
+    html = '<tr class="empty-row"><td colspan="7">查無符合條件的課程</td></tr>';
+  } else {
+    filtered.forEach(e=>{
+      const c = colorById(e.color);
+      html += `<tr>
+        <td><span class="cdot" style="background:${c.hex}"></span><span class="tag" style="background:${c.bg};color:${c.hex}">${e.color}</span></td>
+        <td>${formatDate(e.date)}</td>
+        <td style="white-space:nowrap;font-size:.8rem">${e.start} – ${e.end}</td>
+        <td style="font-weight:600">${e.teacher}</td>
+        <td>${e.title}</td>
+        <td>${e.link?`<a href="${e.link}" target="_blank" rel="noopener" style="color:var(--primary);font-size:.78rem;font-weight:600">開啟連結 ↗</a>`:'-'}</td>
+        <td><div class="act-btns">
+          <button class="btn-edit" onclick="openEdit(${e.id})">✏️ 編輯</button>
+          <button class="btn-del"  onclick="confirmDelete(${e.id},'${e.title.replace(/'/g,"\\'")}')">🗑 刪除</button>
+        </div></td>
+      </tr>`;
+    });
+  }
+  document.getElementById('tbody').innerHTML = html;
+}
+
+// ── Color picker ─────────────────────────────────────────────
+function buildColorPicker(){
+  document.getElementById('color-opts').innerHTML = COLORS.map(c=>`
+    <div class="copt${c.id===selColor?' sel':''}" style="background:${c.hex}" title="${c.id}"
+         onclick="pickColor('${c.id}',this)"></div>`).join('');
+}
+function pickColor(id, el){
+  selColor = id;
+  document.querySelectorAll('.copt').forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+// ── Modal ────────────────────────────────────────────────────
+function openAdd(){
+  document.getElementById('modal-title').textContent = '新增課程';
+  document.getElementById('event-form').reset();
+  document.getElementById('edit-id').value = '';
+  selColor = 'orange';
+  buildColorPicker();
+  document.getElementById('overlay').classList.add('open');
+}
+function openEdit(id){
+  const e = events.find(x=>x.id===id);
+  if(!e) return;
+  document.getElementById('modal-title').textContent = '編輯課程';
+  document.getElementById('edit-id').value  = id;
+  document.getElementById('f-date').value    = e.date;
+  document.getElementById('f-teacher').value = e.teacher;
+  document.getElementById('f-start').value   = e.start;
+  document.getElementById('f-end').value     = e.end;
+  document.getElementById('f-title').value   = e.title;
+  document.getElementById('f-link').value    = e.link||'';
+  selColor = e.color;
+  buildColorPicker();
+  document.getElementById('overlay').classList.add('open');
+}
+function closeModal(){document.getElementById('overlay').classList.remove('open')}
+function closeModalBg(e){if(e.target===document.getElementById('overlay'))closeModal()}
+
+function saveEvent(e){
+  e.preventDefault();
+  const eid = document.getElementById('edit-id').value;
+  const data = {
+    date:    document.getElementById('f-date').value,
+    teacher: document.getElementById('f-teacher').value.trim(),
+    start:   document.getElementById('f-start').value,
+    end:     document.getElementById('f-end').value,
+    title:   document.getElementById('f-title').value.trim(),
+    link:    document.getElementById('f-link').value.trim(),
+    color:   selColor,
+  };
+  if(data.start >= data.end){ toast('結束時間必須晚於開始時間', 'error'); return; }
+  if(eid){
+    const idx = events.findIndex(x=>x.id===Number(eid));
+    if(idx>=0) events[idx]={...events[idx],...data};
+    toast('課程已更新 ✓','success');
+  } else {
+    events.push({id:nextId++,...data});
+    toast('課程已新增 ✓','success');
+  }
+  persistEvents(events);
+  closeModal();
+  renderTable();
+}
+
+// ── Delete ───────────────────────────────────────────────────
+function confirmDelete(id, title){
+  pendingDeleteId = id;
+  document.getElementById('confirm-msg').textContent = `確定要刪除「${title}」嗎？此操作無法復原。`;
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+function closeConfirm(){
+  pendingDeleteId = null;
+  document.getElementById('confirm-overlay').classList.remove('open');
+}
+function doDelete(){
+  if(pendingDeleteId===null) return;
+  events = events.filter(e=>e.id!==pendingDeleteId);
+  persistEvents(events);
+  closeConfirm();
+  renderTable();
+  toast('課程已刪除','success');
+}
+
+// ── Toast ────────────────────────────────────────────────────
+function toast(msg, type=''){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type?' '+type:'');
+  setTimeout(()=>t.className='toast', 2800);
+}
+
+// ── Export CSV ───────────────────────────────────────────────
+function exportCSV(){
+  const WEEKDAYS=['日','一','二','三','四','五','六'];
+  const rows = [...events]
+    .sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start))
+    .map(e=>{
+      const dow=WEEKDAYS[new Date(e.date).getDay()];
+      return [e.date,dow,e.start,e.end,e.teacher,e.title,e.link||'']
+        .map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
+    });
+  const csv='﻿'+['日期,星期,開始時間,結束時間,老師,課程名稱,報名連結',...rows].join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='烘焙課程2026.csv'; a.click();
+  toast('CSV 已匯出 ✓','success');
+}
+
+// ── Init ─────────────────────────────────────────────────────
+buildColorFilter();
+renderTable();
+</script>
+</body>
+</html>
