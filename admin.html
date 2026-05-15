@@ -904,11 +904,13 @@ function parsePaste(){
     }
   }
 
-  // Color: auto-pick based on existing teacher color if found
-  const teacher = document.getElementById('pp-teacher').value;
+  // Color: auto-pick based on existing teacher color (exact or partial match)
+  const teacher = document.getElementById('pp-teacher').value.trim();
   if(teacher){
-    const existing = events.find(e=>e.teacher===teacher);
-    if(existing) ppSelColor = existing.color;
+    const exact   = events.find(e=>e.teacher===teacher);
+    const partial = events.find(e=>e.teacher.includes(teacher)||teacher.includes(e.teacher));
+    const matched = exact || partial;
+    if(matched) ppSelColor = matched.color;
   }
 
   // Build color picker

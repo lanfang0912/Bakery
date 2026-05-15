@@ -77,6 +77,7 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
 .chip-title{opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chip-time{font-size:.65rem;opacity:.7;margin-bottom:1px}
 .chip-fee{font-size:.65rem;font-weight:700;margin-top:2px;opacity:.9}
+.chip-img{width:100%;height:52px;object-fit:cover;border-radius:5px;display:block;margin-bottom:4px}
 
 /* ── Day expand modal ── */
 .day-overlay{display:none;position:fixed;inset:0;background:rgba(40,25,10,.45);z-index:800;align-items:center;justify-content:center}
@@ -190,7 +191,7 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
     color:inherit;opacity:1;
   }
-  .chip-time,.chip-teacher,.chip-fee{display:none}
+  .chip-time,.chip-teacher,.chip-fee,.chip-img{display:none}
 
   /* Hint below calendar */
   .cal-hint{display:block}
@@ -350,6 +351,7 @@ function renderCal(y, m) {
       const c = colorById(e.color);
       return `<div class="chip" style="background:${c.bg};color:${c.hex}"
               onclick="showDetail(event,'${e.id}')">
+        ${e.image?`<img class="chip-img" src="${e.image}" alt="">`:''}
         <div class="chip-time">${e.start}</div>
         <div class="chip-teacher">${e.teacher}</div>
         <div class="chip-title">${e.title}</div>
