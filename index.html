@@ -166,14 +166,22 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
 
   /* Calendar grid */
   .cal-grid{gap:2px}
-  .ch{font-size:.7rem;padding:5px 0}
-  .cd{min-height:52px;padding:3px 2px;border-radius:8px}
+  .ch{font-size:.65rem;padding:4px 0;letter-spacing:0}
+  .cd{min-height:64px;padding:4px 3px;border-radius:6px}
+  .dnum{font-size:.75rem;width:20px;height:20px;margin-bottom:3px}
 
-  /* Mobile chips: show course name */
-  .chip{font-size:0;padding:2px 4px;border-radius:4px;margin-bottom:2px;display:block}
-  .chip-time{font-size:.58rem;opacity:.75;display:block;text-align:left}
-  .chip-title{font-size:.65rem;display:block;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .chip-teacher,.chip-fee{display:none}
+  /* Mobile chips: colored left-bar + course name only */
+  .chip{
+    font-size:0;padding:2px 4px 2px 6px;border-radius:3px;
+    margin-bottom:2px;display:block;position:relative;
+    border-left:3px solid currentColor;background:transparent !important;
+  }
+  .chip-title{
+    font-size:.6rem;display:block;font-weight:600;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    color:inherit;opacity:1;
+  }
+  .chip-time,.chip-teacher,.chip-fee{display:none}
 
   /* Hint below calendar */
   .cal-hint{display:block}
