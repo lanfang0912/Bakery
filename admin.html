@@ -107,6 +107,9 @@ tr:hover td{background:var(--primary-light)}
 #f-img-ph small{font-size:.72rem;opacity:.7}
 .img-clear-btn{margin-top:6px;background:none;border:none;color:var(--red);font-size:.78rem;cursor:pointer;padding:2px 6px}
 .img-clear-btn:hover{text-decoration:underline}
+.img-url-row{margin-top:8px}
+.img-url-row input{width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:9px;font-size:.84rem;font-family:inherit;color:var(--text);background:var(--bg);transition:border-color .2s;outline:none}
+.img-url-row input:focus{border-color:var(--primary)}
 /* Table thumbnail */
 .img-thumb{width:36px;height:36px;object-fit:cover;border-radius:6px;vertical-align:middle}
 
@@ -298,8 +301,11 @@ tr:hover td{background:var(--primary-light)}
         <input type="file" id="f-img-file" accept="image/*" style="display:none"
                onchange="handleImgUpload(this,'f-image','f-img-preview','f-img-ph','f-upload-progress')">
         <div class="upload-progress" id="f-upload-progress">⏳ 上傳中…</div>
+        <div class="img-url-row">
+          <input type="url" id="f-img-url" placeholder="或貼上圖片網址 https://…" oninput="applyImgUrl('f-img-url','f-image','f-img-preview','f-img-ph','f-img-clear')">
+        </div>
         <button type="button" class="img-clear-btn" id="f-img-clear" style="display:none"
-                onclick="clearImage('f-image','f-img-preview','f-img-ph','f-img-clear')">✕ 移除圖片</button>
+                onclick="clearImage('f-image','f-img-preview','f-img-ph','f-img-clear','f-img-url')">✕ 移除圖片</button>
       </div>
       <div class="fg">
         <label>標籤顏色</label>
@@ -542,6 +548,8 @@ function openEdit(id){
   document.getElementById('f-title').value   = e.title;
   document.getElementById('f-fee').value     = e.fee ? Number(String(e.fee).replace(/[^0-9]/g,'')) : '';
   setImagePreview('f-image','f-img-preview','f-img-ph','f-img-clear', e.image||'');
+  const urlInp = document.getElementById('f-img-url');
+  if (urlInp) urlInp.value = (e.image && e.image.startsWith('http')) ? e.image : '';
   document.getElementById('f-link').value    = e.link||'';
   selColor = e.color;
   buildColorPicker();
@@ -722,10 +730,16 @@ function setImagePreview(hiddenId, previewId, phId, clearId, dataUrl) {
   }
 }
 
-function clearImage(hiddenId, previewId, phId, clearId) {
+function clearImage(hiddenId, previewId, phId, clearId, urlId) {
   setImagePreview(hiddenId, previewId, phId, clearId, '');
   const fileInput = document.getElementById(hiddenId.replace('image','img-file'));
   if (fileInput) fileInput.value = '';
+  if (urlId) { const u = document.getElementById(urlId); if (u) u.value = ''; }
+}
+
+function applyImgUrl(urlId, hiddenId, previewId, phId, clearId) {
+  const url = document.getElementById(urlId).value.trim();
+  if (url) setImagePreview(hiddenId, previewId, phId, clearId, url);
 }
 
 // ── Smart paste ───────────────────────────────────────────────
