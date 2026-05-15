@@ -271,10 +271,24 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
   <div id="dpopup-body"></div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="data.js"></script>
 <script>
-let events = loadEvents();
+firebase.initializeApp(FB_CONFIG);
+const db = firebase.database();
+firebase.auth().signInAnonymously().catch(()=>{});
+let events = [];
 let curMonth = 5;
+
+db.ref('bakery/events').on('value', snap => {
+  const val = snap.val() || {};
+  events = Object.entries(val).map(([key, e]) => ({...e, id: key})).sort((a,b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
+  renderCal(2026, curMonth);
+  renderSchedule();
+  updateStats();
+});
 
 function switchTab(name, el) {
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
@@ -295,7 +309,6 @@ function showMonth(m, btn) {
 }
 
 function renderCal(y, m) {
-  events = loadEvents();
   document.getElementById('cal-title').textContent = `${y}年 ${m}月`;
   const firstDow  = new Date(y,m-1,1).getDay();
   const totalDays = new Date(y,m,0).getDate();
@@ -318,7 +331,7 @@ function renderCal(y, m) {
     let chips = evts.map(e=>{
       const c = colorById(e.color);
       return `<div class="chip" style="background:${c.bg};color:${c.hex}"
-              onclick="showDetail(event,${e.id})">
+              onclick="showDetail(event,'${e.id}')">
         <div class="chip-time">${e.start}</div>
         <div class="chip-teacher">${e.teacher}</div>
         <div class="chip-title">${e.title}</div>
@@ -411,12 +424,13 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeDetail(); closeDayModalBtn(); }});
 
 // ── Schedule list ─────────────────────────────────────────────
-function renderSchedule(){
-  events = loadEvents();
+function updateStats(){
   document.getElementById('s-total').textContent    = events.length;
   document.getElementById('s-teachers').textContent = new Set(events.map(e=>e.teacher)).size;
   document.getElementById('s-days').textContent     = new Set(events.map(e=>e.date)).size;
+}
 
+function renderSchedule(){
   const sorted = [...events].sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
   const byMonth = {};
   sorted.forEach(e=>{
@@ -450,8 +464,6 @@ function renderSchedule(){
   document.getElementById('schedule-list').innerHTML = html||'<p style="color:#bbb;text-align:center;padding:40px">尚無課程資料</p>';
 }
 
-// ── Init ─────────────────────────────────────────────────────
-renderCal(2026, 5);
 </script>
 </body>
 </html>

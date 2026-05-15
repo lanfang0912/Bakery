@@ -37,47 +37,19 @@ const INITIAL_EVENTS = [
   {id:27, date:'2026-06-02', start:'13:30', end:'16:30', teacher:'雙張老師合體',     title:'蜂巢杜拜巧克力波士頓派',             link:'https://forms.gle/RFxLjNTc7jwnL32s5', color:'red',    fee:1900},
 ];
 
-const STORAGE_KEY  = 'bakery_events_v1';
-const DELETED_KEY  = 'bakery_deleted_ids';
 const WEEKDAYS = ['日','一','二','三','四','五','六'];
 
+const FB_CONFIG = {
+  apiKey: 'AIzaSyBa7puZRH8Aopj2_Qf2X7zsDg-LON4ZsBw',
+  authDomain: 'whitedessert.firebaseapp.com',
+  databaseURL: 'https://whitedessert-default-rtdb.asia-southeast1.firebasedatabase.app',
+  projectId: 'whitedessert',
+  storageBucket: 'whitedessert.appspot.com',
+  messagingSenderId: '1234567890',
+  appId: 'bakery',
+};
+
 function colorById(id) { return COLORS.find(c=>c.id===id) || COLORS[0]; }
-
-function getDeletedIds() {
-  try { return new Set(JSON.parse(localStorage.getItem(DELETED_KEY) || '[]')); }
-  catch { return new Set(); }
-}
-
-function markDeleted(id) {
-  const del = getDeletedIds();
-  del.add(id);
-  localStorage.setItem(DELETED_KEY, JSON.stringify([...del]));
-}
-
-function loadEvents() {
-  try {
-    const deleted  = getDeletedIds();
-    const s        = localStorage.getItem(STORAGE_KEY);
-    if (!s) return JSON.parse(JSON.stringify(INITIAL_EVENTS.filter(e => !deleted.has(e.id))));
-    const stored   = JSON.parse(s);
-    const storedMap = new Map(stored.map(e => [e.id, e]));
-    INITIAL_EVENTS.forEach(init => {
-      if (deleted.has(init.id)) return;          // user deleted this — don't restore
-      if (!storedMap.has(init.id)) {
-        stored.push({...init});                  // genuinely new event
-      } else {
-        const ev = storedMap.get(init.id);
-        if (!ev.fee  && init.fee)  ev.fee  = init.fee;   // backfill missing fields
-        if (!ev.link && init.link) ev.link = init.link;
-      }
-    });
-    return stored;
-  } catch { return JSON.parse(JSON.stringify(INITIAL_EVENTS)); }
-}
-
-function persistEvents(evts) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(evts));
-}
 
 function formatFee(fee) {
   if (!fee && fee !== 0) return '';

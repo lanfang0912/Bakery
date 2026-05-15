@@ -445,19 +445,45 @@ tr:hover td{background:var(--primary-light)}
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="data.js"></script>
 <script>
-let events = loadEvents();
-let nextId  = Math.max(...events.map(e=>e.id), 0) + 1;
+let events = [];
+let db;
 let selColor = 'orange';
 let pendingDeleteId = null;
+
+// ── Firebase init ─────────────────────────────────────────────
+firebase.initializeApp(FB_CONFIG);
+db = firebase.database();
+firebase.auth().signInAnonymously().catch(()=>{});
+db.ref('bakery/events').on('value', snap => {
+  const val = snap.val() || {};
+  events = Object.entries(val).map(([key, e]) => ({...e, id: key})).sort((a,b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
+  renderTable();
+});
+
+// Seed initial data if DB is empty
+db.ref('bakery/events').once('value').then(snap => {
+  if (!snap.val()) {
+    const updates = {};
+    INITIAL_EVENTS.forEach(e => {
+      const {id, ...ev} = e;
+      const key = db.ref('bakery/events').push().key;
+      updates[key] = ev;
+    });
+    db.ref('bakery/events').update(updates);
+  }
+});
 
 // ── Table button delegation ───────────────────────────────────
 document.getElementById('tbody').addEventListener('click', e => {
   const editBtn = e.target.closest('[data-edit]');
   const delBtn  = e.target.closest('[data-del]');
-  if (editBtn) openEdit(Number(editBtn.dataset.edit));
-  if (delBtn)  confirmDelete(Number(delBtn.dataset.del));
+  if (editBtn) openEdit(editBtn.dataset.edit);
+  if (delBtn)  confirmDelete(delBtn.dataset.del);
 });
 
 // ── Color filter options ──────────────────────────────────────
@@ -471,7 +497,6 @@ function buildColorFilter(){
 
 // ── Render table ─────────────────────────────────────────────
 function renderTable(){
-  events = loadEvents();
   const q    = document.getElementById('search').value.trim().toLowerCase();
   const mth  = document.getElementById('filter-month').value;
   const col  = document.getElementById('filter-color').value;
@@ -537,7 +562,7 @@ function openAdd(){
   document.getElementById('overlay').classList.add('open');
 }
 function openEdit(id){
-  const e = events.find(x=>x.id===id);
+  const e = events.find(x=>x.id===id);  // id is Firebase string key
   if(!e) return;
   document.getElementById('modal-title').textContent = '編輯課程';
   document.getElementById('edit-id').value   = id;
@@ -558,7 +583,7 @@ function openEdit(id){
 function closeModal(){document.getElementById('overlay').classList.remove('open')}
 function closeModalBg(e){if(e.target===document.getElementById('overlay'))closeModal()}
 
-function saveEvent(e){
+async function saveEvent(e){
   e.preventDefault();
   const eid = document.getElementById('edit-id').value;
   const data = {
@@ -574,16 +599,13 @@ function saveEvent(e){
   };
   if(data.start >= data.end){ toast('結束時間必須晚於開始時間', 'error'); return; }
   if(eid){
-    const idx = events.findIndex(x=>x.id===Number(eid));
-    if(idx>=0) events[idx]={...events[idx],...data};
+    await db.ref('bakery/events/' + eid).update(data);
     toast('課程已更新 ✓','success');
   } else {
-    events.push({id:nextId++,...data});
+    await db.ref('bakery/events').push(data);
     toast('課程已新增 ✓','success');
   }
-  persistEvents(events);
   closeModal();
-  renderTable();
 }
 
 // ── Delete ───────────────────────────────────────────────────
@@ -597,13 +619,10 @@ function closeConfirm(){
   pendingDeleteId = null;
   document.getElementById('confirm-overlay').classList.remove('open');
 }
-function doDelete(){
+async function doDelete(){
   if(pendingDeleteId===null) return;
-  markDeleted(pendingDeleteId);
-  events = events.filter(e=>e.id!==pendingDeleteId);
-  persistEvents(events);
+  await db.ref('bakery/events/' + pendingDeleteId).remove();
   closeConfirm();
-  renderTable();
   toast('課程已刪除','success');
 }
 
@@ -634,7 +653,6 @@ function exportCSV(){
 
 // ── Init ─────────────────────────────────────────────────────
 buildColorFilter();
-renderTable();
 updateCloudBadge();
 
 // ── Cloudinary settings ───────────────────────────────────────
@@ -833,7 +851,7 @@ function pickPpColor(id, el){
   el.classList.add('sel');
 }
 
-function saveParsed(){
+async function saveParsed(){
   const title   = document.getElementById('pp-title').value.trim();
   const teacher = document.getElementById('pp-teacher').value.trim();
   const date    = document.getElementById('pp-date').value;
@@ -842,16 +860,13 @@ function saveParsed(){
   if(!title||!teacher||!date||!start||!end){
     toast('請確認課程名稱、老師、日期和時間都已填寫','error'); return;
   }
-  events.push({
-    id: nextId++,
+  await db.ref('bakery/events').push({
     date, teacher, start, end, title,
     fee:  Number(document.getElementById('pp-fee').value) || '',
     link: document.getElementById('pp-link').value.trim(),
     color: ppSelColor,
   });
-  persistEvents(events);
   closePaste();
-  renderTable();
   toast('課程已新增 ✓','success');
 }
 
