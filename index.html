@@ -274,7 +274,7 @@ function renderCal(y, m) {
         <div class="chip-time">${e.start}</div>
         <div class="chip-teacher">${e.teacher}</div>
         <div class="chip-title">${e.title}</div>
-        ${e.fee?`<div class="chip-fee">${e.fee}</div>`:''}
+        ${formatFee(e.fee)?`<div class="chip-fee">${formatFee(e.fee)}</div>`:''}
       </div>`;
     }).join('');
 
@@ -311,7 +311,7 @@ function openDayModal(dateStr){
         <div class="day-ev-title" style="color:${c.hex}">${e.title}</div>
         <div class="day-ev-teacher">👨‍🍳 ${e.teacher}</div>
         <div class="day-ev-time">🕐 ${e.start} – ${e.end}</div>
-        ${e.fee?`<div class="day-ev-time">💵 ${e.fee}</div>`:''}
+        ${formatFee(e.fee)?`<div class="day-ev-time">💵 ${formatFee(e.fee)}</div>`:''}
         ${e.link?`<a class="day-reg" style="background:${c.hex}" href="${e.link}" target="_blank" rel="noopener">📝 立即報名</a>`:''}
       </div>
     </div>`;
@@ -339,7 +339,7 @@ function showDetail(ev, id){
     <p>👨‍🍳 ${e.teacher}</p>
     <p>📅 ${formatDate(e.date)}</p>
     <p>🕐 ${e.start} – ${e.end}</p>
-    ${e.fee?`<p>💵 ${e.fee}</p>`:''}
+    ${formatFee(e.fee)?`<p>💵 ${formatFee(e.fee)}</p>`:''}
     ${e.link?`<a class="reg-btn" style="background:${c.hex}" href="${e.link}" target="_blank" rel="noopener">📝 立即報名</a>`:''}`;
   // position:fixed → coords are viewport-relative; do NOT add scrollY
   const chip = ev.target.closest('.chip') || ev.target;
@@ -386,7 +386,7 @@ function renderSchedule(){
           <div class="einfo">
             <div class="etitle">${e.teacher}｜${e.title}</div>
             <div class="etime">🕐 ${e.start} – ${e.end}</div>
-            ${e.fee?`<div class="efee">💵 ${e.fee}</div>`:''}
+            ${formatFee(e.fee)?`<div class="efee">💵 ${formatFee(e.fee)}</div>`:''}
             ${e.link?`<div class="elink"><a href="${e.link}" target="_blank" rel="noopener">📝 立即報名</a></div>`:''}
           </div>
         </div>`;

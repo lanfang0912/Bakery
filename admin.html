@@ -264,7 +264,7 @@ tr:hover td{background:var(--primary-light)}
       </div>
       <div class="fg">
         <label>費用</label>
-        <input type="text" id="f-fee" placeholder="例：$1,800 元">
+        <input type="number" id="f-fee" placeholder="例：1800" min="0" step="1" style="font-size:.9rem">
       </div>
       <div class="fg">
         <label>報名連結</label>
@@ -329,7 +329,7 @@ tr:hover td{background:var(--primary-light)}
       </div>
       <div class="fg">
         <label>費用</label>
-        <input class="login-input" type="text" id="pp-fee" placeholder="例：$1,800 元">
+        <input class="login-input" type="number" id="pp-fee" placeholder="例：1800" min="0" step="1">
       </div>
       <div class="fg">
         <label>報名連結</label>
@@ -435,7 +435,7 @@ function renderTable(){
         <td style="white-space:nowrap;font-size:.8rem">${e.start} – ${e.end}</td>
         <td style="font-weight:600">${e.teacher}</td>
         <td>${e.title}</td>
-        <td style="font-size:.8rem;color:var(--muted)">${e.fee||'-'}</td>
+        <td style="font-size:.8rem;color:var(--muted)">${formatFee(e.fee)||'-'}</td>
         <td>${e.link?`<a href="${e.link}" target="_blank" rel="noopener" style="color:var(--primary);font-size:.78rem;font-weight:600">開啟連結 ↗</a>`:'-'}</td>
         <td><div class="act-btns">
           <button class="btn-edit" data-edit="${e.id}">✏️ 編輯</button>
@@ -478,7 +478,7 @@ function openEdit(id){
   document.getElementById('f-start').value   = e.start;
   document.getElementById('f-end').value     = e.end;
   document.getElementById('f-title').value   = e.title;
-  document.getElementById('f-fee').value     = e.fee||'';
+  document.getElementById('f-fee').value     = e.fee ? Number(String(e.fee).replace(/[^0-9]/g,'')) : '';
   document.getElementById('f-link').value    = e.link||'';
   selColor = e.color;
   buildColorPicker();
@@ -496,7 +496,7 @@ function saveEvent(e){
     start:   document.getElementById('f-start').value,
     end:     document.getElementById('f-end').value,
     title:   document.getElementById('f-title').value.trim(),
-    fee:     document.getElementById('f-fee').value.trim(),
+    fee:     Number(document.getElementById('f-fee').value) || '',
     link:    document.getElementById('f-link').value.trim(),
     color:   selColor,
   };
@@ -599,9 +599,8 @@ function parsePaste(){
   }
 
   // Fee
-  const feeM = text.match(/💵[^\n]*?(\$[\d,，]+\s*元)/);
-  const feeM2 = feeM || text.match(/費用[：:]\s*(\$[\d,，]+\s*元)/);
-  if(feeM2) document.getElementById('pp-fee').value = feeM2[1].trim();
+  const feeM = text.match(/[\$＄]?\s*([\d,，]+)\s*元/);
+  if(feeM) document.getElementById('pp-fee').value = feeM[1].replace(/[,，]/g,'');
 
   // Link
   const linkM = text.match(/https:\/\/forms\.gle\/[A-Za-z0-9]+/);
@@ -668,7 +667,7 @@ function saveParsed(){
   events.push({
     id: nextId++,
     date, teacher, start, end, title,
-    fee:  document.getElementById('pp-fee').value.trim(),
+    fee:  Number(document.getElementById('pp-fee').value) || '',
     link: document.getElementById('pp-link').value.trim(),
     color: ppSelColor,
   });
