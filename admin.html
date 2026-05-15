@@ -1551,22 +1551,25 @@ async function getStoredHash() {
 async function doLogin(e) {
   e.preventDefault();
   const pw  = document.getElementById('login-pw').value;
-  const inp = document.getElementById('login-input') || document.getElementById('login-pw');
   const err = document.getElementById('login-err');
   if(!pw){ err.textContent='請輸入密碼'; return; }
-  const hash = await sha256(pw);
-  const stored = await getStoredHash();
-  if(hash === stored){
-    sessionStorage.setItem(SESSION_KEY,'1');
-    document.getElementById('login-screen').classList.add('hidden');
-    err.textContent='';
-    document.getElementById('login-pw').value='';
-  } else {
-    err.textContent='密碼錯誤，請再試一次';
-    document.getElementById('login-pw').classList.add('error');
-    setTimeout(()=>document.getElementById('login-pw').classList.remove('error'),400);
-    document.getElementById('login-pw').value='';
-    document.getElementById('login-pw').focus();
+  try {
+    const hash   = await sha256(pw);
+    const stored = await getStoredHash();
+    if(hash === stored){
+      sessionStorage.setItem(SESSION_KEY,'1');
+      document.getElementById('login-screen').classList.add('hidden');
+      err.textContent='';
+      document.getElementById('login-pw').value='';
+    } else {
+      err.textContent='密碼錯誤，請再試一次';
+      document.getElementById('login-pw').classList.add('error');
+      setTimeout(()=>document.getElementById('login-pw').classList.remove('error'),400);
+      document.getElementById('login-pw').value='';
+      document.getElementById('login-pw').focus();
+    }
+  } catch(ex) {
+    err.textContent='登入失敗：' + (ex.message||ex);
   }
 }
 
