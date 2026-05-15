@@ -143,17 +143,63 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
 
 /* ── Responsive ── */
 @media(max-width:700px){
-  header{padding:14px 16px;flex-wrap:wrap;gap:10px}
-  main{padding:14px 12px}
-  .tabs{padding:0 12px;overflow-x:auto}
-  .tab{white-space:nowrap;padding:12px 14px;font-size:.88rem}
-  .cd{min-height:80px;padding:5px}
-  .chip{font-size:.65rem;padding:3px 5px}
-  .stats{grid-template-columns:1fr}
-  .day-modal{width:98vw}
-  .contact-footer{padding:24px 16px}
+  /* Header */
+  header{padding:14px 16px;flex-wrap:wrap;gap:8px}
+  header h1{font-size:1.15rem}
+  header p{font-size:.75rem}
+  .admin-link{padding:6px 12px;font-size:.75rem}
+
+  /* Tabs */
+  main{padding:12px 8px}
+  .tabs{padding:0 8px;overflow-x:auto;gap:0}
+  .tab{white-space:nowrap;padding:11px 14px;font-size:.85rem}
+
+  /* Calendar top */
+  .cal-top{flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .cal-top h2{font-size:.98rem}
+  .month-btns{display:grid;grid-template-columns:repeat(3,1fr);width:100%;gap:6px}
+  .m-btn{padding:9px 4px;font-size:.82rem;text-align:center}
+
+  /* Legend: collapsible-ish, compact */
+  .legend{padding:8px 10px;gap:8px;margin-bottom:12px}
+  .legend-item{font-size:.72rem}
+
+  /* Calendar grid */
+  .cal-grid{gap:2px}
+  .ch{font-size:.7rem;padding:5px 0}
+  .cd{min-height:52px;padding:3px 2px;border-radius:8px}
+
+  /* Mobile chips: only show time, hide text */
+  .chip{font-size:0;padding:2px 3px;border-radius:4px;margin-bottom:2px;display:block}
+  .chip-time{font-size:.58rem;opacity:1;display:block;font-weight:700;text-align:center}
+  .chip-teacher,.chip-title,.chip-fee{display:none}
+
+  /* Hint below calendar */
+  .cal-hint{display:block}
+
+  /* Stats */
+  .stats{grid-template-columns:repeat(3,1fr);gap:8px}
+  .snum{font-size:1.5rem}
+  .slbl{font-size:.7rem}
+
+  /* Day modal: slide up from bottom */
+  .day-overlay{align-items:flex-end}
+  .day-modal{width:100%;border-radius:20px 20px 0 0;max-height:82vh;animation:slideUp .25s ease}
+
+  /* Chip detail popup: fixed at bottom */
+  .dpopup{width:calc(100% - 20px);max-width:none;left:10px!important;top:auto!important;bottom:10px;position:fixed;border-radius:16px;border-top:none;border-left:5px solid var(--primary)}
+
+  /* Contact */
+  .contact-footer{padding:22px 16px}
   .contact-grid{grid-template-columns:1fr}
+  .contact-item{font-size:.82rem}
+
+  /* Schedule cards */
+  .ecard{padding:12px 12px}
+  .etitle{font-size:.88rem}
 }
+@keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+.cal-hint{display:none;text-align:center;font-size:.72rem;color:var(--muted);padding:6px 0 2px;opacity:.8}
 </style>
 </head>
 <body>
@@ -183,6 +229,7 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
     </div>
     <div id="legend" class="legend"></div>
     <div id="cal-grid" class="cal-grid"></div>
+    <p class="cal-hint">👆 點日期數字可展開當天課程</p>
   </div>
 
   <div id="view-schedule" class="view">
@@ -343,15 +390,17 @@ function showDetail(ev, id){
     <p>🕐 ${e.start} – ${e.end}</p>
     ${formatFee(e.fee)?`<p>💵 ${formatFee(e.fee)}</p>`:''}
     ${e.link?`<a class="reg-btn" style="background:${c.hex}" href="${e.link}" target="_blank" rel="noopener">📝 立即報名</a>`:''}`;
-  // position:fixed → coords are viewport-relative; do NOT add scrollY
-  const chip = ev.target.closest('.chip') || ev.target;
-  const r    = chip.getBoundingClientRect();
-  let top    = r.bottom + 6;
-  let left   = r.left;
-  if (left + 298 > window.innerWidth)  left = window.innerWidth - 304;
-  if (left < 4)                         left = 4;
-  if (top  + 220 > window.innerHeight)  top  = r.top - 224;
-  p.style.top=top+'px'; p.style.left=left+'px';
+  // On mobile the popup is fixed at the bottom via CSS; skip JS positioning
+  if (window.innerWidth > 700) {
+    const chip = ev.target.closest('.chip') || ev.target;
+    const r    = chip.getBoundingClientRect();
+    let top    = r.bottom + 6;
+    let left   = r.left;
+    if (left + 298 > window.innerWidth)  left = window.innerWidth - 304;
+    if (left < 4)                         left = 4;
+    if (top  + 220 > window.innerHeight)  top  = r.top - 224;
+    p.style.top=top+'px'; p.style.left=left+'px';
+  }
   p.classList.add('open');
 }
 function closeDetail(){ document.getElementById('dpopup').classList.remove('open'); }
