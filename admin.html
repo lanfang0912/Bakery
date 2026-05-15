@@ -386,6 +386,14 @@ let nextId  = Math.max(...events.map(e=>e.id), 0) + 1;
 let selColor = 'orange';
 let pendingDeleteId = null;
 
+// ── Table button delegation ───────────────────────────────────
+document.getElementById('tbody').addEventListener('click', e => {
+  const editBtn = e.target.closest('[data-edit]');
+  const delBtn  = e.target.closest('[data-del]');
+  if (editBtn) openEdit(Number(editBtn.dataset.edit));
+  if (delBtn)  confirmDelete(Number(delBtn.dataset.del));
+});
+
 // ── Color filter options ──────────────────────────────────────
 function buildColorFilter(){
   const sel = document.getElementById('filter-color');
@@ -430,8 +438,8 @@ function renderTable(){
         <td style="font-size:.8rem;color:var(--muted)">${e.fee||'-'}</td>
         <td>${e.link?`<a href="${e.link}" target="_blank" rel="noopener" style="color:var(--primary);font-size:.78rem;font-weight:600">開啟連結 ↗</a>`:'-'}</td>
         <td><div class="act-btns">
-          <button class="btn-edit" onclick="openEdit(${e.id})">✏️ 編輯</button>
-          <button class="btn-del"  onclick="confirmDelete(${e.id},'${e.title.replace(/'/g,"\\'")}')">🗑 刪除</button>
+          <button class="btn-edit" data-edit="${e.id}">✏️ 編輯</button>
+          <button class="btn-del"  data-del="${e.id}">🗑 刪除</button>
         </div></td>
       </tr>`;
     });
@@ -507,9 +515,10 @@ function saveEvent(e){
 }
 
 // ── Delete ───────────────────────────────────────────────────
-function confirmDelete(id, title){
+function confirmDelete(id){
   pendingDeleteId = id;
-  document.getElementById('confirm-msg').textContent = `確定要刪除「${title}」嗎？此操作無法復原。`;
+  const ev = events.find(e=>e.id===id);
+  document.getElementById('confirm-msg').textContent = `確定要刪除「${ev?ev.title:'此課程'}」嗎？此操作無法復原。`;
   document.getElementById('confirm-overlay').classList.add('open');
 }
 function closeConfirm(){
