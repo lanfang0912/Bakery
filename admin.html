@@ -1294,7 +1294,7 @@ function renderRegList(eventId) {
             <td style="padding:9px 10px;font-size:.78rem;white-space:nowrap">
               ${r.remitDate?`<div>${r.remitDate}</div>`:''}${r.remitLast5?`<div>…${r.remitLast5}</div>`:''}${(!r.remitDate&&!r.remitLast5)?'—':''}
             </td>
-            <td style="padding:9px 10px;text-align:center;font-size:.78rem">${r.shuttle==='是'?'✅ 需接送':r.shuttle==='否'?'✗':'—'}</td>
+            <td style="padding:9px 10px;text-align:center;font-size:.78rem">${r.shuttle?r.shuttle.startsWith('是')?'✅ 需接送':'自行前往':'—'}</td>
             <td style="padding:9px 10px;color:var(--muted);font-size:.78rem">${r.note||'—'}</td>
             <td style="padding:9px 10px;text-align:center">
               <span class="paid-badge${r.paid?' paid':''}" onclick="togglePaid('${eventId}','${r.key}',${!r.paid})">
