@@ -226,6 +226,10 @@ tr:hover td{background:var(--primary-light)}
   .admin-tabs{width:100%}
   .admin-tab{flex:1;text-align:center;padding:9px 10px;font-size:.82rem}
   .rov-card{flex-wrap:wrap}
+  #reg-overlay .modal{width:100% !important;max-width:100% !important;margin:0;border-radius:16px 16px 0 0;position:fixed;bottom:0;max-height:92vh}
+  #reg-overlay .modal-hd{padding:16px 18px 12px}
+  #reg-modal-body{padding:0 14px 12px !important}
+  #reg-overlay [style*="padding:14px 28px"]{padding:12px 14px 14px !important}
 }
 </style>
 </head>
@@ -1270,47 +1274,27 @@ function renderRegList(eventId) {
   }
 
   document.getElementById('reg-modal-body').innerHTML = statsHtml + `
-    <div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;font-size:.83rem;min-width:700px">
-      <thead>
-        <tr style="background:var(--primary-light)">
-          <th style="padding:8px 10px;text-align:left;font-size:.74rem;white-space:nowrap">姓名</th>
-          <th style="padding:8px 10px;text-align:left;font-size:.74rem;white-space:nowrap">電話</th>
-          <th style="padding:8px 10px;text-align:left;font-size:.74rem;white-space:nowrap">FB/LINE</th>
-          <th style="padding:8px 10px;text-align:center;font-size:.74rem;white-space:nowrap">人數</th>
-          <th style="padding:8px 10px;text-align:left;font-size:.74rem;white-space:nowrap">匯款日/末5碼</th>
-          <th style="padding:8px 10px;text-align:center;font-size:.74rem;white-space:nowrap">接送</th>
-          <th style="padding:8px 10px;text-align:left;font-size:.74rem">備註</th>
-          <th style="padding:8px 10px;text-align:center;font-size:.74rem;white-space:nowrap">繳費</th>
-          <th style="padding:8px 10px;text-align:center;font-size:.74rem">操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${list.map(r=>`
-          <tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:9px 10px;font-weight:600;white-space:nowrap">${r.name}</td>
-            <td style="padding:9px 10px;white-space:nowrap"><a href="tel:${r.phone}" style="color:var(--primary);font-weight:600">${r.phone}</a></td>
-            <td style="padding:9px 10px;font-size:.78rem;color:var(--muted)">
-              ${r.fb ? `<div>FB: ${r.fb}</div>` : ''}${r.line ? `<div>LINE: ${r.line}</div>` : ''}${(!r.fb&&!r.line)?'—':''}
-            </td>
-            <td style="padding:9px 10px;text-align:center">${r.count||'—'}</td>
-            <td style="padding:9px 10px;font-size:.78rem;white-space:nowrap">
-              ${r.remitDate?`<div>${r.remitDate}</div>`:''}${r.remitLast5?`<div>…${r.remitLast5}</div>`:''}${(!r.remitDate&&!r.remitLast5)?'—':''}
-            </td>
-            <td style="padding:9px 10px;text-align:center;font-size:.78rem">${r.shuttle?r.shuttle.startsWith('是')?'✅ 需接送':'自行前往':'—'}</td>
-            <td style="padding:9px 10px;color:var(--muted);font-size:.78rem">${r.note||'—'}</td>
-            <td style="padding:9px 10px;text-align:center">
-              <span class="paid-badge${r.paid?' paid':''}" onclick="togglePaid('${eventId}','${r.key}',${!r.paid})">
-                ${r.paid?'✅ 已繳':'⏳ 未繳'}
-              </span>
-            </td>
-            <td style="padding:9px 10px;text-align:center;white-space:nowrap">
-              <button class="btn-edit" style="padding:4px 10px;font-size:.74rem;margin-bottom:3px" onclick="editReg('${eventId}','${r.key}')">編輯</button>
-              <button class="btn-del"  style="padding:4px 10px;font-size:.74rem" onclick="deleteReg('${eventId}','${r.key}','${r.name}')">刪除</button>
-            </td>
-          </tr>`).join('')}
-      </tbody>
-    </table>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${list.map(r=>`
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
+            <div style="font-weight:700;font-size:.95rem;line-height:1.3">${r.name}${r.count&&r.count>1?` <span style="font-size:.8rem;color:var(--muted)">×${r.count}人</span>`:''}</div>
+            <span class="paid-badge${r.paid?' paid':''}" onclick="togglePaid('${eventId}','${r.key}',${!r.paid})" style="flex-shrink:0">
+              ${r.paid?'✅ 已繳':'⏳ 未繳'}
+            </span>
+          </div>
+          <div style="font-size:.85rem;margin-bottom:5px">
+            📞 <a href="tel:${r.phone}" style="color:var(--primary);font-weight:600">${r.phone}</a>
+          </div>
+          ${r.fb||r.line?`<div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">${[r.fb?`FB: ${r.fb}`:'', r.line?`LINE: ${r.line}`:''].filter(Boolean).join('　')}</div>`:''}
+          ${r.remitDate||r.remitLast5?`<div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">💳 ${[r.remitDate, r.remitLast5?`末五碼 …${r.remitLast5}`:''].filter(Boolean).join(' ')}</div>`:''}
+          ${r.shuttle?`<div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">🚗 ${r.shuttle.startsWith('是')?'需要接送':'自行前往'}</div>`:''}
+          ${r.note?`<div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">📝 ${r.note}</div>`:''}
+          <div style="display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+            <button class="btn-edit" style="padding:6px 14px;font-size:.78rem" onclick="editReg('${eventId}','${r.key}')">編輯</button>
+            <button class="btn-del"  style="padding:6px 14px;font-size:.78rem" onclick="deleteReg('${eventId}','${r.key}','${r.name}')">刪除</button>
+          </div>
+        </div>`).join('')}
     </div>`;
 }
 
