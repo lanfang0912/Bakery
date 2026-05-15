@@ -11,9 +11,6 @@ const COLORS = [
 ];
 
 const INITIAL_EVENTS = [
-  {id:1,  date:'2026-05-08', start:'10:00', end:'14:30', teacher:'高昱翔師傅',       title:'牧羊人派分享會',                     link:'https://forms.gle/cGicRJjabtRTsFLF8', color:'orange'},
-  {id:2,  date:'2026-05-13', start:'09:30', end:'12:30', teacher:'鄭元勳老師',       title:'台灣市場創業小吃',                   link:'https://forms.gle/1T5qbrPXwJXgBaGh7', color:'red'},
-  {id:3,  date:'2026-05-13', start:'13:30', end:'16:30', teacher:'鄭元勳老師',       title:'雞肉料理系列',                       link:'https://forms.gle/1T5qbrPXwJXgBaGh7', color:'red'},
   {id:4,  date:'2026-05-20', start:'09:30', end:'12:30', teacher:'邱穎珊老師',       title:'中秋明月酥＆夏日西瓜酥',             link:'https://forms.gle/RczmFEmX3e3Y8Wk67', color:'green'},
   {id:5,  date:'2026-05-20', start:'13:00', end:'16:00', teacher:'邱穎珊老師',       title:'宮廷花藝千層酥',                     link:'https://forms.gle/RczmFEmX3e3Y8Wk67', color:'green'},
   {id:6,  date:'2026-05-23', start:'09:30', end:'12:30', teacher:'江翰澤 卡森老師',  title:'小雞嗶嗶雞蛋仔課程',                 link:'https://forms.gle/HzLKNL9kUrKqK5dg6', color:'blue'},

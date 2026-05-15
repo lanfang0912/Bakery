@@ -169,10 +169,11 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
   .ch{font-size:.7rem;padding:5px 0}
   .cd{min-height:52px;padding:3px 2px;border-radius:8px}
 
-  /* Mobile chips: only show time, hide text */
-  .chip{font-size:0;padding:2px 3px;border-radius:4px;margin-bottom:2px;display:block}
-  .chip-time{font-size:.58rem;opacity:1;display:block;font-weight:700;text-align:center}
-  .chip-teacher,.chip-title,.chip-fee{display:none}
+  /* Mobile chips: show course name */
+  .chip{font-size:0;padding:2px 4px;border-radius:4px;margin-bottom:2px;display:block}
+  .chip-time{font-size:.58rem;opacity:.75;display:block;text-align:left}
+  .chip-title{font-size:.65rem;display:block;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chip-teacher,.chip-fee{display:none}
 
   /* Hint below calendar */
   .cal-hint{display:block}
