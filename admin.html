@@ -62,6 +62,11 @@ tr:hover td{background:var(--primary-light)}
 .btn-export:hover{background:var(--green);color:#fff}
 .btn-paste{background:#f0eafc;color:#7c3fb5;border:none;padding:10px 18px;border-radius:22px;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s}
 .btn-paste:hover{background:#7c3fb5;color:#fff}
+.btn-cloud{background:#e8f4fc;color:#1a6fa8;border:none;padding:10px 18px;border-radius:22px;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-cloud:hover{background:#1a6fa8;color:#fff}
+.cloud-ok{display:inline-block;width:8px;height:8px;border-radius:50%;background:#5c9e6e;margin-left:6px;vertical-align:middle}
+.cloud-no{display:inline-block;width:8px;height:8px;border-radius:50%;background:#e05c5c;margin-left:6px;vertical-align:middle}
+.upload-progress{font-size:.8rem;color:#1a6fa8;margin-top:6px;display:none}
 
 /* Smart paste modal */
 .paste-modal{background:#fff;border-radius:18px;padding:32px 36px;width:620px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.28);animation:mIn .22s ease}
@@ -205,9 +210,10 @@ tr:hover td{background:var(--primary-light)}
       <option value="">全部顏色</option>
     </select>
   </div>
-  <div style="display:flex;gap:10px;align-items:center">
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <button class="btn-export" onclick="exportCSV()" style="padding:10px 18px;font-size:.85rem;font-weight:700">⬇ 匯出 CSV</button>
     <button class="btn-paste" onclick="openPaste()">📋 貼上新增</button>
+    <button class="btn-cloud" onclick="openCloudSettings()">☁️ 圖片設定</button>
     <button class="btn-add" onclick="openAdd()">＋ 手動新增</button>
   </div>
 </div>
@@ -290,7 +296,8 @@ tr:hover td{background:var(--primary-light)}
           <div id="f-img-ph">📷 點擊上傳圖片<br><small>自動壓縮，支援 JPG / PNG / WEBP</small></div>
         </div>
         <input type="file" id="f-img-file" accept="image/*" style="display:none"
-               onchange="handleImgUpload(this,'f-image','f-img-preview','f-img-ph')">
+               onchange="handleImgUpload(this,'f-image','f-img-preview','f-img-ph','f-upload-progress')">
+        <div class="upload-progress" id="f-upload-progress">⏳ 上傳中…</div>
         <button type="button" class="img-clear-btn" id="f-img-clear" style="display:none"
                 onclick="clearImage('f-image','f-img-preview','f-img-ph','f-img-clear')">✕ 移除圖片</button>
       </div>
@@ -397,6 +404,35 @@ tr:hover td{background:var(--primary-light)}
         <button type="submit" class="btn-save">儲存新密碼</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Cloudinary settings modal -->
+<div id="cloud-overlay" class="overlay" onclick="if(event.target===this)closeCloud()">
+  <div class="modal" style="width:480px">
+    <div class="modal-hd">
+      <h3>☁️ Cloudinary 圖片設定</h3>
+      <button class="modal-close" onclick="closeCloud()">×</button>
+    </div>
+    <p style="font-size:.82rem;color:var(--muted);margin-bottom:18px;line-height:1.7">
+      上傳圖片需要免費的 Cloudinary 帳號。<br>
+      1. 登入 <a href="https://cloudinary.com" target="_blank" rel="noopener" style="color:var(--primary)">cloudinary.com</a> → Settings → Upload → <b>Add upload preset</b><br>
+      2. Signing mode 設為 <b>Unsigned</b>，儲存後複製 Preset name<br>
+      3. 把 Cloud name 和 Preset name 填入下方
+    </p>
+    <div class="fg">
+      <label>Cloud Name</label>
+      <input type="text" id="c-cloudname" placeholder="例：my-bakery-cloud">
+    </div>
+    <div class="fg">
+      <label>Upload Preset（Unsigned）</label>
+      <input type="text" id="c-preset" placeholder="例：bakery_unsigned">
+    </div>
+    <div id="cloud-test-result" style="font-size:.8rem;margin-top:8px;min-height:20px"></div>
+    <div class="modal-foot">
+      <button type="button" class="btn-cancel" onclick="closeCloud()">取消</button>
+      <button type="button" class="btn-save" onclick="saveCloudSettings()">儲存設定</button>
+    </div>
   </div>
 </div>
 
@@ -591,28 +627,81 @@ function exportCSV(){
 // ── Init ─────────────────────────────────────────────────────
 buildColorFilter();
 renderTable();
+updateCloudBadge();
+
+// ── Cloudinary settings ───────────────────────────────────────
+const CLD_KEY = 'bakery_cloudinary';
+function getCloudCfg() {
+  try { return JSON.parse(localStorage.getItem(CLD_KEY) || '{}'); } catch { return {}; }
+}
+function openCloudSettings() {
+  const cfg = getCloudCfg();
+  document.getElementById('c-cloudname').value = cfg.cloudName  || '';
+  document.getElementById('c-preset').value    = cfg.preset     || '';
+  document.getElementById('cloud-test-result').innerHTML = '';
+  document.getElementById('cloud-overlay').classList.add('open');
+}
+function closeCloud() { document.getElementById('cloud-overlay').classList.remove('open'); }
+function saveCloudSettings() {
+  const cloudName = document.getElementById('c-cloudname').value.trim();
+  const preset    = document.getElementById('c-preset').value.trim();
+  if (!cloudName || !preset) { toast('請填入 Cloud Name 和 Preset','error'); return; }
+  localStorage.setItem(CLD_KEY, JSON.stringify({cloudName, preset}));
+  closeCloud();
+  toast('Cloudinary 設定已儲存 ✓','success');
+  updateCloudBadge();
+}
+function updateCloudBadge() {
+  const btn = document.querySelector('.btn-cloud');
+  if (!btn) return;
+  const cfg = getCloudCfg();
+  const dot = cfg.cloudName ? '<span class="cloud-ok"></span>' : '<span class="cloud-no"></span>';
+  btn.innerHTML = `☁️ 圖片設定${dot}`;
+}
 
 // ── Image upload ─────────────────────────────────────────────
-function handleImgUpload(input, hiddenId, previewId, phId) {
+async function handleImgUpload(input, hiddenId, previewId, phId, progressId) {
   const file = input.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    const img = new Image();
-    img.onload = () => {
-      const MAX = 900;
-      const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
-      const canvas = document.createElement('canvas');
-      canvas.width  = Math.round(img.width  * ratio);
-      canvas.height = Math.round(img.height * ratio);
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
-      document.getElementById(hiddenId).value = dataUrl;
-      setImagePreview(hiddenId, previewId, phId, hiddenId.replace('image','img-clear'), dataUrl);
+  const prog = document.getElementById(progressId);
+  const cfg  = getCloudCfg();
+
+  if (cfg.cloudName && cfg.preset) {
+    // ── Cloudinary upload ──
+    if (prog) { prog.textContent = '⏳ 上傳到 Cloudinary…'; prog.style.display = 'block'; }
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('upload_preset', cfg.preset);
+      const res  = await fetch(`https://api.cloudinary.com/v1_1/${cfg.cloudName}/image/upload`, {method:'POST', body:fd});
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      if (prog) prog.style.display = 'none';
+      setImagePreview(hiddenId, previewId, phId, hiddenId.replace('image','img-clear'), data.secure_url);
+      toast('圖片上傳成功 ✓','success');
+    } catch(e) {
+      if (prog) { prog.textContent = '❌ 上傳失敗，請確認 Cloud Name / Preset 設定'; prog.style.display = 'block'; }
+      toast('Cloudinary 上傳失敗','error');
+    }
+  } else {
+    // ── Fallback: base64 via Canvas ──
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 900, ratio = Math.min(MAX/img.width, MAX/img.height, 1);
+        const canvas = document.createElement('canvas');
+        canvas.width  = Math.round(img.width  * ratio);
+        canvas.height = Math.round(img.height * ratio);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+        setImagePreview(hiddenId, previewId, phId, hiddenId.replace('image','img-clear'), dataUrl);
+        toast('圖片已儲存（本機模式）','success');
+      };
+      img.src = ev.target.result;
     };
-    img.src = ev.target.result;
-  };
-  reader.readAsDataURL(file);
+    reader.readAsDataURL(file);
+  }
 }
 
 function setImagePreview(hiddenId, previewId, phId, clearId, dataUrl) {
