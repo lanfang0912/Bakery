@@ -407,7 +407,7 @@ function showDetail(ev, id){
   const p = document.getElementById('dpopup');
   p.style.borderTopColor = c.hex;
   document.getElementById('dpopup-body').innerHTML=`
-    ${e.image?`<img src="${e.image}" style="max-width:100%;max-height:180px;width:auto;height:auto;border-radius:8px;margin-bottom:10px;display:block">`:''}
+    ${e.image?`<img src="${e.image}" style="max-width:100%;max-height:260px;width:auto;height:auto;border-radius:8px;margin-bottom:10px;display:block">`:''}
     <h4 style="color:${c.hex}">${e.title}</h4>
     <p>👨‍🍳 ${e.teacher}</p>
     <p>📅 ${formatDate(e.date)}</p>
