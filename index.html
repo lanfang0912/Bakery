@@ -298,11 +298,17 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
 firebase.initializeApp(FB_CONFIG);
 const db = firebase.database();
 firebase.auth().signInAnonymously().catch(()=>{});
-let events = [];
+
+// Pre-load with bundled data so page renders instantly
+let events = INITIAL_EVENTS.map((e,i)=>({...e, id:'local'+i}));
 let curMonth = 5;
+renderCal(2026, curMonth);
+renderSchedule();
+updateStats();
 
 db.ref('bakery/events').on('value', snap => {
-  const val = snap.val() || {};
+  const val = snap.val();
+  if(!val) return; // keep showing bundled data if DB empty
   events = Object.entries(val).map(([key, e]) => ({...e, id: key})).sort((a,b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
   renderCal(2026, curMonth);
   renderSchedule();

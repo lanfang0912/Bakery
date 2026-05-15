@@ -509,13 +509,18 @@ firebase.initializeApp(FB_CONFIG);
 db = firebase.database();
 
 function startFbListener() {
+  // Pre-render with bundled data immediately
+  events = INITIAL_EVENTS.map((e,i)=>({...e, id:'local'+i}));
+  renderTable();
+
   db.ref('bakery/registrations').on('value', snap => {
     registrations = snap.val() || {};
     renderTable();
   });
 
   db.ref('bakery/events').on('value', snap => {
-    const val = snap.val() || {};
+    const val = snap.val();
+    if(!val) return;
     events = Object.entries(val).map(([key, e]) => ({...e, id: key}))
       .sort((a,b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
     renderTable();
