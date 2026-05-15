@@ -76,6 +76,7 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
 .chip-teacher{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chip-title{opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chip-time{font-size:.65rem;opacity:.7;margin-bottom:1px}
+.chip-fee{font-size:.65rem;font-weight:700;margin-top:2px;opacity:.9}
 
 /* ── Day expand modal ── */
 .day-overlay{display:none;position:fixed;inset:0;background:rgba(40,25,10,.45);z-index:800;align-items:center;justify-content:center}
@@ -273,6 +274,7 @@ function renderCal(y, m) {
         <div class="chip-time">${e.start}</div>
         <div class="chip-teacher">${e.teacher}</div>
         <div class="chip-title">${e.title}</div>
+        ${e.fee?`<div class="chip-fee">${e.fee}</div>`:''}
       </div>`;
     }).join('');
 
