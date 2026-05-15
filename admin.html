@@ -33,6 +33,23 @@ header p{font-size:.8rem;opacity:.75;margin-top:2px}
 
 main{padding:24px 36px;max-width:1280px;margin:0 auto}
 
+/* Admin tabs */
+.admin-tabs{display:flex;gap:0;margin-bottom:22px;background:var(--card);border-radius:12px;padding:4px;border:1px solid var(--border);width:fit-content;box-shadow:var(--shadow)}
+.admin-tab{padding:9px 24px;border:none;background:none;border-radius:9px;font-size:.88rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .2s;white-space:nowrap}
+.admin-tab.active{background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(193,127,62,.35)}
+.admin-tab:hover:not(.active){background:var(--primary-light);color:var(--primary-dark)}
+
+/* Reg overview */
+.rov-card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow);transition:transform .15s}
+.rov-card:hover{transform:translateY(-1px)}
+.rov-bar{width:5px;align-self:stretch;border-radius:3px;flex-shrink:0}
+.rov-info{flex:1;min-width:0}
+.rov-title{font-weight:700;font-size:.95rem;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rov-sub{font-size:.8rem;color:var(--muted)}
+.rov-num{text-align:center;padding:0 10px;min-width:48px}
+.rov-n{font-size:1.35rem;font-weight:800;line-height:1}
+.rov-l{font-size:.68rem;color:var(--muted);margin-top:2px}
+
 /* Stats */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
 .stat{background:var(--card);border-radius:12px;padding:16px 18px;border:1px solid var(--border);box-shadow:var(--shadow);text-align:center}
@@ -202,7 +219,10 @@ tr:hover td{background:var(--primary-light)}
   .table-wrap td:nth-child(7){display:none}
   .table-wrap td:nth-child(8){grid-row:4;grid-column:2;font-size:.76rem}
   .act-btns{flex-direction:column;gap:5px}
-  .btn-edit,.btn-del{padding:6px 10px;font-size:.78rem;white-space:nowrap}
+  .btn-edit,.btn-del,.btn-reg{padding:6px 10px;font-size:.78rem;white-space:nowrap}
+  .admin-tabs{width:100%}
+  .admin-tab{flex:1;text-align:center;padding:9px 10px;font-size:.82rem}
+  .rov-card{flex-wrap:wrap}
 }
 </style>
 </head>
@@ -259,32 +279,45 @@ tr:hover td{background:var(--primary-light)}
 </div>
 
 <main>
-  <div class="stats">
-    <div class="stat"><div class="snum" id="s-total">0</div><div class="slbl">課程總數</div></div>
-    <div class="stat"><div class="snum" id="s-teachers">0</div><div class="slbl">授課老師</div></div>
-    <div class="stat"><div class="snum" id="s-days">0</div><div class="slbl">課程天數</div></div>
-    <div class="stat"><div class="snum" id="s-filtered">0</div><div class="slbl">目前篩選筆數</div></div>
+  <div class="admin-tabs">
+    <button class="admin-tab active" onclick="switchAdminTab('courses',this)">📅 課程管理</button>
+    <button class="admin-tab" onclick="switchAdminTab('regs',this)">📋 報名總覽</button>
   </div>
 
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>圖片</th>
-          <th>顏色</th>
-          <th>日期</th>
-          <th>時間</th>
-          <th>老師</th>
-          <th>課程名稱</th>
-          <th>費用</th>
-          <th>報名連結</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
+  <!-- 課程管理 tab -->
+  <div id="tab-courses">
+    <div class="stats">
+      <div class="stat"><div class="snum" id="s-total">0</div><div class="slbl">課程總數</div></div>
+      <div class="stat"><div class="snum" id="s-teachers">0</div><div class="slbl">授課老師</div></div>
+      <div class="stat"><div class="snum" id="s-days">0</div><div class="slbl">課程天數</div></div>
+      <div class="stat"><div class="snum" id="s-filtered">0</div><div class="slbl">目前篩選筆數</div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>圖片</th>
+            <th>顏色</th>
+            <th>日期</th>
+            <th>時間</th>
+            <th>老師</th>
+            <th>課程名稱</th>
+            <th>費用</th>
+            <th>報名連結</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p class="tfoot-note" id="tfoot-note"></p>
   </div>
-  <p class="tfoot-note" id="tfoot-note"></p>
+
+  <!-- 報名總覽 tab -->
+  <div id="tab-regs" style="display:none">
+    <div id="rov-stats" class="stats" style="grid-template-columns:repeat(3,1fr)"></div>
+    <div id="rov-list"></div>
+  </div>
 </main>
 
 <!-- Add/Edit Modal -->
@@ -555,9 +588,11 @@ document.getElementById('tbody').addEventListener('click', e => {
   const editBtn = e.target.closest('[data-edit]');
   const delBtn  = e.target.closest('[data-del]');
   const regBtn  = e.target.closest('[data-reg]');
+  const linkBtn = e.target.closest('[data-link]');
   if (editBtn) openEdit(editBtn.dataset.edit);
   if (delBtn)  confirmDelete(delBtn.dataset.del);
   if (regBtn)  openRegModal(regBtn.dataset.reg);
+  if (linkBtn) copyRegLink(linkBtn.dataset.link);
 });
 
 function regCount(eventId) {
@@ -609,14 +644,17 @@ function renderTable(){
         <td style="font-size:.8rem;color:var(--muted)">${formatFee(e.fee)||'-'}</td>
         <td>${e.link?`<a href="${e.link}" target="_blank" rel="noopener" style="color:var(--primary);font-size:.78rem;font-weight:600">開啟連結 ↗</a>`:'-'}</td>
         <td><div class="act-btns">
-          <button class="btn-reg"  data-reg="${e.id}">👥 ${regCount(e.id)}</button>
-          <button class="btn-edit" data-edit="${e.id}">✏️ 編輯</button>
-          <button class="btn-del"  data-del="${e.id}">🗑 刪除</button>
+          <button class="btn-reg"    data-reg="${e.id}">👥 ${regCount(e.id)}</button>
+          <button class="btn-export" data-link="${e.id}" title="複製報名頁連結">🔗 報名連結</button>
+          <button class="btn-edit"   data-edit="${e.id}">✏️ 編輯</button>
+          <button class="btn-del"    data-del="${e.id}">🗑 刪除</button>
         </div></td>
       </tr>`;
     });
   }
   document.getElementById('tbody').innerHTML = html;
+  // keep overview in sync if visible
+  if(document.getElementById('tab-regs').style.display !== 'none') renderRegOverview();
 }
 
 // ── Color picker ─────────────────────────────────────────────
@@ -983,6 +1021,73 @@ async function saveParsed(){
   });
   closePaste();
   toast('課程已新增 ✓','success');
+}
+
+// ── Admin tabs ───────────────────────────────────────────────
+function switchAdminTab(name, btn){
+  document.querySelectorAll('.admin-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-courses').style.display = name==='courses'?'block':'none';
+  document.getElementById('tab-regs').style.display    = name==='regs'?'block':'none';
+  if(name==='regs') renderRegOverview();
+}
+
+function renderRegOverview(){
+  // Build per-event summary
+  const rows = events.map(e=>{
+    const regs = Object.values(registrations[e.id]||{});
+    return {...e, regs, paid: regs.filter(r=>r.paid).length};
+  }).filter(e=>e.regs.length>0).sort((a,b)=>a.date.localeCompare(b.date));
+
+  const totalReg  = rows.reduce((s,e)=>s+e.regs.length, 0);
+  const totalPaid = rows.reduce((s,e)=>s+e.paid, 0);
+
+  document.getElementById('rov-stats').innerHTML = `
+    <div class="stat"><div class="snum">${totalReg}</div><div class="slbl">總報名人數</div></div>
+    <div class="stat"><div class="snum" style="color:var(--green)">${totalPaid}</div><div class="slbl">已繳費</div></div>
+    <div class="stat"><div class="snum" style="color:var(--red)">${totalReg-totalPaid}</div><div class="slbl">未繳費</div></div>`;
+
+  if(!rows.length){
+    document.getElementById('rov-list').innerHTML =
+      '<p style="text-align:center;color:var(--muted);padding:48px">尚無任何報名資料</p>';
+    return;
+  }
+
+  document.getElementById('rov-list').innerHTML = rows.map(e=>{
+    const c = colorById(e.color);
+    const unpaid = e.regs.length - e.paid;
+    return `<div class="rov-card">
+      <div class="rov-bar" style="background:${c.hex}"></div>
+      <div class="rov-info">
+        <div class="rov-title" style="color:${c.hex}">${e.title}</div>
+        <div class="rov-sub">${e.teacher} · ${formatDate(e.date)}</div>
+      </div>
+      <div class="rov-num">
+        <div class="rov-n" style="color:var(--primary)">${e.regs.length}</div>
+        <div class="rov-l">報名</div>
+      </div>
+      <div class="rov-num">
+        <div class="rov-n" style="color:var(--green)">${e.paid}</div>
+        <div class="rov-l">已繳</div>
+      </div>
+      <div class="rov-num">
+        <div class="rov-n" style="color:${unpaid?'var(--red)':'var(--muted)'}">${unpaid}</div>
+        <div class="rov-l">未繳</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-left:4px">
+        <button class="btn-reg" onclick="openRegModal('${e.id}')">查看名單</button>
+        <button class="btn-export" onclick="copyRegLink('${e.id}')" style="padding:5px 10px;font-size:.76rem">🔗 複製連結</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function copyRegLink(eventId){
+  const base = location.href.replace(/admin\.html.*$/, '');
+  const url  = base + 'register.html?id=' + eventId;
+  navigator.clipboard.writeText(url)
+    .then(()=>toast('報名連結已複製 ✓','success'))
+    .catch(()=>{ prompt('複製此連結：', url); });
 }
 
 // ── Registrations ────────────────────────────────────────────
