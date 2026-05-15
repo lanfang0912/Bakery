@@ -32,6 +32,7 @@ const INITIAL_EVENTS = [
   {id:19, date:'2026-06-08', start:'09:30', end:'12:30', teacher:'葉子翔老師',       title:'蘿蜜雅盾牌餅乾',                     link:'https://forms.gle/pPMMPdmuJTjxh8V19', color:'blue'},
   {id:20, date:'2026-06-08', start:'13:30', end:'17:00', teacher:'葉子翔老師',       title:'香草蜂蜜蛋糕捲',                     link:'https://forms.gle/pPMMPdmuJTjxh8V19', color:'blue'},
   {id:21, date:'2026-06-15', start:'09:30', end:'14:00', teacher:'陳聖天老師',       title:'眷村麵食館系列二',                   link:'https://forms.gle/GwJFxxhytVG1KKTW6', color:'purple'},
+  {id:26, date:'2026-06-15', start:'15:00', end:'17:00', teacher:'陳聖天老師',       title:'獨家快閃班：北京宮廷驢打滾',         link:'https://forms.gle/GwJFxxhytVG1KKTW6', color:'purple'},
   {id:22, date:'2026-06-27', start:'09:30', end:'15:30', teacher:'許粡源老師',       title:'健康意識。無糖無油養身麵包專修。系列1', link:'https://forms.gle/h1dXc2vwKNLYxo8w8', color:'teal'},
   {id:23, date:'2026-06-29', start:'09:00', end:'12:30', teacher:'謝岳恩老師',       title:'蟹式甜燒餅｜千層酥脆專修班',         link:'https://forms.gle/C8r36BSdm3asVsRC7', color:'orange'},
   {id:24, date:'2026-06-29', start:'13:30', end:'16:30', teacher:'謝岳恩老師',       title:'拍手金讚鳳梨酥',                     link:'https://forms.gle/C8r36BSdm3asVsRC7', color:'orange'},
@@ -46,7 +47,12 @@ function colorById(id) { return COLORS.find(c=>c.id===id) || COLORS[0]; }
 function loadEvents() {
   try {
     const s = localStorage.getItem(STORAGE_KEY);
-    return s ? JSON.parse(s) : JSON.parse(JSON.stringify(INITIAL_EVENTS));
+    if (!s) return JSON.parse(JSON.stringify(INITIAL_EVENTS));
+    const stored = JSON.parse(s);
+    const storedIds = new Set(stored.map(e => e.id));
+    // Merge any new INITIAL_EVENTS ids that don't exist in stored data yet
+    INITIAL_EVENTS.forEach(e => { if (!storedIds.has(e.id)) stored.push({...e}); });
+    return stored;
   } catch { return JSON.parse(JSON.stringify(INITIAL_EVENTS)); }
 }
 
