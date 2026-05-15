@@ -94,6 +94,17 @@ tr:hover td{background:var(--primary-light)}
 .copt:hover{transform:scale(1.15)}
 .copt.sel{border-color:var(--text);transform:scale(1.1)}
 
+/* Image upload */
+.img-upload-box{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;min-height:80px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--bg)}
+.img-upload-box:hover{border-color:var(--primary);background:var(--primary-light)}
+.img-upload-box img{max-width:100%;max-height:180px;border-radius:8px;display:block}
+#f-img-ph{font-size:.85rem;color:var(--muted);line-height:1.6}
+#f-img-ph small{font-size:.72rem;opacity:.7}
+.img-clear-btn{margin-top:6px;background:none;border:none;color:var(--red);font-size:.78rem;cursor:pointer;padding:2px 6px}
+.img-clear-btn:hover{text-decoration:underline}
+/* Table thumbnail */
+.img-thumb{width:36px;height:36px;object-fit:cover;border-radius:6px;vertical-align:middle}
+
 .modal-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:26px;padding-top:18px;border-top:1px solid var(--border)}
 .btn-cancel{background:var(--border);color:var(--muted);padding:10px 24px;border:none;border-radius:22px;cursor:pointer;font-size:.86rem;font-weight:600}
 .btn-cancel:hover{background:#d5bea9}
@@ -213,6 +224,7 @@ tr:hover td{background:var(--primary-light)}
     <table>
       <thead>
         <tr>
+          <th>圖片</th>
           <th>顏色</th>
           <th>日期</th>
           <th>時間</th>
@@ -269,6 +281,18 @@ tr:hover td{background:var(--primary-light)}
       <div class="fg">
         <label>報名連結</label>
         <input type="url" id="f-link" placeholder="https://forms.gle/…">
+      </div>
+      <div class="fg">
+        <label>課程圖片</label>
+        <input type="hidden" id="f-image">
+        <div class="img-upload-box" id="f-img-box" onclick="document.getElementById('f-img-file').click()">
+          <img id="f-img-preview" style="display:none">
+          <div id="f-img-ph">📷 點擊上傳圖片<br><small>自動壓縮，支援 JPG / PNG / WEBP</small></div>
+        </div>
+        <input type="file" id="f-img-file" accept="image/*" style="display:none"
+               onchange="handleImgUpload(this,'f-image','f-img-preview','f-img-ph')">
+        <button type="button" class="img-clear-btn" id="f-img-clear" style="display:none"
+                onclick="clearImage('f-image','f-img-preview','f-img-ph','f-img-clear')">✕ 移除圖片</button>
       </div>
       <div class="fg">
         <label>標籤顏色</label>
@@ -430,6 +454,7 @@ function renderTable(){
     filtered.forEach(e=>{
       const c = colorById(e.color);
       html += `<tr>
+        <td>${e.image?`<img class="img-thumb" src="${e.image}" alt="">`:'—'}</td>
         <td><span class="cdot" style="background:${c.hex}"></span><span class="tag" style="background:${c.bg};color:${c.hex}">${e.color}</span></td>
         <td>${formatDate(e.date)}</td>
         <td style="white-space:nowrap;font-size:.8rem">${e.start} – ${e.end}</td>
@@ -464,6 +489,7 @@ function openAdd(){
   document.getElementById('modal-title').textContent = '新增課程';
   document.getElementById('event-form').reset();
   document.getElementById('edit-id').value = '';
+  setImagePreview('f-image','f-img-preview','f-img-ph','f-img-clear','');
   selColor = 'orange';
   buildColorPicker();
   document.getElementById('overlay').classList.add('open');
@@ -479,6 +505,7 @@ function openEdit(id){
   document.getElementById('f-end').value     = e.end;
   document.getElementById('f-title').value   = e.title;
   document.getElementById('f-fee').value     = e.fee ? Number(String(e.fee).replace(/[^0-9]/g,'')) : '';
+  setImagePreview('f-image','f-img-preview','f-img-ph','f-img-clear', e.image||'');
   document.getElementById('f-link').value    = e.link||'';
   selColor = e.color;
   buildColorPicker();
@@ -497,6 +524,7 @@ function saveEvent(e){
     end:     document.getElementById('f-end').value,
     title:   document.getElementById('f-title').value.trim(),
     fee:     Number(document.getElementById('f-fee').value) || '',
+    image:   document.getElementById('f-image').value || '',
     link:    document.getElementById('f-link').value.trim(),
     color:   selColor,
   };
@@ -563,6 +591,53 @@ function exportCSV(){
 // ── Init ─────────────────────────────────────────────────────
 buildColorFilter();
 renderTable();
+
+// ── Image upload ─────────────────────────────────────────────
+function handleImgUpload(input, hiddenId, previewId, phId) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 900;
+      const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
+      const canvas = document.createElement('canvas');
+      canvas.width  = Math.round(img.width  * ratio);
+      canvas.height = Math.round(img.height * ratio);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+      document.getElementById(hiddenId).value = dataUrl;
+      setImagePreview(hiddenId, previewId, phId, hiddenId.replace('image','img-clear'), dataUrl);
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function setImagePreview(hiddenId, previewId, phId, clearId, dataUrl) {
+  const preview = document.getElementById(previewId);
+  const ph      = document.getElementById(phId);
+  const clear   = document.getElementById(clearId);
+  document.getElementById(hiddenId).value = dataUrl;
+  if (dataUrl) {
+    preview.src = dataUrl;
+    preview.style.display = 'block';
+    if (ph)    ph.style.display    = 'none';
+    if (clear) clear.style.display = 'inline-block';
+  } else {
+    preview.src = '';
+    preview.style.display = 'none';
+    if (ph)    ph.style.display    = 'block';
+    if (clear) clear.style.display = 'none';
+  }
+}
+
+function clearImage(hiddenId, previewId, phId, clearId) {
+  setImagePreview(hiddenId, previewId, phId, clearId, '');
+  const fileInput = document.getElementById(hiddenId.replace('image','img-file'));
+  if (fileInput) fileInput.value = '';
+}
 
 // ── Smart paste ───────────────────────────────────────────────
 let ppSelColor = 'orange';

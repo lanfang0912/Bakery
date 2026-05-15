@@ -308,6 +308,7 @@ function openDayModal(dateStr){
     return `<div class="day-ev-card">
       <div class="day-ev-bar" style="background:${c.hex}"></div>
       <div class="day-ev-info">
+        ${e.image?`<img src="${e.image}" style="width:100%;border-radius:8px;margin-bottom:8px;display:block">`:''}
         <div class="day-ev-title" style="color:${c.hex}">${e.title}</div>
         <div class="day-ev-teacher">👨‍🍳 ${e.teacher}</div>
         <div class="day-ev-time">🕐 ${e.start} – ${e.end}</div>
@@ -335,6 +336,7 @@ function showDetail(ev, id){
   const p = document.getElementById('dpopup');
   p.style.borderTopColor = c.hex;
   document.getElementById('dpopup-body').innerHTML=`
+    ${e.image?`<img src="${e.image}" style="width:100%;border-radius:8px;margin-bottom:10px;display:block">`:''}
     <h4 style="color:${c.hex}">${e.title}</h4>
     <p>👨‍🍳 ${e.teacher}</p>
     <p>📅 ${formatDate(e.date)}</p>
