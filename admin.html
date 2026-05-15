@@ -654,6 +654,11 @@ function startFbListener() {
   events = INITIAL_EVENTS.map((e,i)=>({...e, id:'local'+i}));
   renderTable();
 
+  db.ref('bakery/settings/cloudinary').on('value', snap => {
+    cloudCfg = snap.val() || {};
+    updateCloudBadge();
+  });
+
   db.ref('bakery/registrations').on('value', snap => {
     registrations = snap.val() || {};
     renderTable();
@@ -907,10 +912,8 @@ buildColorFilter();
 updateCloudBadge();
 
 // ── Cloudinary settings ───────────────────────────────────────
-const CLD_KEY = 'bakery_cloudinary';
-function getCloudCfg() {
-  try { return JSON.parse(localStorage.getItem(CLD_KEY) || '{}'); } catch { return {}; }
-}
+let cloudCfg = {};
+function getCloudCfg() { return cloudCfg; }
 function openCloudSettings() {
   const cfg = getCloudCfg();
   document.getElementById('c-cloudname').value = cfg.cloudName  || '';
@@ -923,10 +926,9 @@ function saveCloudSettings() {
   const cloudName = document.getElementById('c-cloudname').value.trim();
   const preset    = document.getElementById('c-preset').value.trim();
   if (!cloudName || !preset) { toast('請填入 Cloud Name 和 Preset','error'); return; }
-  localStorage.setItem(CLD_KEY, JSON.stringify({cloudName, preset}));
-  closeCloud();
-  toast('Cloudinary 設定已儲存 ✓','success');
-  updateCloudBadge();
+  db.ref('bakery/settings/cloudinary').set({cloudName, preset})
+    .then(()=>{ closeCloud(); toast('Cloudinary 設定已儲存 ✓','success'); })
+    .catch(()=>toast('儲存失敗，請確認已登入','error'));
 }
 function updateCloudBadge() {
   const btn = document.querySelector('.btn-cloud');
