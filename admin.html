@@ -1568,6 +1568,7 @@ async function doLogin(e) {
     const stored = await getStoredHash();
     if(hash === stored){
       localStorage.setItem(SESSION_KEY,'1');
+      firebase.auth().signInAnonymously().catch(()=>{});
       document.getElementById('login-screen').classList.add('hidden');
       err.textContent='';
       document.getElementById('login-pw').value='';
@@ -1621,6 +1622,7 @@ async function saveNewPw(e){
 // Check session on load
 (async()=>{
   if(localStorage.getItem(SESSION_KEY)==='1'){
+    firebase.auth().signInAnonymously().catch(()=>{});
     document.getElementById('login-screen').classList.add('hidden');
   } else {
     document.getElementById('login-pw').focus();
