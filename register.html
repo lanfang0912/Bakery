@@ -29,6 +29,17 @@ header h1{font-size:1.1rem;font-weight:800}
 /* Course card */
 .course-card{background:var(--card);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:16px;border:1px solid var(--border)}
 .course-img{width:100%;height:auto;display:block}
+/* Image gallery */
+.gallery{position:relative;overflow:hidden;background:#000;border-radius:0}
+.gallery-track{display:flex;transition:transform .35s ease}
+.gallery-slide{flex:0 0 100%;min-width:0}
+.gallery-slide img{width:100%;height:240px;object-fit:cover;display:block}
+.gallery-dots{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:2}
+.gdot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.55);border:none;cursor:pointer;padding:0;transition:all .2s}
+.gdot.active{background:#fff;width:22px;border-radius:4px}
+.garr{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.4);color:#fff;border:none;border-radius:50%;width:36px;height:36px;font-size:1.2rem;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center}
+.garr-l{left:10px}.garr-r{right:10px}
+.garr:hover{background:rgba(0,0,0,.7)}
 .course-body{padding:18px 20px}
 .course-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.78rem;font-weight:700;color:#fff;margin-bottom:8px}
 .course-title{font-size:1.15rem;font-weight:800;line-height:1.4;margin-bottom:12px}
@@ -269,12 +280,41 @@ async function loadEvent(){
   }catch(e){ if(!local) showError(); }
 }
 
+let _galIdx = 0, _galTotal = 1;
+
+function galTo(idx){
+  _galIdx = idx;
+  document.getElementById('gallery-track').style.transform = `translateX(-${idx*100}%)`;
+  document.querySelectorAll('.gdot').forEach((d,i)=>d.classList.toggle('active',i===idx));
+}
+function galAdj(dir){
+  galTo((_galIdx + dir + _galTotal) % _galTotal);
+}
+
 function renderCourse(e){
   const c = colorById(e.color);
   submitColor = c.hex;
   document.title = `${e.title} 報名 | Jen 手作烘焙`;
-  document.getElementById('course-card').innerHTML =
-    (e.image ? `<img class="course-img" src="${e.image}" alt="${e.title}">` : '') +
+
+  const imgs = (e.images||[]).filter(Boolean);
+  if(!imgs.length && e.image) imgs.push(e.image);
+
+  let imgHtml = '';
+  if(imgs.length > 1){
+    _galTotal = imgs.length;
+    imgHtml = `<div class="gallery">
+      <div class="gallery-track" id="gallery-track">
+        ${imgs.map(src=>`<div class="gallery-slide"><img src="${src}" alt="${e.title}"></div>`).join('')}
+      </div>
+      <div class="gallery-dots">${imgs.map((_,i)=>`<button class="gdot${i===0?' active':''}" onclick="galTo(${i})"></button>`).join('')}</div>
+      <button class="garr garr-l" onclick="galAdj(-1)">‹</button>
+      <button class="garr garr-r" onclick="galAdj(1)">›</button>
+    </div>`;
+  } else if(imgs.length === 1){
+    imgHtml = `<img class="course-img" src="${imgs[0]}" alt="${e.title}">`;
+  }
+
+  document.getElementById('course-card').innerHTML = imgHtml +
     `<div class="course-body">
       <span class="course-badge" style="background:${c.hex}">${e.teacher}</span>
       <div class="course-title" style="color:${c.hex}">${e.title}</div>

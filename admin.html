@@ -132,14 +132,19 @@ tr:hover td{background:var(--primary-light)}
 /* Image upload */
 .img-upload-box{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;min-height:80px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--bg)}
 .img-upload-box:hover{border-color:var(--primary);background:var(--primary-light)}
-.img-upload-box img{max-width:100%;max-height:180px;border-radius:8px;display:block}
-#f-img-ph{font-size:.85rem;color:var(--muted);line-height:1.6}
-#f-img-ph small{font-size:.72rem;opacity:.7}
-.img-clear-btn{margin-top:6px;background:none;border:none;color:var(--red);font-size:.78rem;cursor:pointer;padding:2px 6px}
+.img-upload-box img{max-width:100%;max-height:140px;border-radius:8px;display:block}
+.img-slot-ph{font-size:.8rem;color:var(--muted);line-height:1.6}
+.img-slot-ph small{font-size:.7rem;opacity:.7}
+.img-clear-btn{margin-top:4px;background:none;border:none;color:var(--red);font-size:.76rem;cursor:pointer;padding:2px 6px}
 .img-clear-btn:hover{text-decoration:underline}
-.img-url-row{margin-top:8px}
-.img-url-row input{width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:9px;font-size:.84rem;font-family:inherit;color:var(--text);background:var(--bg);transition:border-color .2s;outline:none}
+.img-url-row{margin-top:6px}
+.img-url-row input{width:100%;padding:8px 12px;border:2px solid var(--border);border-radius:9px;font-size:.82rem;font-family:inherit;color:var(--text);background:var(--bg);transition:border-color .2s;outline:none}
 .img-url-row input:focus{border-color:var(--primary)}
+/* Multi-image slots */
+.multi-img-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px}
+.img-slot{display:flex;flex-direction:column}
+.btn-add-img{background:var(--primary-light);color:var(--primary-dark);border:2px dashed var(--primary);border-radius:10px;padding:8px;font-size:.82rem;font-weight:700;cursor:pointer;width:100%;transition:all .2s}
+.btn-add-img:hover{background:var(--primary);color:#fff}
 /* Table thumbnail */
 .img-thumb{width:36px;height:36px;object-fit:cover;border-radius:6px;vertical-align:middle}
 
@@ -381,20 +386,9 @@ tr:hover td{background:var(--primary-light)}
         <textarea id="f-desc" placeholder="課程內容介紹，將顯示在報名頁面上…" style="min-height:80px"></textarea>
       </div>
       <div class="fg">
-        <label>課程圖片</label>
-        <input type="hidden" id="f-image">
-        <div class="img-upload-box" id="f-img-box" onclick="document.getElementById('f-img-file').click()">
-          <img id="f-img-preview" style="display:none">
-          <div id="f-img-ph">📷 點擊上傳圖片<br><small>自動壓縮，支援 JPG / PNG / WEBP</small></div>
-        </div>
-        <input type="file" id="f-img-file" accept="image/*" style="display:none"
-               onchange="handleImgUpload(this,'f-image','f-img-preview','f-img-ph','f-upload-progress')">
-        <div class="upload-progress" id="f-upload-progress">⏳ 上傳中…</div>
-        <div class="img-url-row">
-          <input type="url" id="f-img-url" placeholder="或貼上圖片網址 https://…" oninput="applyImgUrl('f-img-url','f-image','f-img-preview','f-img-ph','f-img-clear')">
-        </div>
-        <button type="button" class="img-clear-btn" id="f-img-clear" style="display:none"
-                onclick="clearImage('f-image','f-img-preview','f-img-ph','f-img-clear','f-img-url')">✕ 移除圖片</button>
+        <label>課程圖片（最多5張）</label>
+        <div class="multi-img-grid" id="f-imgs-grid"></div>
+        <button type="button" class="btn-add-img" id="f-add-img-btn" onclick="addImgSlot()">＋ 新增圖片</button>
       </div>
       <div class="fg">
         <label>標籤顏色</label>
@@ -865,7 +859,7 @@ function openAdd(){
   document.getElementById('event-form').reset();
   document.getElementById('edit-id').value = '';
   document.getElementById('f-desc').value = '';
-  setImagePreview('f-image','f-img-preview','f-img-ph','f-img-clear','');
+  resetImgSlots([]);
   selColor = 'orange';
   buildColorPicker();
   document.getElementById('overlay').classList.add('open');
@@ -881,9 +875,8 @@ function openEdit(id){
   document.getElementById('f-end').value     = e.end;
   document.getElementById('f-title').value   = e.title;
   document.getElementById('f-fee').value     = e.fee ? Number(String(e.fee).replace(/[^0-9]/g,'')) : '';
-  setImagePreview('f-image','f-img-preview','f-img-ph','f-img-clear', e.image||'');
-  const urlInp = document.getElementById('f-img-url');
-  if (urlInp) urlInp.value = (e.image && e.image.startsWith('http')) ? e.image : '';
+  const existImgs = e.images?.filter(Boolean) || (e.image ? [e.image] : []);
+  resetImgSlots(existImgs);
   document.getElementById('f-desc').value    = e.description||'';
   selColor = e.color;
   buildColorPicker();
@@ -902,7 +895,8 @@ async function saveEvent(e){
     end:     document.getElementById('f-end').value,
     title:   document.getElementById('f-title').value.trim(),
     fee:         Number(document.getElementById('f-fee').value) || '',
-    image:       document.getElementById('f-image').value || '',
+    images:      getImgSlotValues(),
+    image:       getImgSlotValues()[0] || '',
     description: document.getElementById('f-desc').value.trim(),
     color:       selColor,
   };
@@ -1024,6 +1018,57 @@ function updateCloudBadge() {
   const cfg = getCloudCfg();
   const dot = cfg.cloudName ? '<span class="cloud-ok"></span>' : '<span class="cloud-no"></span>';
   btn.innerHTML = `☁️ 圖片設定${dot}`;
+}
+
+// ── Multi-image slots ─────────────────────────────────────────
+let _imgSlotCount = 0;
+
+function _slotHtml(i, url){
+  const isHttp = url && url.startsWith('http');
+  return `<div class="img-slot" id="f-img-slot-${i}">
+    <input type="hidden" id="f-img-val-${i}" value="${url||''}">
+    <div class="img-upload-box" onclick="document.getElementById('f-img-file-${i}').click()">
+      <img id="f-img-prev-${i}" src="${url||''}" style="${url?'':'display:none'}">
+      <div class="img-slot-ph" id="f-img-ph-${i}" style="${url?'display:none':''}">📷 ${i===0?'主圖':'圖片'}<br><small>JPG/PNG/WEBP</small></div>
+    </div>
+    <input type="file" id="f-img-file-${i}" accept="image/*" style="display:none" onchange="handleSlotUpload(this,${i})">
+    <div class="img-url-row"><input type="url" id="f-img-url-${i}" value="${isHttp?url:''}" placeholder="貼上網址" oninput="applySlotUrl(${i})"></div>
+    <button type="button" class="img-clear-btn" id="f-img-clear-${i}" style="${url?'':'display:none'}" onclick="clearSlot(${i})">✕ 移除</button>
+  </div>`;
+}
+
+function resetImgSlots(images){
+  const arr = images && images.length ? images : [''];
+  _imgSlotCount = arr.length;
+  document.getElementById('f-imgs-grid').innerHTML = arr.map((u,i)=>_slotHtml(i,u)).join('');
+  document.getElementById('f-add-img-btn').style.display = _imgSlotCount >= 5 ? 'none' : '';
+}
+
+function addImgSlot(){
+  if(_imgSlotCount >= 5) return;
+  const grid = document.getElementById('f-imgs-grid');
+  grid.insertAdjacentHTML('beforeend', _slotHtml(_imgSlotCount,''));
+  _imgSlotCount++;
+  if(_imgSlotCount >= 5) document.getElementById('f-add-img-btn').style.display = 'none';
+}
+
+function handleSlotUpload(input, idx){
+  handleImgUpload(input,`f-img-val-${idx}`,`f-img-prev-${idx}`,`f-img-ph-${idx}`,`f-img-prog-${idx}`);
+}
+function applySlotUrl(idx){
+  applyImgUrl(`f-img-url-${idx}`,`f-img-val-${idx}`,`f-img-prev-${idx}`,`f-img-ph-${idx}`,`f-img-clear-${idx}`);
+}
+function clearSlot(idx){
+  clearImage(`f-img-val-${idx}`,`f-img-prev-${idx}`,`f-img-ph-${idx}`,`f-img-clear-${idx}`,`f-img-url-${idx}`);
+}
+
+function getImgSlotValues(){
+  const imgs = [];
+  for(let i=0;i<_imgSlotCount;i++){
+    const v = document.getElementById(`f-img-val-${i}`)?.value||'';
+    if(v) imgs.push(v);
+  }
+  return imgs;
 }
 
 // ── Image upload ─────────────────────────────────────────────
@@ -1742,14 +1787,26 @@ async function _buildPoster(monthVal){
   monthCourses.forEach(c=>{ (byDay[c.date]=byDay[c.date]||[]).push(c); });
   const days = Object.keys(byDay).sort();
 
-  // Load images via fetch → Blob URL (bypasses browser CORS cache, canvas stays exportable)
+  // For Cloudinary URLs: add q_auto transformation → fresh CDN cache entry with CORS headers
+  function _corsUrl(url){
+    if(!url||url.startsWith('data:')) return url;
+    if(url.includes('res.cloudinary.com')&&url.includes('/image/upload/')){
+      if(!url.includes('/image/upload/q_auto'))
+        return url.replace('/image/upload/','/image/upload/q_auto/');
+    }
+    return url;
+  }
+
+  // Load images via fetch → Blob URL (canvas stays exportable)
   const imgMap = {};
-  const imgTotal = monthCourses.filter(c=>c.image).length;
-  await Promise.all(monthCourses.filter(c=>c.image).map(async c=>{
+  const imgTotal = monthCourses.filter(c=>c.image||c.images?.length).length;
+  await Promise.all(monthCourses.map(async c=>{
+    const rawUrl = c.images?.[0] || c.image;
+    if(!rawUrl) return;
     try {
-      let src = c.image;
-      if(!c.image.startsWith('data:')){
-        const resp = await fetch(c.image, {cache:'reload'});
+      let src = rawUrl;
+      if(!rawUrl.startsWith('data:')){
+        const resp = await fetch(_corsUrl(rawUrl), {cache:'reload'});
         if(!resp.ok) return;
         src = URL.createObjectURL(await resp.blob());
       }
@@ -1759,7 +1816,7 @@ async function _buildPoster(monthVal){
         img.onerror=res;
         img.src=src;
       });
-    } catch(e){ /* CORS / network fail → show colour placeholder, canvas stays clean */ }
+    } catch(e){}
   }));
   const imgLoaded = Object.keys(imgMap).length;
   document.getElementById('poster-msg').textContent = `⏳ 生成中… 圖片 ${imgLoaded}/${imgTotal} 載入成功`;
