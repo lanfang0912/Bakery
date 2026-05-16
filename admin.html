@@ -1732,32 +1732,38 @@ async function _buildPoster(monthVal){
   monthCourses.forEach(c=>{ (byDay[c.date]=byDay[c.date]||[]).push(c); });
   const days = Object.keys(byDay).sort();
 
-  // Load images via fetch (bypasses browser cache, avoids tainted-canvas CORS issue)
+  // Load images — use crossOrigin img (with cache-bust) so canvas stays clean
   const imgMap = {};
-  await Promise.all(monthCourses.filter(c=>c.image).map(async c=>{
-    try {
-      let src = c.image;
-      if(!c.image.startsWith('data:')){
-        const resp = await fetch(c.image, {cache:'reload'});
-        if(!resp.ok) return;
-        const blob = await resp.blob();
-        src = URL.createObjectURL(blob);
-      }
-      await new Promise(res=>{
-        const img = new Image();
-        img.onload=()=>{ imgMap[c.id]=img; res(); };
-        img.onerror=res;
-        img.src=src;
-      });
-    } catch(e){ /* CORS or network error → show placeholder */ }
-  }));
+  const imgTotal = monthCourses.filter(c=>c.image).length;
+  await Promise.all(monthCourses.filter(c=>c.image).map(c=>new Promise(res=>{
+    const img = new Image();
+    if(c.image.startsWith('data:')){
+      img.onload=()=>{ imgMap[c.id]=img; res(); };
+      img.onerror=res;
+      img.src=c.image;
+    } else {
+      img.crossOrigin='anonymous';
+      img.onload=()=>{ imgMap[c.id]=img; res(); };
+      img.onerror=()=>{
+        // CORS fail → try loading without crossOrigin (will taint canvas but at least shows image)
+        const img2=new Image();
+        img2.onload=()=>{ imgMap[c.id]=img2; res(); };
+        img2.onerror=res;
+        img2.src=c.image;
+      };
+      // Cache-bust to avoid browser serving cached non-CORS response
+      img.src=c.image+(c.image.includes('?')?'&':'?')+'_cb='+Date.now();
+    }
+  })));
+  const imgLoaded = Object.keys(imgMap).length;
+  document.getElementById('poster-msg').textContent = `⏳ 生成中… 圖片 ${imgLoaded}/${imgTotal} 載入成功`;
 
   // Layout: portrait 1080px, 3 cards per row
   const W = 1080, PAD = 36, GAP = 14, COLS = 3;
   const CARD_W = Math.floor((W - PAD*2 - GAP*(COLS-1)) / COLS);
   const INNER = 16;
   const IMG_H = 110; // fixed image / placeholder height
-  const FONT_TIME = 17, FONT_TITLE = 22, FONT_DATE = 24;
+  const FONT_TIME = 13, FONT_TITLE = 16, FONT_DATE = 19;
 
   // Estimate card height
   function cardH(dateStr){
@@ -1863,22 +1869,9 @@ async function _buildPoster(monthVal){
       ctx.save();
       _posterRoundRect(ctx,cx+INNER,ty,iw,IMG_H,8); ctx.clip();
       if(imgCourse){
-        try {
-          const img=imgMap[imgCourse.id];
-          const s=Math.max(iw/img.width,IMG_H/img.height);
-          ctx.drawImage(img,cx+INNER+(iw-img.width*s)/2,ty+(IMG_H-img.height*s)/2,img.width*s,img.height*s);
-        } catch(e) {
-          // CORS blocked → show colour placeholder
-          const grad=ctx.createLinearGradient(cx+INNER,ty,cx+INNER+iw,ty+IMG_H);
-          const ac=colorById(courses[0].color);
-          grad.addColorStop(0,ac.hex+'bb'); grad.addColorStop(1,ac.hex+'33');
-          ctx.fillStyle=grad; ctx.fillRect(cx+INNER,ty,iw,IMG_H);
-          ctx.restore(); ctx.save();
-          ctx.font='40px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-          ctx.fillStyle='rgba(255,255,255,0.6)';
-          ctx.fillText('🥐',cx+INNER+iw/2,ty+IMG_H/2);
-          ctx.textBaseline='alphabetic'; ctx.textAlign='left';
-        }
+        const img=imgMap[imgCourse.id];
+        const s=Math.max(iw/img.width,IMG_H/img.height);
+        ctx.drawImage(img,cx+INNER+(iw-img.width*s)/2,ty+(IMG_H-img.height*s)/2,img.width*s,img.height*s);
       } else {
         const grad=ctx.createLinearGradient(cx+INNER,ty,cx+INNER+iw,ty+IMG_H);
         grad.addColorStop(0,accent.hex+'bb'); grad.addColorStop(1,accent.hex+'33');
@@ -1950,11 +1943,15 @@ async function downloadPoster(){
   }
 
   // Desktop / fallback: trigger file download
-  const link = document.createElement('a');
-  link.download = filename;
-  link.href = _posterCanvas.toDataURL('image/png');
-  link.click();
-  toast('海報已下載 ✓','success');
+  try {
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = _posterCanvas.toDataURL('image/png');
+    link.click();
+    toast('海報已下載 ✓','success');
+  } catch(e){
+    toast('下載失敗：圖片 CORS 限制，請改用 Cloudinary 上傳圖片','error');
+  }
 }
 
 // Check session on load
