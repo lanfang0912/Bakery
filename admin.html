@@ -1981,7 +1981,15 @@ function _buildPosterSvg(monthVal){
   const FONT_DATE = 25, FONT_TEACHER = 29, FONT_TITLE = 24, FONT_TIME = 23;
   const _mc = document.createElement('canvas').getContext('2d');
   const T = POSTER_TEMPLATE;
-  const CARD_H = IMG_TOP_Y + IMG_H + T.imageToTeacherGap + FONT_TEACHER + T.teacherToTitleGap + FONT_TITLE + T.titleLineGap + FONT_TITLE + T.cardBottomPad;
+  const titleLinesFor = (c, w) => {
+    _mc.font = `${FONT_TITLE}px sans-serif`;
+    return _posterWrapText(_mc, c.title, w).slice(0,2);
+  };
+  const cardH = c => {
+    const lines = titleLinesFor(c, CARD_W - INNER*2);
+    return IMG_TOP_Y + IMG_H + T.imageToTeacherGap + FONT_TEACHER + T.teacherToTitleGap
+      + lines.length * FONT_TITLE + Math.max(0, lines.length - 1) * T.titleLineGap + T.cardBottomPad;
+  };
 
   const dayRows = [];
   for(let i=0;i<days.length;i+=COLS) dayRows.push(days.slice(i,i+COLS));
@@ -1990,7 +1998,11 @@ function _buildPosterSvg(monthVal){
   let H = HEADER_H + PAD;
   dayRows.forEach(row=>{
     const maxSlots = Math.max(...row.map(d=>byDay[d].length));
-    H += maxSlots * CARD_H + (maxSlots-1) * INNER_CARD_GAP + DAY_GAP;
+    for(let slot=0; slot<maxSlots; slot++){
+      H += Math.max(...row.map(d=>byDay[d][slot] ? cardH(byDay[d][slot]) : 0));
+      if(slot < maxSlots-1) H += INNER_CARD_GAP;
+    }
+    H += DAY_GAP;
   });
   H += PAD + FOOTER_H;
 
@@ -2032,10 +2044,12 @@ function _buildPosterSvg(monthVal){
   dayRows.forEach(row=>{
     const maxSlots = Math.max(...row.map(d=>byDay[d].length));
     for(let slot=0; slot<maxSlots; slot++){
+      const slotH = Math.max(...row.map(d=>byDay[d][slot] ? cardH(byDay[d][slot]) : 0));
       row.forEach((dateStr,ci)=>{
         const cs = byDay[dateStr];
         const c = cs[slot];
         if(!c) return;
+        const ch = cardH(c);
         const cx = PAD + ci*(CARD_W+CARD_GAP);
         const [dy,dm,dd] = dateStr.split('-').map(Number);
         const dow = new Date(dy,dm-1,dd).getDay();
@@ -2044,7 +2058,7 @@ function _buildPosterSvg(monthVal){
         const src = c.imagesPoster?.[0]||c.imagePoster||c.images?.[0]||c.image||'';
         const iw = CARD_W - INNER*2;
 
-        rect(cx,curY,CARD_W,CARD_H,'#fff',0,`stroke="#ead9c8" stroke-width="2"`);
+        rect(cx,curY,CARD_W,ch,'#fff',0,`stroke="#ead9c8" stroke-width="2"`);
         rect(cx,curY,CARD_W,BAR_H,accent.hex,0);
 
         let ty = curY + TOP_LINE_Y;
@@ -2061,13 +2075,12 @@ function _buildPosterSvg(monthVal){
         ty += FONT_TEACHER + T.teacherToTitleGap;
 
         // Title (up to 2 lines)
-        _mc.font = `${FONT_TITLE}px sans-serif`;
-        const tLines = _posterWrapText(_mc, c.title, iw).slice(0,2);
-        text(cx+INNER, ty, tLines[0]||c.title, FONT_TITLE, '#3d2c1e', '400');
-        ty += FONT_TITLE + T.titleLineGap;
-        if(tLines[1]) text(cx+INNER, ty, tLines[1], FONT_TITLE, '#3d2c1e', '400');
+        titleLinesFor(c, iw).forEach((line, i)=>{
+          text(cx+INNER, ty, line, FONT_TITLE, '#3d2c1e', '400');
+          ty += FONT_TITLE + (i < titleLinesFor(c, iw).length - 1 ? T.titleLineGap : 0);
+        });
       });
-      curY += CARD_H + (slot < maxSlots-1 ? INNER_CARD_GAP : 0);
+      curY += slotH + (slot < maxSlots-1 ? INNER_CARD_GAP : 0);
     }
     curY += DAY_GAP;
   });
@@ -2118,7 +2131,15 @@ function _buildPosterPptx(monthVal){
   const hex = v => String(v||'').replace('#','').slice(0,6);
 
   const T = POSTER_TEMPLATE;
-  const CARD_H = IMG_TOP_Y + IMG_H + T.imageToTeacherGap + FONT_TEACHER + T.teacherToTitleGap + FONT_TITLE + T.titleLineGap + FONT_TITLE + T.cardBottomPad;
+  const titleLinesFor = (c, w) => {
+    _mc.font = `${FONT_TITLE}px sans-serif`;
+    return _posterWrapText(_mc, c.title, w).slice(0,2);
+  };
+  const cardH = c => {
+    const lines = titleLinesFor(c, CARD_W - INNER*2);
+    return IMG_TOP_Y + IMG_H + T.imageToTeacherGap + FONT_TEACHER + T.teacherToTitleGap
+      + lines.length * FONT_TITLE + Math.max(0, lines.length - 1) * T.titleLineGap + T.cardBottomPad;
+  };
 
   const dayRows = [];
   for(let i=0;i<days.length;i+=COLS) dayRows.push(days.slice(i,i+COLS));
@@ -2127,7 +2148,11 @@ function _buildPosterPptx(monthVal){
   let H = HEADER_H + PAD;
   dayRows.forEach(row=>{
     const maxSlots = Math.max(...row.map(d=>byDay[d].length));
-    H += maxSlots * CARD_H + (maxSlots-1) * INNER_CARD_GAP + DAY_GAP;
+    for(let slot=0; slot<maxSlots; slot++){
+      H += Math.max(...row.map(d=>byDay[d][slot] ? cardH(byDay[d][slot]) : 0));
+      if(slot < maxSlots-1) H += INNER_CARD_GAP;
+    }
+    H += DAY_GAP;
   });
   H += PAD + FOOTER_H;
 
@@ -2195,10 +2220,12 @@ function _buildPosterPptx(monthVal){
   dayRows.forEach(row=>{
     const maxSlots = Math.max(...row.map(d=>byDay[d].length));
     for(let slot=0; slot<maxSlots; slot++){
+      const slotH = Math.max(...row.map(d=>byDay[d][slot] ? cardH(byDay[d][slot]) : 0));
       row.forEach((dateStr,ci)=>{
         const cs = byDay[dateStr];
         const c = cs[slot];
         if(!c) return;
+        const ch = cardH(c);
         const cx = PAD + ci*(CARD_W+CARD_GAP);
         const [dy,dm,dd] = dateStr.split('-').map(Number);
         const dow = new Date(dy,dm-1,dd).getDay();
@@ -2208,7 +2235,7 @@ function _buildPosterPptx(monthVal){
         const src = c.imagesPoster?.[0] || c.imagePoster || '';
         const iw = CARD_W - INNER*2;
 
-        addRect(cx,curY,CARD_W,CARD_H,'FFFFFF',{line:'EAD9C8'});
+        addRect(cx,curY,CARD_W,ch,'FFFFFF',{line:'EAD9C8'});
         addRect(cx,curY,CARD_W,BAR_H,accentHex);
 
         let ty = curY + TOP_LINE_Y - FONT_DATE;
@@ -2230,13 +2257,13 @@ function _buildPosterPptx(monthVal){
         ty += FONT_TEACHER + T.teacherToTitleGap;
 
         // Title (up to 2 lines)
-        _mc.font = `${FONT_TITLE}px sans-serif`;
-        const tLines = _posterWrapText(_mc,c.title,iw).slice(0,2);
-        addText(tLines[0]||c.title,cx+INNER,ty,iw,FONT_TITLE+4,FONT_TITLE,'3d2c1e');
-        ty += FONT_TITLE + T.titleLineGap;
-        addText(tLines[1]||'',cx+INNER,ty,iw,FONT_TITLE+4,FONT_TITLE,'3d2c1e');
+        const tLines = titleLinesFor(c, iw);
+        tLines.forEach((line, i)=>{
+          addText(line,cx+INNER,ty,iw,FONT_TITLE+4,FONT_TITLE,'3d2c1e');
+          ty += FONT_TITLE + (i < tLines.length - 1 ? T.titleLineGap : 0);
+        });
       });
-      curY += CARD_H + (slot < maxSlots-1 ? INNER_CARD_GAP : 0);
+      curY += slotH + (slot < maxSlots-1 ? INNER_CARD_GAP : 0);
     }
     curY += DAY_GAP;
   });
@@ -2325,9 +2352,16 @@ async function _buildPoster(monthVal){
   const IMG_H = 200;
   const FONT_DATE = 25, FONT_TEACHER = 29, FONT_TITLE = 24, FONT_TIME = 23;
   const _mc = document.createElement('canvas').getContext('2d');
-  // Fixed card height per course
   const T = POSTER_TEMPLATE;
-  const CARD_H = IMG_TOP_Y + IMG_H + T.imageToTeacherGap + FONT_TEACHER + T.teacherToTitleGap + FONT_TITLE + T.titleLineGap + FONT_TITLE + T.cardBottomPad;
+  const titleLinesFor = (c, w) => {
+    _mc.font = `${FONT_TITLE}px ${FONT}`;
+    return _posterWrapText(_mc, c.title, w).slice(0,2);
+  };
+  const cardH = c => {
+    const lines = titleLinesFor(c, CARD_W - INNER*2);
+    return IMG_TOP_Y + IMG_H + T.imageToTeacherGap + FONT_TEACHER + T.teacherToTitleGap
+      + lines.length * FONT_TITLE + Math.max(0, lines.length - 1) * T.titleLineGap + T.cardBottomPad;
+  };
 
   const dayRows = [];
   for(let i=0;i<days.length;i+=COLS) dayRows.push(days.slice(i,i+COLS));
@@ -2336,7 +2370,11 @@ async function _buildPoster(monthVal){
   let H = HEADER_H + PAD;
   dayRows.forEach(row=>{
     const maxSlots = Math.max(...row.map(d=>byDay[d].length));
-    H += maxSlots * CARD_H + (maxSlots-1) * INNER_CARD_GAP + DAY_GAP;
+    for(let slot=0; slot<maxSlots; slot++){
+      H += Math.max(...row.map(d=>byDay[d][slot] ? cardH(byDay[d][slot]) : 0));
+      if(slot < maxSlots-1) H += INNER_CARD_GAP;
+    }
+    H += DAY_GAP;
   });
   H += PAD + FOOTER_H;
 
@@ -2388,10 +2426,12 @@ async function _buildPoster(monthVal){
   dayRows.forEach(row=>{
     const maxSlots = Math.max(...row.map(d=>byDay[d].length));
     for(let slot=0; slot<maxSlots; slot++){
+      const slotH = Math.max(...row.map(d=>byDay[d][slot] ? cardH(byDay[d][slot]) : 0));
       row.forEach((dateStr,ci)=>{
         const cs = byDay[dateStr];
         const c = cs[slot];
         if(!c) return;
+        const ch = cardH(c);
         const cx = PAD + ci*(CARD_W+CARD_GAP);
         const [dy,dm,dd] = dateStr.split('-').map(Number);
         const dow = new Date(dy,dm-1,dd).getDay();
@@ -2403,10 +2443,10 @@ async function _buildPoster(monthVal){
         // Card background
         ctx.shadowBlur=0; ctx.shadowOffsetY=0;
         ctx.fillStyle='#fff';
-        ctx.fillRect(cx,curY,CARD_W,CARD_H);
+        ctx.fillRect(cx,curY,CARD_W,ch);
         ctx.strokeStyle='#ead9c8';
         ctx.lineWidth=2;
-        ctx.strokeRect(cx,curY,CARD_W,CARD_H);
+        ctx.strokeRect(cx,curY,CARD_W,ch);
 
         // Top color bar
         ctx.fillStyle=accent.hex;
@@ -2452,13 +2492,14 @@ async function _buildPoster(monthVal){
         ty += FONT_TEACHER + T.teacherToTitleGap;
 
         // Title (up to 2 lines)
-        _mc.font = `${FONT_TITLE}px ${FONT}`;
-        const tLines = _posterWrapText(_mc, c.title, iw).slice(0,2);
+        const tLines = titleLinesFor(c, iw);
         ctx.font=`${FONT_TITLE}px ${FONT}`; ctx.fillStyle='#3d2c1e';
-        ctx.fillText(tLines[0]||c.title, cx+INNER, ty); ty += FONT_TITLE + T.titleLineGap;
-        if(tLines[1]) ctx.fillText(tLines[1], cx+INNER, ty);
+        tLines.forEach((line, i)=>{
+          ctx.fillText(line, cx+INNER, ty);
+          ty += FONT_TITLE + (i < tLines.length - 1 ? T.titleLineGap : 0);
+        });
       });
-      curY += CARD_H + (slot < maxSlots-1 ? INNER_CARD_GAP : 0);
+      curY += slotH + (slot < maxSlots-1 ? INNER_CARD_GAP : 0);
     }
     curY += DAY_GAP;
   });
