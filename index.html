@@ -87,6 +87,15 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
 .cfg input:focus{border-color:var(--primary)}.cfg input.err{border-color:var(--red)}
 .btn-cart-submit{width:100%;padding:13px;background:var(--primary);color:#fff;border:none;border-radius:22px;font-size:.95rem;font-weight:800;cursor:pointer;margin-top:4px;transition:background .2s}
 .btn-cart-submit:hover{background:var(--primary-dark)}.btn-cart-submit:disabled{opacity:.55;cursor:not-allowed}
+.cfg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cfg textarea{width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:9px;font-size:.88rem;font-family:inherit;color:var(--text);background:var(--bg);outline:none;resize:vertical;min-height:64px;transition:border-color .2s}
+.cfg textarea:focus{border-color:var(--primary)}
+.cfg-sec{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.cradio-group{display:flex;flex-direction:column;gap:6px}
+.cradio-opt{display:flex;align-items:center;gap:10px;padding:9px 12px;border:2px solid var(--border);border-radius:9px;cursor:pointer;transition:all .2s;font-size:.86rem}
+.cradio-opt:hover{border-color:var(--primary);background:var(--primary-light)}
+.cradio-opt input[type=radio]{width:16px;height:16px;accent-color:var(--primary);flex-shrink:0}
+.cradio-opt.selected{border-color:var(--primary);background:var(--primary-light);font-weight:600}
 .ecard.in-cart{outline:2px solid var(--green);outline-offset:2px;position:relative}
 
 /* Event chips — show teacher + title */
@@ -261,7 +270,10 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
     <div class="tab active" onclick="switchTab('calendar',this)">📅 月曆</div>
     <div class="tab" onclick="switchTab('schedule',this)">📋 課程清單</div>
   </div>
-  <button class="cart-toggle" id="cart-mode-btn" onclick="toggleCartMode()" style="margin-right:8px">🛒 選課報名</button>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;margin-right:8px;gap:2px">
+    <button class="cart-toggle" id="cart-mode-btn" onclick="toggleCartMode()">🛒 選課報名</button>
+    <span style="font-size:.68rem;color:var(--muted)">一次報多堂課程用</span>
+  </div>
 </div>
 
 <main>
@@ -332,14 +344,44 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
       <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
       <!-- Form -->
       <form onsubmit="submitCart(event)">
-        <div class="cfg">
-          <label>姓名 *</label>
-          <input id="cart-name" type="text" placeholder="請輸入姓名" autocomplete="name">
+        <div class="cfg-sec">基本資料</div>
+        <div class="cfg-row">
+          <div class="cfg"><label>姓名 *</label><input id="cart-name" type="text" placeholder="真實姓名" autocomplete="name"></div>
+          <div class="cfg"><label>連絡電話 *</label><input id="cart-phone" type="tel" placeholder="0912-345-678" autocomplete="tel" inputmode="tel"></div>
+        </div>
+        <div class="cfg"><label>電子信箱 *</label><input id="cart-email" type="email" placeholder="example@gmail.com" autocomplete="email"></div>
+        <div class="cfg-row">
+          <div class="cfg"><label>Facebook 名稱 <span style="font-weight:400;font-size:.9em">（FB/LINE 擇一）</span></label><input id="cart-fb" type="text" placeholder="FB 顯示名稱"></div>
+          <div class="cfg"><label>LINE 名稱</label><input id="cart-line" type="text" placeholder="LINE 顯示名稱"></div>
         </div>
         <div class="cfg">
-          <label>電話 *</label>
-          <input id="cart-phone" type="tel" placeholder="例：0912-345-678" autocomplete="tel" inputmode="tel">
+          <label>是否已加入群組 *</label>
+          <div class="cradio-group" id="crg-group">
+            <label class="cradio-opt" onclick="cartSelectRadio('crg-group',this)"><input type="radio" name="cart-group" value="Jen手作烘焙第一群"> Jen 手作烘焙第一群</label>
+            <label class="cradio-opt" onclick="cartSelectRadio('crg-group',this)"><input type="radio" name="cart-group" value="Jen手作烘焙第二群"> Jen 手作烘焙第二群</label>
+            <label class="cradio-opt" onclick="cartSelectRadio('crg-group',this)"><input type="radio" name="cart-group" value="尚未加入"> 否，尚未加入群組</label>
+          </div>
         </div>
+
+        <div class="cfg-sec">報名資訊</div>
+        <div class="cfg"><label>報名人數 *</label><input id="cart-count" type="number" min="1" max="10" value="1" style="width:120px"></div>
+
+        <div class="cfg-sec">匯款資訊</div>
+        <div class="cfg-row">
+          <div class="cfg"><label>匯款日期 *</label><input id="cart-remit-date" type="date"></div>
+          <div class="cfg"><label>帳號末五碼 *</label><input id="cart-remit-last5" type="text" maxlength="5" placeholder="34715" inputmode="numeric"></div>
+        </div>
+
+        <div class="cfg-sec">其他</div>
+        <div class="cfg">
+          <label>是否需要接送 *</label>
+          <div class="cradio-group" id="crg-shuttle">
+            <label class="cradio-opt" onclick="cartSelectRadio('crg-shuttle',this)"><input type="radio" name="cart-shuttle" value="否，自行前往"> 否，自行前往</label>
+            <label class="cradio-opt" onclick="cartSelectRadio('crg-shuttle',this)"><input type="radio" name="cart-shuttle" value="是，需要接送"> 是，需要接送（請備註到站時間）</label>
+          </div>
+        </div>
+        <div class="cfg"><label>備註（選填）</label><textarea id="cart-note" placeholder="接送到站時間、飲食限制或其他問題…"></textarea></div>
+
         <div style="color:var(--red);font-size:.82rem;margin-bottom:10px;display:none" id="cart-err"></div>
         <button class="btn-cart-submit" type="submit" id="cart-submit-btn">確認報名</button>
       </form>
@@ -600,6 +642,31 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeDetail(); cl
 // ── Cart / 選課報名 ───────────────────────────────────────────
 let cart = {};
 let cartMode = false;
+let cartSuccessItems = [];
+
+function downloadIcs(items){
+  const pad = n=>String(n).padStart(2,'0');
+  const toIcsDt = (dateStr, timeStr)=>{
+    const [y,m,d]=dateStr.split('-'); const [hh,mm]=(timeStr||'00:00').split(':');
+    return `${y}${pad(m)}${pad(d)}T${pad(hh)}${pad(mm)}00`;
+  };
+  const uid = ()=>Math.random().toString(36).slice(2)+'@jen-bakery';
+  const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Jen手作烘焙//TC','CALSCALE:GREGORIAN'];
+  items.forEach(e=>{
+    lines.push('BEGIN:VEVENT',
+      `UID:${uid()}`,
+      `DTSTART:${toIcsDt(e.date,e.start)}`,
+      `DTEND:${toIcsDt(e.date,e.end)}`,
+      `SUMMARY:${e.title}`,
+      `DESCRIPTION:${e.teacher}`,
+      'LOCATION:宜蘭縣羅東鎮羅莊二街198號',
+      'END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  const blob=new Blob([lines.join('\r\n')],{type:'text/calendar;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='Jen烘焙課程.ics'; a.click();
+}
 
 function toggleCartMode(){
   cartMode = !cartMode;
@@ -665,7 +732,16 @@ function openCartModal(){
   document.getElementById('cart-total-row').innerHTML = total>0
     ? `<span>合計</span><span style="color:var(--primary)">NT$${total.toLocaleString('zh-TW')} 元</span>`
     : '';
-  ['cart-name','cart-phone'].forEach(id=>{ document.getElementById(id).value=''; document.getElementById(id).classList.remove('err'); });
+  ['cart-name','cart-phone','cart-email','cart-fb','cart-line','cart-note'].forEach(id=>{
+    const el=document.getElementById(id); if(el){el.value='';el.classList.remove('err');}
+  });
+  document.getElementById('cart-count').value=1;
+  document.getElementById('cart-remit-date').value='';
+  document.getElementById('cart-remit-last5').value='';
+  ['crg-group','crg-shuttle'].forEach(gid=>{
+    document.querySelectorAll(`#${gid} .cradio-opt`).forEach(o=>o.classList.remove('selected'));
+    const rb=document.querySelector(`#${gid} input[type=radio]:checked`); if(rb) rb.checked=false;
+  });
   document.getElementById('cart-err').style.display='none';
   document.getElementById('cart-submit-btn').disabled=false;
   document.getElementById('cart-submit-btn').textContent='確認報名';
@@ -674,24 +750,47 @@ function openCartModal(){
   setTimeout(()=>document.getElementById('cart-name').focus(),80);
 }
 
+function cartSelectRadio(groupId, el){
+  document.querySelectorAll(`#${groupId} .cradio-opt`).forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
 function closeCartModal(){ document.getElementById('cart-overlay').classList.remove('open'); }
 
 async function submitCart(e){
   e.preventDefault();
-  const name  = document.getElementById('cart-name').value.trim();
-  const phone = document.getElementById('cart-phone').value.trim();
+  const name       = document.getElementById('cart-name').value.trim();
+  const phone      = document.getElementById('cart-phone').value.trim();
+  const email      = document.getElementById('cart-email').value.trim();
+  const fb         = document.getElementById('cart-fb').value.trim();
+  const line       = document.getElementById('cart-line').value.trim();
+  const group      = document.querySelector('input[name="cart-group"]:checked')?.value||'';
+  const count      = Number(document.getElementById('cart-count').value)||1;
+  const remitDate  = document.getElementById('cart-remit-date').value;
+  const remitLast5 = document.getElementById('cart-remit-last5').value.trim();
+  const shuttle    = document.querySelector('input[name="cart-shuttle"]:checked')?.value||'';
+  const note       = document.getElementById('cart-note').value.trim();
   const errEl = document.getElementById('cart-err');
-  document.getElementById('cart-name').classList.toggle('err',!name);
-  document.getElementById('cart-phone').classList.toggle('err',!phone);
-  if(!name||!phone){ errEl.textContent='請填寫姓名和電話'; errEl.style.display='block'; return; }
+
+  let ok = true;
+  document.getElementById('cart-name').classList.toggle('err',!name); if(!name) ok=false;
+  document.getElementById('cart-phone').classList.toggle('err',!phone); if(!phone) ok=false;
+  document.getElementById('cart-email').classList.toggle('err',!email); if(!email) ok=false;
+  if(!fb&&!line) ok=false;
+  if(!ok){ errEl.textContent='請確認必填欄位（姓名、電話、Email、FB/LINE 擇一）'; errEl.style.display='block'; return; }
+
   const btn=document.getElementById('cart-submit-btn');
   btn.disabled=true; btn.textContent='報名中…'; errEl.style.display='none';
   const items=Object.values(cart); const ts=Date.now();
   try{
     await Promise.all(items.map((ev,i)=>
-      db.ref('bakery/registrations/'+ev.id).push({name,phone,paid:false,createdAt:ts+i})
+      db.ref('bakery/registrations/'+ev.id).push({
+        name,phone,email,fb,line,group,count,remitDate,remitLast5,shuttle,note,
+        paid:false,createdAt:ts+i
+      })
     ));
     const total=items.reduce((s,ev)=>s+(Number(ev.fee)||0),0);
+    cartSuccessItems = items;
     // Show success
     document.getElementById('cart-modal-body').innerHTML = `
       <div style="text-align:center;padding:32px 16px">
@@ -700,7 +799,10 @@ async function submitCart(e){
         <div style="font-size:.86rem;color:var(--muted);margin-bottom:16px">已完成 ${items.length} 堂課程報名</div>
         ${total>0?`<div style="font-size:1rem;font-weight:800;color:var(--primary);background:var(--primary-light);border-radius:12px;padding:12px 20px;margin-bottom:16px">應繳金額 NT$${total.toLocaleString('zh-TW')} 元</div>`:''}
         <div style="font-size:.82rem;color:var(--muted);line-height:1.9;margin-bottom:20px">匯款後請來電或 LINE 告知<br>📞 0966-864-079</div>
-        <button onclick="closeCartModal()" style="background:var(--primary);color:#fff;border:none;padding:11px 32px;border-radius:22px;font-size:.92rem;font-weight:700;cursor:pointer">完成</button>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <button onclick="downloadIcs(cartSuccessItems)" style="background:var(--primary-light);color:var(--primary-dark);border:2px solid var(--primary);padding:10px 20px;border-radius:22px;font-size:.86rem;font-weight:700;cursor:pointer">📅 加入行事曆</button>
+          <button onclick="closeCartModal()" style="background:var(--primary);color:#fff;border:none;padding:10px 24px;border-radius:22px;font-size:.86rem;font-weight:700;cursor:pointer">完成</button>
+        </div>
       </div>`;
     cart={}; cartMode=false;
     document.getElementById('cart-mode-btn').classList.remove('active');

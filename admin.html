@@ -482,6 +482,14 @@ tr:hover td{background:var(--primary-light)}
         <div class="fg"><label>人數</label><input class="ma-input" id="br-count" type="number" value="1" min="1"></div>
         <div class="fg"><label>備註</label><input class="ma-input" id="br-note" type="text" placeholder="（選填）"></div>
       </div>
+      <div class="fg">
+        <label>是否需要接送</label>
+        <select class="ma-input" id="br-shuttle">
+          <option value="">未填</option>
+          <option value="否，自行前往">否，自行前往</option>
+          <option value="是，需要接送">是，需要接送</option>
+        </select>
+      </div>
       <div class="fg" style="display:flex;align-items:center;gap:8px">
         <input type="checkbox" id="br-paid" style="width:16px;height:16px;accent-color:var(--green)">
         <label for="br-paid" style="font-size:.86rem;font-weight:600;text-transform:none;letter-spacing:0;color:var(--text);margin:0;cursor:pointer">已繳費</label>
@@ -1026,6 +1034,7 @@ function openBatchReg(){
   batchSelected = {};
   ['br-name','br-phone','br-note'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('br-count').value = 1;
+  document.getElementById('br-shuttle').value = '';
   document.getElementById('br-paid').checked = false;
   document.getElementById('br-search').value = '';
   renderBatchCourseList();
@@ -1082,11 +1091,12 @@ function calcBatchTotal(){
 }
 
 async function submitBatchReg(){
-  const name  = document.getElementById('br-name').value.trim();
-  const phone = document.getElementById('br-phone').value.trim();
-  const count = Number(document.getElementById('br-count').value)||1;
-  const note  = document.getElementById('br-note').value.trim();
-  const paid  = document.getElementById('br-paid').checked;
+  const name    = document.getElementById('br-name').value.trim();
+  const phone   = document.getElementById('br-phone').value.trim();
+  const count   = Number(document.getElementById('br-count').value)||1;
+  const note    = document.getElementById('br-note').value.trim();
+  const shuttle = document.getElementById('br-shuttle').value;
+  const paid    = document.getElementById('br-paid').checked;
   const items = Object.values(batchSelected);
 
   if(!name||!phone){ toast('請填寫姓名和電話','error'); return; }
@@ -1095,7 +1105,7 @@ async function submitBatchReg(){
   const ts = Date.now();
   try{
     await Promise.all(items.map((ev,i)=>
-      db.ref('bakery/registrations/'+ev.id).push({name,phone,count,note,paid,createdAt:ts+i})
+      db.ref('bakery/registrations/'+ev.id).push({name,phone,count,note,shuttle,paid,createdAt:ts+i})
     ));
     toast(`✅ 已為「${name}」完成 ${items.length} 堂課程報名`,'success');
     closeBatchReg();
