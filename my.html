@@ -95,7 +95,6 @@ main{max-width:520px;margin:32px auto;padding:0 16px 60px}
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="data.js"></script>
 <script>
 firebase.initializeApp(FB_CONFIG);
@@ -128,9 +127,6 @@ async function doQuery(){
   btn.textContent = '查詢中…';
 
   try {
-    // Anonymous auth so Firebase rules allow reading
-    await firebase.auth().signInAnonymously();
-
     // Fetch events & registrations
     const [evSnap, regSnap] = await Promise.all([
       db.ref('bakery/events').once('value'),
