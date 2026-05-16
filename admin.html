@@ -3038,6 +3038,25 @@ async function _buildPoster(monthVal, skipIds = null, forDownload = false){
             }
           } catch(e2){}
         }
+        if(!proxyOk && cloudCfg.cloudName && cloudCfg.preset && /^https?:\/\//i.test(rawUrl) && !_isOwnCloudinaryUrl(rawUrl) && !String(c.id).startsWith('local')){
+          try {
+            const msg = document.getElementById('poster-msg');
+            if(msg && !forDownload) msg.textContent = `☁️ 圖片下載失敗，正在上傳到 Cloudinary：${c.title || c.teacher || c.date}`;
+            const uploadedUrl = await _uploadRemoteImageToCloudinary(rawUrl);
+            const ur = await fetch(uploadedUrl, {cache:'reload'});
+            if(!ur.ok) throw new Error('uploaded image not readable');
+            imgSrc = URL.createObjectURL(await ur.blob());
+            fromCorsFetch = true;
+            proxyOk = true;
+
+            const nextImages = (c.images && c.images.length) ? c.images.slice() : (c.image ? [c.image] : []);
+            if(nextImages.length) nextImages[0] = uploadedUrl;
+            else nextImages.push(uploadedUrl);
+            const update = {image: uploadedUrl, images: nextImages};
+            db.ref('bakery/events/'+c.id).update(update).catch(()=>{});
+            Object.assign(c, update);
+          } catch(e3){}
+        }
         if(!proxyOk){
           if(forDownload){
             // For download: try crossOrigin='anonymous' — works if server sends CORS headers for img requests
