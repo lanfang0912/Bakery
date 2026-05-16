@@ -1742,29 +1742,25 @@ async function _buildPoster(monthVal){
   monthCourses.forEach(c=>{ (byDay[c.date]=byDay[c.date]||[]).push(c); });
   const days = Object.keys(byDay).sort();
 
-  // Load images — use crossOrigin img (with cache-bust) so canvas stays clean
+  // Load images via fetch → Blob URL (bypasses browser CORS cache, canvas stays exportable)
   const imgMap = {};
   const imgTotal = monthCourses.filter(c=>c.image).length;
-  await Promise.all(monthCourses.filter(c=>c.image).map(c=>new Promise(res=>{
-    const img = new Image();
-    if(c.image.startsWith('data:')){
-      img.onload=()=>{ imgMap[c.id]=img; res(); };
-      img.onerror=res;
-      img.src=c.image;
-    } else {
-      img.crossOrigin='anonymous';
-      img.onload=()=>{ imgMap[c.id]=img; res(); };
-      img.onerror=()=>{
-        // CORS fail → try loading without crossOrigin (will taint canvas but at least shows image)
-        const img2=new Image();
-        img2.onload=()=>{ imgMap[c.id]=img2; res(); };
-        img2.onerror=res;
-        img2.src=c.image;
-      };
-      // Cache-bust to avoid browser serving cached non-CORS response
-      img.src=c.image+(c.image.includes('?')?'&':'?')+'_cb='+Date.now();
-    }
-  })));
+  await Promise.all(monthCourses.filter(c=>c.image).map(async c=>{
+    try {
+      let src = c.image;
+      if(!c.image.startsWith('data:')){
+        const resp = await fetch(c.image, {cache:'reload'});
+        if(!resp.ok) return;
+        src = URL.createObjectURL(await resp.blob());
+      }
+      await new Promise(res=>{
+        const img = new Image();
+        img.onload=()=>{ imgMap[c.id]=img; res(); };
+        img.onerror=res;
+        img.src=src;
+      });
+    } catch(e){ /* CORS / network fail → show colour placeholder, canvas stays clean */ }
+  }));
   const imgLoaded = Object.keys(imgMap).length;
   document.getElementById('poster-msg').textContent = `⏳ 生成中… 圖片 ${imgLoaded}/${imgTotal} 載入成功`;
 
