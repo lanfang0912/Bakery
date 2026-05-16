@@ -316,9 +316,10 @@ tr:hover td{background:var(--primary-light)}
     </select>
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-<button class="btn-poster" onclick="openPoster()">🎨 月份海報</button>
+    <button class="btn-poster" onclick="openPoster()">🎨 月份海報</button>
+    <button class="btn-cloud" onclick="openCalendarPreviewSettings()">🖼 月曆縮圖</button>
     <button class="btn-paste" onclick="openPaste()">📋 貼上新增</button>
-    <button class="btn-cloud" onclick="openCloudSettings()">☁️ 圖片設定</button>
+    <button class="btn-cloud" id="cloud-settings-btn" onclick="openCloudSettings()">☁️ 圖片設定</button>
     <button class="btn-add" onclick="openBatchReg()" style="background:#2e7d52">👥 批次報名</button>
     <button class="btn-add" onclick="openAdd()">＋ 手動新增</button>
   </div>
@@ -608,6 +609,33 @@ tr:hover td{background:var(--primary-light)}
   </div>
 </div>
 
+<!-- Calendar preview settings modal -->
+<div id="calendar-preview-overlay" class="overlay" onclick="if(event.target===this)closeCalendarPreviewSettings()">
+  <div class="modal" style="width:420px">
+    <div class="modal-hd">
+      <h3>🖼 月曆縮圖設定</h3>
+      <button class="modal-close" onclick="closeCalendarPreviewSettings()">×</button>
+    </div>
+    <div class="fg-row">
+      <div class="fg">
+        <label>圖片寬度</label>
+        <input type="number" id="cal-img-w" min="40" max="180" step="1">
+      </div>
+      <div class="fg">
+        <label>圖片高度</label>
+        <input type="number" id="cal-img-h" min="30" max="160" step="1">
+      </div>
+    </div>
+    <div style="font-size:.78rem;color:var(--muted);line-height:1.6;margin-top:-6px">
+      只影響電腦版月曆裡的課程縮圖，手機版仍維持精簡顯示。
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-cancel" onclick="resetCalendarPreviewSettings()">恢復預設</button>
+      <button type="button" class="btn-save" onclick="saveCalendarPreviewSettings()">儲存設定</button>
+    </div>
+  </div>
+</div>
+
 <!-- Cloudinary settings modal -->
 <div id="cloud-overlay" class="overlay" onclick="if(event.target===this)closeCloud()">
   <div class="modal" style="width:480px">
@@ -828,8 +856,10 @@ let selColor = 'orange';
 let pendingDeleteId = null;
 let cloudCfg = {};
 let pwHash = null;
+let calendarPreviewCfg = {};
 const SESSION_KEY = 'bakery_authed';
 const DEFAULT_PW  = 'bakery2026';
+const CALENDAR_PREVIEW_DEFAULT = {imgW:70, imgH:56};
 
 // ── Firebase init ─────────────────────────────────────────────
 firebase.initializeApp(FB_CONFIG);
@@ -848,6 +878,11 @@ function startFbListener() {
   db.ref('bakery/settings/posterTemplate').on('value', snap => {
     Object.assign(POSTER_TEMPLATE, POSTER_TEMPLATE_DEFAULT, snap.val() || {});
     syncPosterTemplateControls();
+  });
+
+  db.ref('bakery/settings/calendarPreview').on('value', snap => {
+    calendarPreviewCfg = {...CALENDAR_PREVIEW_DEFAULT, ...(snap.val() || {})};
+    syncCalendarPreviewControls();
   });
 
   db.ref('bakery/settings/pwHash').once('value').then(snap => {
@@ -1366,11 +1401,45 @@ function saveCloudSettings() {
     .catch(()=>toast('儲存失敗，請確認已登入','error'));
 }
 function updateCloudBadge() {
-  const btn = document.querySelector('.btn-cloud');
+  const btn = document.getElementById('cloud-settings-btn');
   if (!btn) return;
   const cfg = getCloudCfg();
   const dot = cfg.cloudName ? '<span class="cloud-ok"></span>' : '<span class="cloud-no"></span>';
   btn.innerHTML = `☁️ 圖片設定${dot}`;
+}
+
+// ── Calendar preview settings ────────────────────────────────
+function syncCalendarPreviewControls(){
+  const w = document.getElementById('cal-img-w');
+  const h = document.getElementById('cal-img-h');
+  if(w) w.value = calendarPreviewCfg.imgW || CALENDAR_PREVIEW_DEFAULT.imgW;
+  if(h) h.value = calendarPreviewCfg.imgH || CALENDAR_PREVIEW_DEFAULT.imgH;
+}
+function openCalendarPreviewSettings(){
+  syncCalendarPreviewControls();
+  document.getElementById('calendar-preview-overlay').classList.add('open');
+}
+function closeCalendarPreviewSettings(){
+  document.getElementById('calendar-preview-overlay').classList.remove('open');
+}
+function _calendarPreviewFromInputs(){
+  return {
+    imgW: _num(document.getElementById('cal-img-w')?.value, CALENDAR_PREVIEW_DEFAULT.imgW, 40, 180),
+    imgH: _num(document.getElementById('cal-img-h')?.value, CALENDAR_PREVIEW_DEFAULT.imgH, 30, 160)
+  };
+}
+async function saveCalendarPreviewSettings(){
+  calendarPreviewCfg = _calendarPreviewFromInputs();
+  syncCalendarPreviewControls();
+  await db.ref('bakery/settings/calendarPreview').set(calendarPreviewCfg);
+  closeCalendarPreviewSettings();
+  toast('月曆縮圖設定已儲存 ✓','success');
+}
+async function resetCalendarPreviewSettings(){
+  calendarPreviewCfg = {...CALENDAR_PREVIEW_DEFAULT};
+  syncCalendarPreviewControls();
+  await db.ref('bakery/settings/calendarPreview').set(calendarPreviewCfg);
+  toast('已恢復月曆縮圖預設','success');
 }
 
 // ── Multi-image slots ─────────────────────────────────────────
