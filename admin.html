@@ -1891,9 +1891,10 @@ function _buildPosterSvg(monthVal){
   const CARD_W = Math.floor((W - PAD*2 - GAP*(COLS-1)) / COLS);
   const INNER = 16;
   const IMG_H = CARD_W - INNER * 2;
-  const FONT_TIME = 16, FONT_TITLE = 19, FONT_DATE = 22;
+  const FONT_TIME = 16, FONT_TITLE = 19, FONT_TEACHER = 16, FONT_DATE = 22;
   const TEXT_W = CARD_W - INNER * 2;
   const GAP_IMG = Math.ceil(FONT_TIME * 0.8) + 14;
+  const TIME_TITLE_GAP = 11;
   const _mc = document.createElement('canvas').getContext('2d');
 
   function cardH(dateStr){
@@ -1902,9 +1903,10 @@ function _buildPosterSvg(monthVal){
     h += IMG_H + GAP_IMG;
     _mc.font = `bold ${FONT_TITLE}px ${FONT}`;
     cs.forEach(c=>{
-      h += FONT_TIME + 4;
-      const lines = _posterWrapText(_mc, `${c.teacher}｜${c.title}`, TEXT_W).length;
-      h += Math.min(lines, 2) * (FONT_TITLE + 5);
+      h += FONT_TIME + TIME_TITLE_GAP;
+      const titleLines = _posterWrapText(_mc, c.title, TEXT_W).length;
+      h += Math.min(titleLines, 2) * (FONT_TITLE + 5);
+      h += FONT_TEACHER + 6;
       h += 12;
     });
     h += INNER;
@@ -1981,11 +1983,12 @@ function _buildPosterSvg(monthVal){
 
       courses.forEach(c=>{
         const ci=colorById(c.color);
-        text(cx+INNER,ty,`${c.start}－${c.end}`,FONT_TIME,'#a07850','400'); ty+=FONT_TIME+4;
+        text(cx+INNER,ty,`${c.start}－${c.end}`,FONT_TIME,'#a07850','400'); ty+=FONT_TIME+TIME_TITLE_GAP;
         _mc.font = `bold ${FONT_TITLE}px ${FONT}`;
-        _posterWrapText(_mc,`${c.teacher}｜${c.title}`,iw).slice(0,2).forEach(l=>{
+        _posterWrapText(_mc,c.title,iw).slice(0,2).forEach(l=>{
           text(cx+INNER,ty,l,FONT_TITLE,ci.hex,'700'); ty+=FONT_TITLE+5;
         });
+        text(cx+INNER,ty,c.teacher,FONT_TEACHER,'#6f5a46','400'); ty+=FONT_TEACHER+6;
         ty+=12;
       });
     });
@@ -2017,9 +2020,10 @@ function _buildPosterPptx(monthVal){
   const CARD_W = Math.floor((W - PAD*2 - GAP*(COLS-1)) / COLS);
   const INNER = 16;
   const IMG_H = CARD_W - INNER * 2;
-  const FONT_TIME = 16, FONT_TITLE = 19, FONT_DATE = 22;
+  const FONT_TIME = 16, FONT_TITLE = 19, FONT_TEACHER = 16, FONT_DATE = 22;
   const TEXT_W = CARD_W - INNER * 2;
   const GAP_IMG = Math.ceil(FONT_TIME * 0.8) + 14;
+  const TIME_TITLE_GAP = 11;
   const _mc = document.createElement('canvas').getContext('2d');
   const U = 100;
   const u = v => v / U;
@@ -2031,9 +2035,10 @@ function _buildPosterPptx(monthVal){
     h += IMG_H + GAP_IMG;
     _mc.font = `bold ${FONT_TITLE}px ${FONT}`;
     cs.forEach(c=>{
-      h += FONT_TIME + 4;
-      const lines = _posterWrapText(_mc, `${c.teacher}｜${c.title}`, TEXT_W).length;
-      h += Math.min(lines, 2) * (FONT_TITLE + 5);
+      h += FONT_TIME + TIME_TITLE_GAP;
+      const titleLines = _posterWrapText(_mc, c.title, TEXT_W).length;
+      h += Math.min(titleLines, 2) * (FONT_TITLE + 5);
+      h += FONT_TEACHER + 6;
       h += 12;
     });
     h += INNER;
@@ -2131,11 +2136,12 @@ function _buildPosterPptx(monthVal){
 
       courses.forEach(c=>{
         const ci=colorById(c.color);
-        addText(`${c.start}－${c.end}`,cx+INNER,ty,iw,20,FONT_TIME,'a07850'); ty+=FONT_TIME+6;
+        addText(`${c.start}－${c.end}`,cx+INNER,ty,iw,20,FONT_TIME,'a07850'); ty+=FONT_TIME+TIME_TITLE_GAP;
         _mc.font = `bold ${FONT_TITLE}px ${FONT}`;
-        _posterWrapText(_mc,`${c.teacher}｜${c.title}`,iw).slice(0,2).forEach(l=>{
+        _posterWrapText(_mc,c.title,iw).slice(0,2).forEach(l=>{
           addText(l,cx+INNER,ty,iw,24,FONT_TITLE,hex(ci.hex),true); ty+=FONT_TITLE+8;
         });
+        addText(c.teacher,cx+INNER,ty,iw,20,FONT_TEACHER,'6f5a46'); ty+=FONT_TEACHER+6;
         ty+=8;
       });
     });
@@ -2215,7 +2221,7 @@ async function _buildPoster(monthVal){
   const CARD_W = Math.floor((W - PAD*2 - GAP*(COLS-1)) / COLS);
   const INNER = 16;
   const IMG_H = CARD_W - INNER * 2; // square image frame reduces crop/letterbox tradeoffs
-  const FONT_TIME = 16, FONT_TITLE = 19, FONT_DATE = 22;
+  const FONT_TIME = 16, FONT_TITLE = 19, FONT_TEACHER = 16, FONT_DATE = 22;
   const TEXT_W = CARD_W - INNER * 2;
 
   // Use a temp context to measure actual text widths
@@ -2225,6 +2231,7 @@ async function _buildPoster(monthVal){
   // textBaseline='alphabetic' → text top ≈ baseline - fontSize*0.78
   // So we need gap > fontSize*0.78 to avoid overlapping the image
   const GAP_IMG = Math.ceil(FONT_TIME * 0.8) + 14; // ~27px
+  const TIME_TITLE_GAP = 11;
 
   function cardH(dateStr){
     const cs = byDay[dateStr];
@@ -2232,9 +2239,10 @@ async function _buildPoster(monthVal){
     h += IMG_H + GAP_IMG;           // image + enough gap so text top clears image bottom
     _mc.font = `bold ${FONT_TITLE}px ${FONT}`;
     cs.forEach(c=>{
-      h += FONT_TIME + 4;
-      const lines = _posterWrapText(_mc, `${c.teacher}｜${c.title}`, TEXT_W).length;
-      h += Math.min(lines, 2) * (FONT_TITLE + 5);
+      h += FONT_TIME + TIME_TITLE_GAP;
+      const titleLines = _posterWrapText(_mc, c.title, TEXT_W).length;
+      h += Math.min(titleLines, 2) * (FONT_TITLE + 5);
+      h += FONT_TEACHER + 6;
       h += 12;                      // gap between courses
     });
     h += INNER;
@@ -2346,15 +2354,17 @@ async function _buildPoster(monthVal){
       ctx.restore();
       ty += IMG_H + GAP_IMG; // guaranteed gap: image bottom → text top clear
 
-      // Courses: time (small) then teacher｜title
+      // Courses: time, title, then teacher
       courses.forEach(c=>{
         const ci=colorById(c.color);
         ctx.fillStyle='#a07850'; ctx.font=`${FONT_TIME}px ${FONT}`;
-        ctx.fillText(`${c.start}－${c.end}`,cx+INNER,ty); ty+=FONT_TIME+4;
+        ctx.fillText(`${c.start}－${c.end}`,cx+INNER,ty); ty+=FONT_TIME+TIME_TITLE_GAP;
         ctx.fillStyle=ci.hex; ctx.font=`bold ${FONT_TITLE}px ${FONT}`;
-        _posterWrapText(ctx,`${c.teacher}｜${c.title}`,iw).slice(0,2).forEach(l=>{
+        _posterWrapText(ctx,c.title,iw).slice(0,2).forEach(l=>{
           ctx.fillText(l,cx+INNER,ty); ty+=FONT_TITLE+5;
         });
+        ctx.fillStyle='#6f5a46'; ctx.font=`${FONT_TEACHER}px ${FONT}`;
+        ctx.fillText(c.teacher,cx+INNER,ty); ty+=FONT_TEACHER+6;
         ty+=12;
       });
     });
