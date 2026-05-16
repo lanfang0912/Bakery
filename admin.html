@@ -1739,7 +1739,7 @@ async function _buildPoster(monthVal){
   // Canvas dimensions
   const W = 1400;
   const COL_W = Math.floor(W/7);
-  const HEADER_H = 136;
+  const HEADER_H = 156;
   const WDAY_H   = 52;
   // Cell height: enough for max courses on busiest day
   const maxCpd = Math.max(1, ...Object.values(byDay).map(a=>a.length));
@@ -1764,30 +1764,30 @@ async function _buildPoster(monthVal){
   ctx.textAlign = 'left';
 
   // Year (dark blue, large)
-  ctx.font = `bold 82px "PingFang TC","Microsoft JhengHei",Arial,sans-serif`;
+  ctx.font = `bold 96px "PingFang TC","Microsoft JhengHei",Arial,sans-serif`;
   ctx.fillStyle = '#1a3a6b';
-  ctx.fillText(`${year}`, tx, 108);
-  tx += ctx.measureText(`${year}`).width + 4;
+  ctx.fillText(`${year}`, tx, 114);
+  tx += ctx.measureText(`${year}`).width + 24;
 
   // Teacher name (if single teacher)
   const teachers = [...new Set(monthCourses.map(c=>c.teacher))];
   if(teachers.length === 1){
-    ctx.font = `bold 50px "PingFang TC","Microsoft JhengHei",Arial,sans-serif`;
+    ctx.font = `bold 56px "PingFang TC","Microsoft JhengHei",Arial,sans-serif`;
     ctx.fillStyle = '#111';
-    ctx.fillText(teachers[0], tx, 108);
-    tx += ctx.measureText(teachers[0]).width + 8;
+    ctx.fillText(teachers[0], tx, 114);
+    tx += ctx.measureText(teachers[0]).width + 24;
   }
 
   // Month number (red)
-  ctx.font = `bold 82px "PingFang TC","Microsoft JhengHei",Arial,sans-serif`;
+  ctx.font = `bold 96px "PingFang TC","Microsoft JhengHei",Arial,sans-serif`;
   ctx.fillStyle = '#c0392b';
-  ctx.fillText(`${mon}`, tx, 108);
-  tx += ctx.measureText(`${mon}`).width + 2;
+  ctx.fillText(`${mon}`, tx, 114);
+  tx += ctx.measureText(`${mon}`).width + 8;
 
   // "月課程表"
-  ctx.font = `bold 54px "PingFang TC","Microsoft JhengHei",Arial,sans-serif`;
+  ctx.font = `bold 64px "PingFang TC","Microsoft JhengHei",Arial,sans-serif`;
   ctx.fillStyle = '#1a3a6b';
-  ctx.fillText('月課程表', tx, 108);
+  ctx.fillText('月課程表', tx, 114);
 
   // Image collage (right portion of header)
   const withImg = monthCourses.filter(c=>imgMap[c.id]);
