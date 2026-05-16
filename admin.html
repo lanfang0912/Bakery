@@ -1424,9 +1424,22 @@ async function applySlotUrl(idx){
   if(idx===0) updateImgPosPreview();
 }
 function clearSlot(idx){
-  delete _slotPosterData[idx];
-  clearImage(`f-img-val-${idx}`,`f-img-prev-${idx}`,`f-img-ph-${idx}`,`f-img-clear-${idx}`,`f-img-url-${idx}`);
-  if(idx===0) updateImgPosPreview();
+  // Collect remaining URLs and poster data (excluding removed slot)
+  const newUrls = [];
+  const newPoster = {};
+  for(let i = 0; i < _imgSlotCount; i++){
+    if(i === idx) continue;
+    const v = document.getElementById(`f-img-val-${i}`)?.value || '';
+    newUrls.push(v);
+    if(_slotPosterData[i]) newPoster[newUrls.length - 1] = _slotPosterData[i];
+  }
+  // Always keep at least one (empty) slot
+  if(newUrls.length === 0) newUrls.push('');
+  _slotPosterData = newPoster;
+  _imgSlotCount = newUrls.length;
+  document.getElementById('f-imgs-grid').innerHTML = newUrls.map((u,i) => _slotHtml(i,u)).join('');
+  document.getElementById('f-add-img-btn').style.display = _imgSlotCount >= 5 ? 'none' : '';
+  updateImgPosPreview();
 }
 
 function getImgSlotValues(){
