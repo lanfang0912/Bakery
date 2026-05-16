@@ -1763,7 +1763,7 @@ async function _buildPoster(monthVal){
   const CARD_W = Math.floor((W - PAD*2 - GAP*(COLS-1)) / COLS);
   const INNER = 16;
   const IMG_H = 110; // fixed image / placeholder height
-  const FONT_TIME = 13, FONT_TITLE = 16, FONT_DATE = 19;
+  const FONT_TIME = 16, FONT_TITLE = 19, FONT_DATE = 22;
 
   // Estimate card height
   function cardH(dateStr){
@@ -1888,8 +1888,8 @@ async function _buildPoster(monthVal){
       // Courses
       courses.forEach(c=>{
         const ci=colorById(c.color);
-        ctx.fillStyle='#9a7a62'; ctx.font=`${FONT_TIME}px ${FONT}`;
-        ctx.fillText(`⏰ ${c.start} – ${c.end}`,cx+INNER,ty); ty+=FONT_TIME+4;
+        ctx.fillStyle='#5a3a1a'; ctx.font=`bold ${FONT_TIME}px ${FONT}`;
+        ctx.fillText(`${c.start}－${c.end}`,cx+INNER,ty); ty+=FONT_TIME+5;
         ctx.fillStyle=ci.hex; ctx.font=`bold ${FONT_TITLE}px ${FONT}`;
         _posterWrapText(ctx,`${c.teacher}｜${c.title}`,iw).slice(0,2).forEach(l=>{
           ctx.fillText(l,cx+INNER,ty); ty+=FONT_TITLE+4;
