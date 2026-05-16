@@ -784,10 +784,12 @@ document.getElementById('tbody').addEventListener('click', e => {
   const delBtn  = e.target.closest('[data-del]');
   const regBtn  = e.target.closest('[data-reg]');
   const linkBtn = e.target.closest('[data-link]');
+  const copyBtn = e.target.closest('[data-copy]');
   if (editBtn) openEdit(editBtn.dataset.edit);
   if (delBtn)  confirmDelete(delBtn.dataset.del);
   if (regBtn)  openRegModal(regBtn.dataset.reg);
   if (linkBtn) copyRegLink(linkBtn.dataset.link);
+  if (copyBtn) openCopy(copyBtn.dataset.copy);
 });
 
 function regCount(eventId) {
@@ -855,6 +857,7 @@ function renderTable(){
           <button class="btn-reg"    data-reg="${e.id}">👥 ${regCount(e.id)}</button>
           <a class="btn-export" href="${location.href.replace(/admin\.html.*$/,'register.html?id='+e.id)}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center">🔗 報名頁</a>
           <button class="btn-export" data-link="${e.id}" title="複製報名頁連結" style="background:#fff3e0;color:#c17f3e">📋 複製</button>
+          <button class="btn-export" data-copy="${e.id}" title="複製課程內容，建立新課程" style="background:#e8f5ed;color:#5c9e6e">⧉ 複製課程</button>
           <button class="btn-edit"   data-edit="${e.id}">✏️ 編輯</button>
           <button class="btn-del"    data-del="${e.id}">🗑 刪除</button>
         </div></td>
@@ -889,11 +892,7 @@ function openAdd(){
   buildColorPicker();
   document.getElementById('overlay').classList.add('open');
 }
-function openEdit(id){
-  const e = events.find(x=>x.id===id);  // id is Firebase string key
-  if(!e) return;
-  document.getElementById('modal-title').textContent = '編輯課程';
-  document.getElementById('edit-id').value   = id;
+function fillEventForm(e){
   document.getElementById('f-date').value    = e.date;
   document.getElementById('f-teacher').value = e.teacher;
   document.getElementById('f-start').value   = e.start;
@@ -904,9 +903,28 @@ function openEdit(id){
   const existPoster = e.imagesPoster?.length ? e.imagesPoster : (e.imagePoster ? [e.imagePoster] : []);
   resetImgSlots(existImgs, existPoster);
   document.getElementById('f-desc').value    = e.description||'';
-  selColor = e.color;
+  selColor = e.color || 'orange';
   buildColorPicker();
+}
+function openEdit(id){
+  const e = events.find(x=>x.id===id);  // id is Firebase string key
+  if(!e) return;
+  document.getElementById('modal-title').textContent = '編輯課程';
+  document.getElementById('event-form').reset();
+  document.getElementById('edit-id').value = id;
+  fillEventForm(e);
   document.getElementById('overlay').classList.add('open');
+}
+function openCopy(id){
+  const e = events.find(x=>x.id===id);
+  if(!e) return;
+  document.getElementById('modal-title').textContent = '複製課程';
+  document.getElementById('event-form').reset();
+  document.getElementById('edit-id').value = '';
+  fillEventForm(e);
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('f-date').focus(), 80);
+  toast('已套用課程內容，請修改日期後儲存','success');
 }
 function closeModal(){document.getElementById('overlay').classList.remove('open')}
 function closeModalBg(e){if(e.target===document.getElementById('overlay'))closeModal()}
