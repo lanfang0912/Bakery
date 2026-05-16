@@ -619,15 +619,27 @@ tr:hover td{background:var(--primary-light)}
     <div class="fg-row">
       <div class="fg">
         <label>圖片寬度</label>
-        <input type="number" id="cal-img-w" min="40" max="180" step="1">
+        <input type="number" id="cal-img-w" min="40" max="180" step="1" oninput="updateCalendarPreviewSample()">
       </div>
       <div class="fg">
         <label>圖片高度</label>
-        <input type="number" id="cal-img-h" min="30" max="160" step="1">
+        <input type="number" id="cal-img-h" min="30" max="160" step="1" oninput="updateCalendarPreviewSample()">
       </div>
     </div>
     <div style="font-size:.78rem;color:var(--muted);line-height:1.6;margin-top:-6px">
       只影響電腦版月曆裡的課程縮圖，手機版仍維持精簡顯示。
+    </div>
+    <div style="margin-top:16px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#fff">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;color:var(--muted);font-size:.8rem;font-weight:800">
+        <span>即時預覽</span>
+        <span id="cal-preview-size">70 × 56</span>
+      </div>
+      <div style="display:inline-block;max-width:210px;padding:8px;border:1px solid #ead8c4;border-radius:8px;background:#fffaf5;color:#3c2e24;font-size:.78rem;font-weight:800;line-height:1.35">
+        <img id="cal-preview-img" alt="" style="width:70px;height:56px;object-fit:cover;border-radius:6px;display:block;margin-bottom:4px;background:#f2e7db">
+        <div id="cal-preview-time">09:30</div>
+        <div id="cal-preview-teacher">老師姓名</div>
+        <div id="cal-preview-title">課程名稱</div>
+      </div>
     </div>
     <div class="modal-foot">
       <button type="button" class="btn-cancel" onclick="resetCalendarPreviewSettings()">恢復預設</button>
@@ -1414,10 +1426,12 @@ function syncCalendarPreviewControls(){
   const h = document.getElementById('cal-img-h');
   if(w) w.value = calendarPreviewCfg.imgW || CALENDAR_PREVIEW_DEFAULT.imgW;
   if(h) h.value = calendarPreviewCfg.imgH || CALENDAR_PREVIEW_DEFAULT.imgH;
+  updateCalendarPreviewSample();
 }
 function openCalendarPreviewSettings(){
   syncCalendarPreviewControls();
   document.getElementById('calendar-preview-overlay').classList.add('open');
+  updateCalendarPreviewSample();
 }
 function closeCalendarPreviewSettings(){
   document.getElementById('calendar-preview-overlay').classList.remove('open');
@@ -1427,6 +1441,30 @@ function _calendarPreviewFromInputs(){
     imgW: _num(document.getElementById('cal-img-w')?.value, CALENDAR_PREVIEW_DEFAULT.imgW, 40, 180),
     imgH: _num(document.getElementById('cal-img-h')?.value, CALENDAR_PREVIEW_DEFAULT.imgH, 30, 160)
   };
+}
+function updateCalendarPreviewSample(){
+  const cfg = _calendarPreviewFromInputs();
+  const img = document.getElementById('cal-preview-img');
+  const size = document.getElementById('cal-preview-size');
+  if(size) size.textContent = `${cfg.imgW} × ${cfg.imgH}`;
+  if(img){
+    img.style.width = cfg.imgW + 'px';
+    img.style.height = cfg.imgH + 'px';
+  }
+
+  const eventList = (typeof events !== 'undefined' && Array.isArray(events)) ? events : [];
+  const sample = eventList.find(e => (e.images && e.images[0]) || e.image) || eventList[0] || {};
+  const src = (sample.images && sample.images[0]) || sample.image || '';
+  if(img && img.getAttribute('src') !== src){
+    if(src) img.src = src;
+    else img.removeAttribute('src');
+  }
+  const timeEl = document.getElementById('cal-preview-time');
+  const teacherEl = document.getElementById('cal-preview-teacher');
+  const titleEl = document.getElementById('cal-preview-title');
+  if(timeEl) timeEl.textContent = sample.time || sample.start || '09:30';
+  if(teacherEl) teacherEl.textContent = sample.teacher || '老師姓名';
+  if(titleEl) titleEl.textContent = sample.title || '課程名稱';
 }
 async function saveCalendarPreviewSettings(){
   calendarPreviewCfg = _calendarPreviewFromInputs();
