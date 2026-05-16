@@ -424,16 +424,21 @@ tr:hover td{background:var(--primary-light)}
         <button type="button" class="btn-add-img" id="f-add-img-btn" onclick="addImgSlot()">＋ 新增圖片</button>
       </div>
       <div class="fg" id="fg-img-pos" style="display:none">
-        <label>月曆縮圖焦點</label>
-        <div style="display:flex;align-items:center;gap:14px">
-          <select id="f-img-pos" onchange="updateImgPosPreview()" style="width:auto;padding:8px 12px;border:2px solid var(--border);border-radius:9px;font-size:.86rem;font-family:inherit;color:var(--text);background:var(--bg);outline:none">
-            <option value="center">置中（預設）</option>
-            <option value="top">靠上</option>
-            <option value="bottom">靠下</option>
-          </select>
-          <div style="flex:1;max-width:180px">
-            <img id="img-pos-preview" src="" alt="" style="width:100%;height:70px;object-fit:cover;border-radius:6px;object-position:center;display:none;border:1px solid var(--border)">
-            <div id="img-pos-ph" style="display:none;font-size:.76rem;color:var(--muted)">請先上傳圖片</div>
+        <label>月曆縮圖焦點 <span style="font-weight:400;color:var(--muted);font-size:.76rem">（點圖片選焦點）</span></label>
+        <input type="hidden" id="f-img-pos" value="50% 50%">
+        <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
+          <!-- Focal point picker -->
+          <div style="flex:1;min-width:140px;max-width:220px">
+            <div id="fp-picker" style="position:relative;border-radius:8px;overflow:hidden;cursor:crosshair;border:2px solid var(--border);display:none">
+              <img id="fp-full-img" src="" alt="" style="width:100%;display:block;user-select:none;pointer-events:none">
+              <div id="fp-dot" style="position:absolute;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.9);border:2px solid var(--primary);box-shadow:0 0 0 2px rgba(0,0,0,.3);transform:translate(-50%,-50%);pointer-events:none;top:50%;left:50%"></div>
+            </div>
+            <div id="fp-ph" style="display:none;font-size:.76rem;color:var(--muted);padding:8px 0">請先上傳圖片</div>
+          </div>
+          <!-- Preview -->
+          <div style="flex:1;min-width:120px;max-width:200px">
+            <div style="font-size:.72rem;color:var(--muted);margin-bottom:4px;font-weight:600">月曆預覽</div>
+            <img id="img-pos-preview" src="" alt="" style="width:100%;height:70px;object-fit:cover;border-radius:6px;object-position:50% 50%;display:none;border:1px solid var(--border)">
           </div>
         </div>
       </div>
@@ -921,22 +926,57 @@ function renderTable(){
 }
 
 function updateImgPosPreview(){
-  const pos = document.getElementById('f-img-pos').value;
   const imgUrl = getImgSlotValues()[0] || '';
-  const fgEl  = document.getElementById('fg-img-pos');
-  const prev  = document.getElementById('img-pos-preview');
-  const ph    = document.getElementById('img-pos-ph');
+  const fgEl   = document.getElementById('fg-img-pos');
+  const picker = document.getElementById('fp-picker');
+  const ph     = document.getElementById('fp-ph');
+  const prev   = document.getElementById('img-pos-preview');
+  const fullImg= document.getElementById('fp-full-img');
   fgEl.style.display = 'block';
   if(imgUrl){
-    prev.src = imgUrl;
+    fullImg.src = imgUrl;
+    prev.src    = imgUrl;
+    picker.style.display = 'block';
+    ph.style.display     = 'none';
+    prev.style.display   = 'block';
+    const pos = document.getElementById('f-img-pos').value || '50% 50%';
     prev.style.objectPosition = pos;
-    prev.style.display = 'block';
-    ph.style.display = 'none';
+    _applyFpDot(pos);
   } else {
-    prev.style.display = 'none';
-    ph.style.display = 'block';
+    picker.style.display = 'none';
+    prev.style.display   = 'none';
+    ph.style.display     = 'block';
   }
 }
+
+function _applyFpDot(pos){
+  const dot = document.getElementById('fp-dot');
+  const parts = pos.split(' ');
+  dot.style.left = parts[0]||'50%';
+  dot.style.top  = parts[1]||'50%';
+}
+
+(function _initFpPicker(){
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const picker = document.getElementById('fp-picker');
+    if(!picker) return;
+    function onPick(e){
+      const r = picker.getBoundingClientRect();
+      const x = Math.round(((e.clientX - r.left) / r.width)  * 100);
+      const y = Math.round(((e.clientY - r.top)  / r.height) * 100);
+      const pos = `${x}% ${y}%`;
+      document.getElementById('f-img-pos').value = pos;
+      document.getElementById('img-pos-preview').style.objectPosition = pos;
+      _applyFpDot(pos);
+    }
+    let dragging = false;
+    picker.addEventListener('mousedown', e=>{ dragging=true; onPick(e); });
+    document.addEventListener('mousemove', e=>{ if(dragging) onPick(e); });
+    document.addEventListener('mouseup',   ()=>{ dragging=false; });
+    picker.addEventListener('touchstart', e=>{ onPick(e.touches[0]); }, {passive:true});
+    picker.addEventListener('touchmove',  e=>{ onPick(e.touches[0]); e.preventDefault(); }, {passive:false});
+  });
+})();
 
 // ── Color picker ─────────────────────────────────────────────
 function buildColorPicker(){
@@ -972,7 +1012,10 @@ function fillEventForm(e){
   const existPoster = e.imagesPoster?.length ? e.imagesPoster : (e.imagePoster ? [e.imagePoster] : []);
   resetImgSlots(existImgs, existPoster);
   document.getElementById('f-desc').value    = e.description||'';
-  document.getElementById('f-img-pos').value = e.imgPos || 'center';
+  // Convert legacy keyword values to percentage
+  const legacyMap = {top:'50% 0%', center:'50% 50%', bottom:'50% 100%'};
+  const pos = legacyMap[e.imgPos] || e.imgPos || '50% 50%';
+  document.getElementById('f-img-pos').value = pos;
   updateImgPosPreview();
   selColor = e.color || 'orange';
   buildColorPicker();
