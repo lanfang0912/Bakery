@@ -1894,8 +1894,8 @@ function _buildPosterSvg(monthVal){
   const IMG_H = 200;
   const FONT_DATE = 22, FONT_TEACHER = 26, FONT_TITLE = 22, FONT_TIME = 18;
   const _mc = document.createElement('canvas').getContext('2d');
-  // Fixed card height: date(22)+sep(14)+img(200)+gap(35)+teacher(26)+gap(6)+title×2(22+6+22)+gap(8)+time(18)+padding(32)
-  const CARD_H = INNER + FONT_DATE + 14 + IMG_H + 35 + FONT_TEACHER + 6 + FONT_TITLE + 6 + FONT_TITLE + 8 + FONT_TIME + INNER;
+  // Fixed card height: dateline(22)+gap(10)+img(200)+gap(35)+teacher(26)+gap(6)+title×2(22+6+22)+padding(32)
+  const CARD_H = INNER + FONT_DATE + 10 + IMG_H + 35 + FONT_TEACHER + 6 + FONT_TITLE + 6 + FONT_TITLE + INNER;
 
   const dayRows = [];
   for(let i=0;i<days.length;i+=COLS) dayRows.push(days.slice(i,i+COLS));
@@ -1962,8 +1962,10 @@ function _buildPosterSvg(monthVal){
         rect(cx,curY,CARD_W,6,accent.hex,3);
 
         let ty = curY + INNER + FONT_DATE;
-        text(cx+INNER, ty, `${dm}/${String(dd).padStart(2,'0')} (${WDAYS[dow]})`, FONT_DATE, isWkend?'#c0392b':'#3d2c1e','700');
-        ty += 8; rect(cx+INNER,ty,iw,1,'#e0cbb8'); ty += 6;
+        // Date + time on same line
+        const _dateLabel = `${dm}/${String(dd).padStart(2,'0')} (${WDAYS[dow]})`;
+        out.push(`<text x="${cx+INNER}" y="${ty}" font-family="${FONT}" font-weight="700" fill="${isWkend?'#c0392b':'#3d2c1e}"><tspan font-size="${FONT_DATE}">${_svgEsc(_dateLabel)}</tspan><tspan font-size="${FONT_TIME}" font-weight="400" fill="#a07850" dx="10">${_svgEsc(c.start+'－'+c.end)}</tspan></text>`);
+        ty += 10;
 
         image(src, cx+INNER, ty, iw, IMG_H, 'slice', 8);
         ty += IMG_H + 35;
@@ -1972,16 +1974,12 @@ function _buildPosterSvg(monthVal){
         text(cx+INNER, ty, c.teacher, FONT_TEACHER, accent.hex, '700');
         ty += FONT_TEACHER + 6;
 
-        // Title second (up to 2 lines, always reserve 2-line space)
+        // Title (up to 2 lines)
         _mc.font = `${FONT_TITLE}px sans-serif`;
         const tLines = _posterWrapText(_mc, c.title, iw).slice(0,2);
         text(cx+INNER, ty, tLines[0]||c.title, FONT_TITLE, '#3d2c1e', '400');
         ty += FONT_TITLE + 6;
         if(tLines[1]) text(cx+INNER, ty, tLines[1], FONT_TITLE, '#3d2c1e', '400');
-        ty += FONT_TITLE + 8;
-
-        // Time
-        text(cx+INNER, ty, `${c.start}－${c.end}`, FONT_TIME, '#a07850', '400');
       });
       curY += CARD_H + (slot < maxSlots-1 ? INNER_CARD_GAP : 0);
     }
@@ -2019,7 +2017,7 @@ function _buildPosterPptx(monthVal){
   const u = v => v / U;
   const hex = v => String(v||'').replace('#','').slice(0,6);
 
-  const CARD_H = INNER + FONT_DATE + 14 + IMG_H + 35 + FONT_TEACHER + 6 + FONT_TITLE + 6 + FONT_TITLE + 8 + FONT_TIME + INNER;
+  const CARD_H = INNER + FONT_DATE + 10 + IMG_H + 35 + FONT_TEACHER + 6 + FONT_TITLE + 6 + FONT_TITLE + INNER;
 
   const dayRows = [];
   for(let i=0;i<days.length;i+=COLS) dayRows.push(days.slice(i,i+COLS));
@@ -2107,9 +2105,13 @@ function _buildPosterPptx(monthVal){
         addRect(cx,curY,CARD_W,6,accentHex);
 
         let ty = curY + INNER;
-        addText(`${dm}/${String(dd).padStart(2,'0')} (${WDAYS[dow]})`,cx+INNER,ty,iw,FONT_DATE+4,FONT_DATE,isWkend?'c0392b':'3d2c1e',true);
-        ty += FONT_DATE + 8;
-        addRect(cx+INNER,ty,iw,1,'e0cbb8'); ty += 6;
+        // Date + time on same line (two adjacent text boxes)
+        const _dateLabel2 = `${dm}/${String(dd).padStart(2,'0')} (${WDAYS[dow]})`;
+        _mc.font = `bold ${FONT_DATE}px sans-serif`;
+        const _dateW = Math.min(Math.ceil(_mc.measureText(_dateLabel2).width) + 14, iw - 80);
+        addText(_dateLabel2, cx+INNER, ty, _dateW, FONT_DATE+4, FONT_DATE, isWkend?'c0392b':'3d2c1e', true);
+        addText(`${c.start}－${c.end}`, cx+INNER+_dateW, ty, iw-_dateW, FONT_DATE+4, FONT_TIME, 'a07850', false);
+        ty += FONT_DATE + 10;
 
         if(src) addImage(src,cx+INNER,ty,iw,IMG_H,'cover');
         else {
@@ -2122,16 +2124,12 @@ function _buildPosterPptx(monthVal){
         addText(c.teacher,cx+INNER,ty,iw,FONT_TEACHER+4,FONT_TEACHER,accentHex,true);
         ty += FONT_TEACHER + 6;
 
-        // Title second (up to 2 lines, always reserve 2-line space)
+        // Title (up to 2 lines)
         _mc.font = `${FONT_TITLE}px sans-serif`;
         const tLines = _posterWrapText(_mc,c.title,iw).slice(0,2);
         addText(tLines[0]||c.title,cx+INNER,ty,iw,FONT_TITLE+4,FONT_TITLE,'3d2c1e');
         ty += FONT_TITLE + 6;
         addText(tLines[1]||'',cx+INNER,ty,iw,FONT_TITLE+4,FONT_TITLE,'3d2c1e');
-        ty += FONT_TITLE + 8;
-
-        // Time
-        addText(`${c.start}－${c.end}`,cx+INNER,ty,iw,FONT_TIME+4,FONT_TIME,'a07850');
       });
       curY += CARD_H + (slot < maxSlots-1 ? INNER_CARD_GAP : 0);
     }
@@ -2214,7 +2212,7 @@ async function _buildPoster(monthVal){
   const FONT_DATE = 22, FONT_TEACHER = 26, FONT_TITLE = 22, FONT_TIME = 18;
   const _mc = document.createElement('canvas').getContext('2d');
   // Fixed card height per course
-  const CARD_H = INNER + FONT_DATE + 14 + IMG_H + 35 + FONT_TEACHER + 6 + FONT_TITLE + 6 + FONT_TITLE + 8 + FONT_TIME + INNER;
+  const CARD_H = INNER + FONT_DATE + 10 + IMG_H + 35 + FONT_TEACHER + 6 + FONT_TITLE + 6 + FONT_TITLE + INNER;
 
   const dayRows = [];
   for(let i=0;i<days.length;i+=COLS) dayRows.push(days.slice(i,i+COLS));
@@ -2299,11 +2297,15 @@ async function _buildPoster(monthVal){
 
         let ty = curY + INNER + FONT_DATE;
         ctx.textAlign='left';
+        // Date + time on same line
         ctx.font=`bold ${FONT_DATE}px ${FONT}`;
         ctx.fillStyle = isWkend?'#c0392b':'#3d2c1e';
-        ctx.fillText(`${dm}/${String(dd).padStart(2,'0')} (${WDAYS[dow]})`, cx+INNER, ty);
-        ty += 8;
-        ctx.fillStyle='#e0cbb8'; ctx.fillRect(cx+INNER,ty,iw,1); ty += 6;
+        const _dateStr = `${dm}/${String(dd).padStart(2,'0')} (${WDAYS[dow]})`;
+        ctx.fillText(_dateStr, cx+INNER, ty);
+        const _dateW2 = ctx.measureText(_dateStr).width + 10;
+        ctx.font=`${FONT_TIME}px ${FONT}`; ctx.fillStyle='#a07850';
+        ctx.fillText(`${c.start}－${c.end}`, cx+INNER+_dateW2, ty);
+        ty += 10;
 
         // Image
         ctx.save();
@@ -2329,17 +2331,12 @@ async function _buildPoster(monthVal){
         ctx.fillText(c.teacher, cx+INNER, ty);
         ty += FONT_TEACHER + 6;
 
-        // Title second (up to 2 lines, always reserve 2-line space)
+        // Title (up to 2 lines)
         _mc.font = `${FONT_TITLE}px ${FONT}`;
         const tLines = _posterWrapText(_mc, c.title, iw).slice(0,2);
         ctx.font=`${FONT_TITLE}px ${FONT}`; ctx.fillStyle='#3d2c1e';
         ctx.fillText(tLines[0]||c.title, cx+INNER, ty); ty += FONT_TITLE + 6;
         if(tLines[1]) ctx.fillText(tLines[1], cx+INNER, ty);
-        ty += FONT_TITLE + 8;
-
-        // Time
-        ctx.font=`${FONT_TIME}px ${FONT}`; ctx.fillStyle='#a07850';
-        ctx.fillText(`${c.start}－${c.end}`, cx+INNER, ty);
       });
       curY += CARD_H + (slot < maxSlots-1 ? INNER_CARD_GAP : 0);
     }
