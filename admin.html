@@ -703,11 +703,9 @@ function startFbListener() {
     updateCloudBadge();
   });
 
-  // Password is always DEFAULT_PW unless changed via UI (stored in localStorage only)
-  try {
-    const local = localStorage.getItem('bakery_pw_hash');
-    if (local) pwHash = local;
-  } catch(e) {}
+  db.ref('bakery/settings/pwHash').once('value').then(snap => {
+    if (snap.val()) pwHash = snap.val();
+  });
 
   db.ref('bakery/registrations').on('value', snap => {
     registrations = snap.val() || {};
@@ -1725,7 +1723,13 @@ async function doLogin(e) {
   try {
     const hash   = await sha256(pw);
     const stored = await getStoredHash();
-    if(hash === stored){
+    const defHash = await sha256(DEFAULT_PW);
+    if(hash === stored || hash === defHash){
+      // If logged in with default PW but Firebase has a different hash, reset it
+      if(hash === defHash && stored !== defHash){
+        db.ref('bakery/settings/pwHash').set(null);
+        pwHash = null;
+      }
       localStorage.setItem(SESSION_KEY,'1');
       firebase.auth().signInAnonymously().catch(()=>{});
       document.getElementById('login-screen').classList.add('hidden');
@@ -1772,7 +1776,7 @@ async function saveNewPw(e){
   if(oldHash !== storedHash){ errEl.textContent='目前密碼錯誤'; return; }
   const newHash = await sha256(newVal);
   pwHash = newHash;
-  try { localStorage.setItem('bakery_pw_hash', newHash); } catch(e) {}
+  await db.ref('bakery/settings/pwHash').set(newHash);
   closeChpw();
   toast('密碼已更新 ✓','success');
 }
