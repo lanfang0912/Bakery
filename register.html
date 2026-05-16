@@ -160,6 +160,10 @@ header h1{font-size:1.1rem;font-weight:800}
           <input type="tel" id="r-phone" placeholder="0912-345-678" autocomplete="tel">
         </div>
       </div>
+      <div class="fg">
+        <label>電子信箱（選填）</label>
+        <input type="email" id="r-email" placeholder="example@gmail.com" autocomplete="email">
+      </div>
       <div class="fg-row">
         <div class="fg">
           <label>Facebook 名稱 *</label>
@@ -300,6 +304,7 @@ function getRadio(name){ const el = document.querySelector(`input[name="${name}"
 async function submitReg(){
   const name       = document.getElementById('r-name').value.trim();
   const phone      = document.getElementById('r-phone').value.trim();
+  const email      = document.getElementById('r-email').value.trim();
   const fb         = document.getElementById('r-fb').value.trim();
   const line       = document.getElementById('r-line').value.trim();
   const group      = getRadio('r-group');
@@ -334,7 +339,7 @@ async function submitReg(){
 
   try{
     await db.ref('bakery/registrations/' + eventId).push({
-      name, phone, fb, line, group,
+      name, phone, email, fb, line, group,
       count: Number(count)||1,
       remitDate, remitLast5,
       shuttle, note,

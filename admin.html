@@ -537,6 +537,9 @@ tr:hover td{background:var(--primary-light)}
         <input type="text" id="ma-fb"   class="ma-input" placeholder="Facebook 名稱">
         <input type="text" id="ma-line" class="ma-input" placeholder="LINE 名稱">
       </div>
+      <div style="margin-bottom:8px">
+        <input type="email" id="ma-email" class="ma-input" placeholder="電子信箱（選填）">
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
         <select id="ma-group" class="ma-input">
           <option value="">加入群組？</option>
@@ -1312,6 +1315,7 @@ function renderRegList(eventId) {
           <div style="font-size:.85rem;margin-bottom:5px">
             📞 <a href="tel:${r.phone}" style="color:var(--primary);font-weight:600">${r.phone}</a>
           </div>
+          ${r.email?`<div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">✉️ <a href="mailto:${r.email}" style="color:var(--muted)">${r.email}</a></div>`:''}
           ${r.fb||r.line?`<div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">${[r.fb?`FB: ${r.fb}`:'', r.line?`LINE: ${r.line}`:''].filter(Boolean).join('　')}</div>`:''}
           ${r.remitDate||r.remitLast5?`<div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">💳 ${[r.remitDate, r.remitLast5?`末五碼 …${r.remitLast5}`:''].filter(Boolean).join(' ')}</div>`:''}
           ${r.shuttle?`<div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">🚗 ${r.shuttle.startsWith('是')?'需要接送':'自行前往'}</div>`:''}
@@ -1346,6 +1350,7 @@ function getMaFormData(){
   return {
     name:       document.getElementById('ma-name').value.trim(),
     phone:      document.getElementById('ma-phone').value.trim(),
+    email:      document.getElementById('ma-email').value.trim(),
     fb:         document.getElementById('ma-fb').value.trim(),
     line:       document.getElementById('ma-line').value.trim(),
     group:      document.getElementById('ma-group').value,
@@ -1359,7 +1364,7 @@ function getMaFormData(){
 }
 
 function clearMaForm(){
-  ['ma-name','ma-phone','ma-fb','ma-line','ma-note','ma-remit-date','ma-remit-last5','ma-count'].forEach(id=>{
+  ['ma-name','ma-phone','ma-email','ma-fb','ma-line','ma-note','ma-remit-date','ma-remit-last5','ma-count'].forEach(id=>{
     document.getElementById(id).value='';
     document.getElementById(id).classList.remove('err');
   });
@@ -1389,6 +1394,7 @@ function editReg(eventId, regKey){
   if(!r) return;
   document.getElementById('ma-name').value       = r.name||'';
   document.getElementById('ma-phone').value      = r.phone||'';
+  document.getElementById('ma-email').value      = r.email||'';
   document.getElementById('ma-fb').value         = r.fb||'';
   document.getElementById('ma-line').value       = r.line||'';
   document.getElementById('ma-group').value      = r.group||'';
