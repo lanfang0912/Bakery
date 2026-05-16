@@ -170,6 +170,18 @@ tr:hover td{background:var(--primary-light)}
 .toast.success{background:var(--green)}
 .toast.error{background:var(--red)}
 
+/* Name search tab */
+.nsearch-wrap{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:18px 20px;margin-bottom:18px;box-shadow:var(--shadow);display:flex;gap:10px;align-items:center}
+.nsearch-input{flex:1;padding:10px 16px;border:2px solid var(--border);border-radius:22px;font-size:.92rem;font-family:inherit;color:var(--text);background:var(--bg);outline:none;transition:border-color .2s}
+.nsearch-input:focus{border-color:var(--primary)}
+.nsearch-result-hd{font-size:.82rem;color:var(--muted);font-weight:600;margin-bottom:12px}
+.nreg-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow);display:flex;align-items:flex-start;gap:12px}
+.nreg-bar{width:4px;align-self:stretch;border-radius:3px;flex-shrink:0}
+.nreg-info{flex:1;min-width:0}
+.nreg-name{font-weight:800;font-size:.95rem;color:var(--primary-dark)}
+.nreg-meta{font-size:.8rem;color:var(--muted);margin-top:2px}
+.nreg-course{font-size:.85rem;font-weight:700;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
 /* ── Login screen ── */
 #login-screen{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#3d1f08 0%,var(--primary-dark) 45%,#b07030 100%);display:flex;align-items:center;justify-content:center}
 #login-screen.hidden{display:none}
@@ -297,6 +309,7 @@ tr:hover td{background:var(--primary-light)}
   <div class="admin-tabs">
     <button class="admin-tab active" onclick="switchAdminTab('courses',this)">📅 課程管理</button>
     <button class="admin-tab" onclick="switchAdminTab('regs',this)">📋 報名總覽</button>
+    <button class="admin-tab" onclick="switchAdminTab('search',this)">🔍 報名查詢</button>
   </div>
 
   <!-- 課程管理 tab -->
@@ -335,6 +348,15 @@ tr:hover td{background:var(--primary-light)}
       </table>
     </div>
     <p class="tfoot-note" id="tfoot-note"></p>
+  </div>
+
+  <!-- 報名查詢 tab -->
+  <div id="tab-search" style="display:none">
+    <div class="nsearch-wrap">
+      <input class="nsearch-input" id="nsearch-input" type="text" placeholder="輸入學員姓名搜尋…" oninput="searchByName()" autocomplete="off">
+    </div>
+    <div class="nsearch-result-hd" id="nsearch-hd"></div>
+    <div id="nsearch-list"></div>
   </div>
 
   <!-- 報名總覽 tab -->
@@ -1411,7 +1433,59 @@ function switchAdminTab(name, btn){
   btn.classList.add('active');
   document.getElementById('tab-courses').style.display = name==='courses'?'block':'none';
   document.getElementById('tab-regs').style.display    = name==='regs'?'block':'none';
+  document.getElementById('tab-search').style.display  = name==='search'?'block':'none';
   if(name==='regs') renderRegOverview();
+  if(name==='search') { document.getElementById('nsearch-input').focus(); searchByName(); }
+}
+
+function searchByName(){
+  const q = (document.getElementById('nsearch-input').value||'').trim();
+  const hdEl   = document.getElementById('nsearch-hd');
+  const listEl = document.getElementById('nsearch-list');
+
+  if(!q){ hdEl.textContent=''; listEl.innerHTML=''; return; }
+
+  const matches = [];
+  Object.entries(registrations).forEach(([eventId, regs])=>{
+    if(!regs || typeof regs !== 'object') return;
+    const ev = events.find(e=>String(e.id)===String(eventId));
+    Object.entries(regs).forEach(([regKey, r])=>{
+      if(!r || typeof r !== 'object') return;
+      if((r.name||'').includes(q)){
+        matches.push({...r, eventId, regKey, ev});
+      }
+    });
+  });
+
+  matches.sort((a,b)=>(a.ev?.date||'').localeCompare(b.ev?.date||''));
+  hdEl.textContent = q ? `找到 ${matches.length} 筆` : '';
+
+  if(!matches.length){
+    listEl.innerHTML = `<p style="text-align:center;color:var(--muted);padding:48px">查無「${q}」的報名記錄</p>`;
+    return;
+  }
+
+  listEl.innerHTML = matches.map(r=>{
+    const ev = r.ev;
+    const c  = ev ? colorById(ev.color) : {hex:'#aaa',bg:'#eee'};
+    const courseTitle = ev ? ev.title : '（課程已移除）';
+    const dateStr = ev ? `${formatDate(ev.date)} ${ev.start}–${ev.end}` : '';
+    const feeStr  = ev && ev.fee ? formatFee(ev.fee) : '';
+    const paid = r.paid;
+    return `<div class="nreg-card">
+      <div class="nreg-bar" style="background:${c.hex}"></div>
+      <div class="nreg-info">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <span class="nreg-name">${r.name||'（未填姓名）'}</span>
+          <span class="paid-badge ${paid?'paid':''}" onclick="togglePaid('${r.eventId}','${r.regKey}',${!paid})">${paid?'✅ 已繳費':'⏳ 未繳費'}</span>
+        </div>
+        <div class="nreg-meta">📞 ${r.phone||'—'}${r.count>1?` ・ 👥 ${r.count} 人`:''}${r.note?` ・ ${r.note}`:''}</div>
+        <div class="nreg-course" style="color:${c.hex}">${courseTitle}</div>
+        ${dateStr?`<div class="nreg-meta">🗓 ${dateStr}</div>`:''}
+        ${feeStr?`<div class="nreg-meta">💰 ${feeStr}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderRegOverview(){
