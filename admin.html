@@ -423,13 +423,19 @@ tr:hover td{background:var(--primary-light)}
         <div class="multi-img-grid" id="f-imgs-grid"></div>
         <button type="button" class="btn-add-img" id="f-add-img-btn" onclick="addImgSlot()">＋ 新增圖片</button>
       </div>
-      <div class="fg">
+      <div class="fg" id="fg-img-pos" style="display:none">
         <label>月曆縮圖焦點</label>
-        <select id="f-img-pos" style="width:auto;padding:8px 12px;border:2px solid var(--border);border-radius:9px;font-size:.86rem;font-family:inherit;color:var(--text);background:var(--bg);outline:none">
-          <option value="center">置中（預設）</option>
-          <option value="top">靠上</option>
-          <option value="bottom">靠下</option>
-        </select>
+        <div style="display:flex;align-items:center;gap:14px">
+          <select id="f-img-pos" onchange="updateImgPosPreview()" style="width:auto;padding:8px 12px;border:2px solid var(--border);border-radius:9px;font-size:.86rem;font-family:inherit;color:var(--text);background:var(--bg);outline:none">
+            <option value="center">置中（預設）</option>
+            <option value="top">靠上</option>
+            <option value="bottom">靠下</option>
+          </select>
+          <div style="flex:1;max-width:180px">
+            <img id="img-pos-preview" src="" alt="" style="width:100%;height:70px;object-fit:cover;border-radius:6px;object-position:center;display:none;border:1px solid var(--border)">
+            <div id="img-pos-ph" style="display:none;font-size:.76rem;color:var(--muted)">請先上傳圖片</div>
+          </div>
+        </div>
       </div>
       <div class="fg">
         <label>標籤顏色</label>
@@ -914,6 +920,24 @@ function renderTable(){
   if(document.getElementById('tab-regs').style.display !== 'none') renderRegOverview();
 }
 
+function updateImgPosPreview(){
+  const pos = document.getElementById('f-img-pos').value;
+  const imgUrl = getImgSlotValues()[0] || '';
+  const fgEl  = document.getElementById('fg-img-pos');
+  const prev  = document.getElementById('img-pos-preview');
+  const ph    = document.getElementById('img-pos-ph');
+  fgEl.style.display = 'block';
+  if(imgUrl){
+    prev.src = imgUrl;
+    prev.style.objectPosition = pos;
+    prev.style.display = 'block';
+    ph.style.display = 'none';
+  } else {
+    prev.style.display = 'none';
+    ph.style.display = 'block';
+  }
+}
+
 // ── Color picker ─────────────────────────────────────────────
 function buildColorPicker(){
   document.getElementById('color-opts').innerHTML = COLORS.map(c=>`
@@ -949,6 +973,7 @@ function fillEventForm(e){
   resetImgSlots(existImgs, existPoster);
   document.getElementById('f-desc').value    = e.description||'';
   document.getElementById('f-img-pos').value = e.imgPos || 'center';
+  updateImgPosPreview();
   selColor = e.color || 'orange';
   buildColorPicker();
 }
@@ -1143,22 +1168,23 @@ function addImgSlot(){
 
 async function handleSlotUpload(input, idx){
   if(input.files[0]){
-    // Compress a thumbnail for poster use (local file → no CORS later)
     _compressImgToDataUrl(input.files[0], 400, 0.72).then(d=>{ if(d) _slotPosterData[idx]=d; });
   }
   handleImgUpload(input,`f-img-val-${idx}`,`f-img-prev-${idx}`,`f-img-ph-${idx}`,`f-img-prog-${idx}`);
+  if(idx===0) setTimeout(updateImgPosPreview, 300);
 }
 async function applySlotUrl(idx){
   applyImgUrl(`f-img-url-${idx}`,`f-img-val-${idx}`,`f-img-prev-${idx}`,`f-img-ph-${idx}`,`f-img-clear-${idx}`);
   const url = document.getElementById(`f-img-url-${idx}`).value.trim();
   if(url){
-    // Try to fetch URL and compress for poster (best effort)
     _fetchAndCompressUrl(url, 400, 0.72).then(d=>{ if(d) _slotPosterData[idx]=d; });
   }
+  if(idx===0) updateImgPosPreview();
 }
 function clearSlot(idx){
   delete _slotPosterData[idx];
   clearImage(`f-img-val-${idx}`,`f-img-prev-${idx}`,`f-img-ph-${idx}`,`f-img-clear-${idx}`,`f-img-url-${idx}`);
+  if(idx===0) updateImgPosPreview();
 }
 
 function getImgSlotValues(){
