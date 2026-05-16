@@ -1769,16 +1769,21 @@ async function _buildPoster(monthVal){
   // Use a temp context to measure actual text widths
   const _mc = document.createElement('canvas').getContext('2d');
 
+  // GAP_IMG: space between image bottom and first text top
+  // textBaseline='alphabetic' → text top ≈ baseline - fontSize*0.78
+  // So we need gap > fontSize*0.78 to avoid overlapping the image
+  const GAP_IMG = Math.ceil(FONT_TIME * 0.8) + 14; // ~27px
+
   function cardH(dateStr){
     const cs = byDay[dateStr];
     let h = INNER + FONT_DATE + 21; // header
-    h += IMG_H + 12;                // image + gap
+    h += IMG_H + GAP_IMG;           // image + enough gap so text top clears image bottom
     _mc.font = `bold ${FONT_TITLE}px ${FONT}`;
     cs.forEach(c=>{
-      h += FONT_TIME + 3;           // time row (small, above title)
+      h += FONT_TIME + 4;
       const lines = _posterWrapText(_mc, `${c.teacher}｜${c.title}`, TEXT_W).length;
-      h += Math.min(lines, 2) * (FONT_TITLE + 4);
-      h += 10;                      // gap between courses
+      h += Math.min(lines, 2) * (FONT_TITLE + 5);
+      h += 12;                      // gap between courses
     });
     h += INNER;
     return Math.max(200, h);
@@ -1887,18 +1892,18 @@ async function _buildPoster(monthVal){
         ctx.textBaseline='alphabetic'; ctx.textAlign='left';
       }
       ctx.restore();
-      ty+=IMG_H+12;
+      ty += IMG_H + GAP_IMG; // guaranteed gap: image bottom → text top clear
 
       // Courses: time (small) then teacher｜title
       courses.forEach(c=>{
         const ci=colorById(c.color);
         ctx.fillStyle='#a07850'; ctx.font=`${FONT_TIME}px ${FONT}`;
-        ctx.fillText(`${c.start}－${c.end}`,cx+INNER,ty); ty+=FONT_TIME+3;
+        ctx.fillText(`${c.start}－${c.end}`,cx+INNER,ty); ty+=FONT_TIME+4;
         ctx.fillStyle=ci.hex; ctx.font=`bold ${FONT_TITLE}px ${FONT}`;
         _posterWrapText(ctx,`${c.teacher}｜${c.title}`,iw).slice(0,2).forEach(l=>{
-          ctx.fillText(l,cx+INNER,ty); ty+=FONT_TITLE+4;
+          ctx.fillText(l,cx+INNER,ty); ty+=FONT_TITLE+5;
         });
-        ty+=10;
+        ty+=12;
       });
     });
     curY+=rh+GAP;
