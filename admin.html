@@ -1662,7 +1662,7 @@ function parsePaste(){
     const cands = lines.filter(l => l.length >= 4 && !noisy.test(l) && l !== teacher && !/^[\u{1F300}-\u{1FFFF}\u{2300}-\u{27BF}]/u.test(l));
     const kwMatch = cands.find(l => kwRe.test(l));
     title = kwMatch || '';
-    if(teacher) title = title.replace(teacher,'').replace(/^[\s×X｜|xX《》「」【】\[【-—–]+/,'').replace(/[\s×X｜|xX《》「」【】\]】-—–]+$/,'').trim();
+    if(teacher) title = title.replace(teacher,'').replace(/^[\s×X｜|xX《》「」【】\[\-—–]+/,'').replace(/[\s×X｜|xX《》「」【】\]\-—–]+$/,'').trim();
   }
 
   if(teacher) document.getElementById('pp-teacher').value = teacher;
