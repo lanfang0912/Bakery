@@ -1751,9 +1751,8 @@ async function _buildPoster(monthVal){
   // Helper: measure card height
   function cardHeight(dateStr){
     const cs = byDay[dateStr];
-    const hasImg = cs.some(c=>imgMap[c.id]);
     let h = INNER + 32 + 12; // top pad + date line + divider gap
-    if(hasImg) h += 110 + 10; // image area
+    h += 110 + 12; // image area (always shown — real or placeholder)
     cs.forEach(c=>{
       h += 18; // time line
       // title: char-count estimate (17px font, CARD_W-INNER*2 wide ≈ ~15 chars/line)
@@ -1842,14 +1841,29 @@ async function _buildPoster(monthVal){
       ctx.fillStyle='#ead8c4'; ctx.fillRect(cx+INNER, ty, CARD_W-INNER*2, 1);
       ty += 12;
 
-      // Course image (first available)
-      if(imgCourse){
-        const img=imgMap[imgCourse.id];
+      // Course image or color placeholder
+      {
         const iw=CARD_W-INNER*2, ih=108;
         ctx.save();
         _posterRoundRect(ctx,cx+INNER,ty,iw,ih,8); ctx.clip();
-        const s=Math.max(iw/img.width,ih/img.height);
-        ctx.drawImage(img,cx+INNER+(iw-img.width*s)/2,ty+(ih-img.height*s)/2,img.width*s,img.height*s);
+        if(imgCourse){
+          const img=imgMap[imgCourse.id];
+          const s=Math.max(iw/img.width,ih/img.height);
+          ctx.drawImage(img,cx+INNER+(iw-img.width*s)/2,ty+(ih-img.height*s)/2,img.width*s,img.height*s);
+        } else {
+          // Colored gradient placeholder
+          const grad=ctx.createLinearGradient(cx+INNER,ty,cx+INNER+iw,ty+ih);
+          grad.addColorStop(0, accent.hex+'cc');
+          grad.addColorStop(1, accent.hex+'55');
+          ctx.fillStyle=grad; ctx.fillRect(cx+INNER,ty,iw,ih);
+          // Emoji / icon center
+          ctx.restore(); ctx.save();
+          ctx.font=`54px serif`;
+          ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillStyle='rgba(255,255,255,0.55)';
+          ctx.fillText('🥐', cx+INNER+iw/2, ty+ih/2);
+          ctx.textBaseline='alphabetic'; ctx.textAlign='left';
+        }
         ctx.restore();
         ty += ih + 12;
       }
