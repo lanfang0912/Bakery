@@ -851,6 +851,8 @@ function startFbListener() {
     renderTable();
     if(currentRegEventId && document.getElementById('reg-overlay').classList.contains('open'))
       renderRegList(currentRegEventId);
+    if(document.getElementById('tab-search').style.display !== 'none')
+      searchByName();
   });
 
   db.ref('bakery/events').on('value', snap => {
