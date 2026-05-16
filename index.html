@@ -67,13 +67,37 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
 .cd.we .dnum{color:#e05c5c}
 .cd.we.today .dnum{background:#e05c5c;color:#fff}
 
+/* Cart mode */
+.cart-toggle{display:flex;align-items:center;gap:5px;background:var(--primary);color:#fff;border:none;padding:8px 16px;border-radius:22px;font-size:.84rem;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+.cart-toggle.active{background:#2e7d52}
+.cart-bar{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg,#3d1f08,var(--primary-dark) 60%,#8b5a27);color:#fff;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:810;transform:translateY(100%);transition:transform .3s;box-shadow:0 -4px 24px rgba(0,0,0,.3)}
+.cart-bar.show{transform:translateY(0)}
+.btn-cart-reg{background:#fff;color:var(--primary-dark);border:none;padding:10px 22px;border-radius:22px;font-size:.9rem;font-weight:800;cursor:pointer;white-space:nowrap}
+.btn-cart-clear{background:rgba(255,255,255,.15);color:#fff;border:2px solid rgba(255,255,255,.35);padding:8px 14px;border-radius:22px;font-size:.8rem;font-weight:600;cursor:pointer;white-space:nowrap}
+.cart-overlay{display:none;position:fixed;inset:0;background:rgba(30,20,10,.55);z-index:900;align-items:center;justify-content:center}
+.cart-overlay.open{display:flex}
+.cart-modal{background:#fff;border-radius:18px;width:560px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+.cart-modal-hd{background:linear-gradient(135deg,#5a3a1a,var(--primary-dark));color:#fff;padding:20px 26px 16px;border-radius:18px 18px 0 0;display:flex;align-items:center;justify-content:space-between}
+.cart-modal-body{padding:20px 26px}
+.cart-item-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:.84rem}
+.cart-item-row:last-child{border-bottom:none}
+.cfg{margin-bottom:14px}
+.cfg label{display:block;font-size:.76rem;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.cfg input{width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:9px;font-size:.88rem;font-family:inherit;color:var(--text);background:var(--bg);outline:none;transition:border-color .2s}
+.cfg input:focus{border-color:var(--primary)}.cfg input.err{border-color:var(--red)}
+.btn-cart-submit{width:100%;padding:13px;background:var(--primary);color:#fff;border:none;border-radius:22px;font-size:.95rem;font-weight:800;cursor:pointer;margin-top:4px;transition:background .2s}
+.btn-cart-submit:hover{background:var(--primary-dark)}.btn-cart-submit:disabled{opacity:.55;cursor:not-allowed}
+.ecard.in-cart{outline:2px solid var(--green);outline-offset:2px;position:relative}
+
 /* Event chips — show teacher + title */
 .chip{
   font-size:.72rem;padding:4px 6px;border-radius:7px;margin-bottom:3px;
   line-height:1.35;cursor:pointer;transition:opacity .2s;
-  overflow:hidden;
+  overflow:hidden;position:relative;
 }
 .chip:hover{opacity:.78}
+.chip.in-cart{outline:2px solid var(--green);outline-offset:2px}
+.chip.in-cart::after{content:'✓';position:absolute;top:3px;right:3px;background:var(--green);color:#fff;border-radius:50%;width:16px;height:16px;font-size:.65rem;display:flex;align-items:center;justify-content:center;font-weight:800;line-height:16px;text-align:center}
 .chip-teacher{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chip-title{opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chip-time{font-size:.65rem;opacity:.7;margin-bottom:1px}
@@ -232,9 +256,12 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
   <a class="admin-link" href="admin.html">⚙️ 管理後台</a>
 </header>
 
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('calendar',this)">📅 月曆</div>
-  <div class="tab" onclick="switchTab('schedule',this)">📋 課程清單</div>
+<div class="tabs" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+  <div style="display:flex">
+    <div class="tab active" onclick="switchTab('calendar',this)">📅 月曆</div>
+    <div class="tab" onclick="switchTab('schedule',this)">📋 課程清單</div>
+  </div>
+  <button class="cart-toggle" id="cart-mode-btn" onclick="toggleCartMode()" style="margin-right:8px">🛒 選課報名</button>
 </div>
 
 <main>
@@ -270,6 +297,53 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
     <a href="my.html" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);color:#fff;text-decoration:none;padding:10px 22px;border-radius:22px;font-size:.88rem;font-weight:700;border:2px solid rgba(255,255,255,.35)">
       🔍 查詢我的報名記錄
     </a>
+  </div>
+</div>
+
+<!-- Cart bar -->
+<div class="cart-bar" id="cart-bar">
+  <div>
+    <div style="font-size:.8rem;opacity:.8" id="cart-count-lbl">已選 0 堂</div>
+    <div style="font-size:1.05rem;font-weight:800" id="cart-total-lbl"></div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn-cart-clear" onclick="clearCart()">清除</button>
+    <button class="btn-cart-reg" onclick="openCartModal()">填寫資料報名 →</button>
+  </div>
+</div>
+
+<!-- Cart modal -->
+<div class="cart-overlay" id="cart-overlay" onclick="if(event.target===this)closeCartModal()">
+  <div class="cart-modal" id="cart-modal">
+    <div class="cart-modal-hd">
+      <div>
+        <div style="font-size:1rem;font-weight:800">🛒 確認報名</div>
+        <div style="font-size:.78rem;opacity:.8;margin-top:2px" id="cart-modal-sub"></div>
+      </div>
+      <button onclick="closeCartModal()" style="background:none;border:none;color:#fff;font-size:1.4rem;cursor:pointer;line-height:1">×</button>
+    </div>
+    <div class="cart-modal-body" id="cart-modal-body">
+      <!-- Course list -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:.78rem;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px">已選課程</div>
+        <div id="cart-course-list"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 0;font-weight:800;font-size:.95rem;color:var(--primary-dark);border-top:2px solid var(--border)" id="cart-total-row"></div>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+      <!-- Form -->
+      <form onsubmit="submitCart(event)">
+        <div class="cfg">
+          <label>姓名 *</label>
+          <input id="cart-name" type="text" placeholder="請輸入姓名" autocomplete="name">
+        </div>
+        <div class="cfg">
+          <label>電話 *</label>
+          <input id="cart-phone" type="tel" placeholder="例：0912-345-678" autocomplete="tel" inputmode="tel">
+        </div>
+        <div style="color:var(--red);font-size:.82rem;margin-bottom:10px;display:none" id="cart-err"></div>
+        <button class="btn-cart-submit" type="submit" id="cart-submit-btn">確認報名</button>
+      </form>
+    </div>
   </div>
 </div>
 
@@ -412,8 +486,8 @@ function renderCal(y, m) {
     // Show all chips (no "+more" limit), each with teacher + title
     let chips = evts.map(e=>{
       const c = colorById(e.color);
-      return `<div class="chip" style="background:${c.bg};color:${c.hex}"
-              onclick="showDetail(event,'${e.id}')">
+      return `<div class="chip" data-eid="${e.id}" style="background:${c.bg};color:${c.hex}"
+              onclick="handleChipClick(event,'${e.id}')">
         ${e.image?`<img class="chip-img" src="${e.image}" alt="" style="object-position:${e.imgPos||'center'}">`:''}
         <div class="chip-time">${e.start}</div>
         <div class="chip-teacher">${e.teacher}</div>
@@ -521,7 +595,123 @@ document.addEventListener('click',e=>{
 function openRegFromSchedule(eventId){
   location.href = 'register.html?id=' + eventId;
 }
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeDetail(); closeDayModalBtn(); }});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeDetail(); closeDayModalBtn(); closeCartModal(); }});
+
+// ── Cart / 選課報名 ───────────────────────────────────────────
+let cart = {};
+let cartMode = false;
+
+function toggleCartMode(){
+  cartMode = !cartMode;
+  const btn = document.getElementById('cart-mode-btn');
+  btn.classList.toggle('active', cartMode);
+  btn.textContent = cartMode ? '✓ 選課中 — 取消' : '🛒 選課報名';
+  if(!cartMode){ cart={}; updateCartBar(); }
+  renderCal(curYear, curMonth);
+  renderSchedule();
+}
+
+function handleChipClick(event, id){
+  if(cartMode){ event.stopPropagation(); toggleCartItem(id); }
+  else showDetail(event, id);
+}
+
+function handleSchedReg(event, id){
+  if(cartMode){ toggleCartItem(id); }
+  else openRegFromSchedule(id);
+}
+
+function toggleCartItem(id){
+  if(cart[id]) delete cart[id];
+  else { const ev=events.find(e=>String(e.id)===String(id)); if(ev) cart[id]=ev; }
+  updateCartChips();
+  updateCartBar();
+}
+
+function updateCartChips(){
+  document.querySelectorAll('.chip[data-eid]').forEach(el=>{
+    el.classList.toggle('in-cart', !!cart[el.dataset.eid]);
+  });
+  document.querySelectorAll('.ecard[data-eid]').forEach(el=>{
+    el.classList.toggle('in-cart', !!cart[el.dataset.eid]);
+  });
+}
+
+function updateCartBar(){
+  const items = Object.values(cart);
+  const bar = document.getElementById('cart-bar');
+  if(!items.length || !cartMode){ bar.classList.remove('show'); return; }
+  bar.classList.add('show');
+  const total = items.reduce((s,e)=>s+(Number(e.fee)||0),0);
+  document.getElementById('cart-count-lbl').textContent = `已選 ${items.length} 堂`;
+  document.getElementById('cart-total-lbl').textContent = total>0 ? `合計 NT$${total.toLocaleString('zh-TW')} 元` : '';
+}
+
+function clearCart(){ cart={}; updateCartChips(); updateCartBar(); }
+
+function openCartModal(){
+  const items = Object.values(cart).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!items.length) return;
+  const total = items.reduce((s,e)=>s+(Number(e.fee)||0),0);
+  document.getElementById('cart-modal-sub').textContent = `${items.length} 堂課程`;
+  document.getElementById('cart-course-list').innerHTML = items.map(e=>`
+    <div class="cart-item-row">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;color:var(--primary-dark)">${e.title}</div>
+        <div style="font-size:.76rem;color:var(--muted)">${formatDate(e.date)} ${e.start}–${e.end} · ${e.teacher}</div>
+      </div>
+      <div style="font-weight:700;white-space:nowrap;color:var(--primary-dark)">${Number(e.fee)>0?`NT$${Number(e.fee).toLocaleString('zh-TW')}`:'—'}</div>
+    </div>`).join('');
+  document.getElementById('cart-total-row').innerHTML = total>0
+    ? `<span>合計</span><span style="color:var(--primary)">NT$${total.toLocaleString('zh-TW')} 元</span>`
+    : '';
+  ['cart-name','cart-phone'].forEach(id=>{ document.getElementById(id).value=''; document.getElementById(id).classList.remove('err'); });
+  document.getElementById('cart-err').style.display='none';
+  document.getElementById('cart-submit-btn').disabled=false;
+  document.getElementById('cart-submit-btn').textContent='確認報名';
+  document.getElementById('cart-modal-body').style.display='block';
+  document.getElementById('cart-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('cart-name').focus(),80);
+}
+
+function closeCartModal(){ document.getElementById('cart-overlay').classList.remove('open'); }
+
+async function submitCart(e){
+  e.preventDefault();
+  const name  = document.getElementById('cart-name').value.trim();
+  const phone = document.getElementById('cart-phone').value.trim();
+  const errEl = document.getElementById('cart-err');
+  document.getElementById('cart-name').classList.toggle('err',!name);
+  document.getElementById('cart-phone').classList.toggle('err',!phone);
+  if(!name||!phone){ errEl.textContent='請填寫姓名和電話'; errEl.style.display='block'; return; }
+  const btn=document.getElementById('cart-submit-btn');
+  btn.disabled=true; btn.textContent='報名中…'; errEl.style.display='none';
+  const items=Object.values(cart); const ts=Date.now();
+  try{
+    await Promise.all(items.map((ev,i)=>
+      db.ref('bakery/registrations/'+ev.id).push({name,phone,paid:false,createdAt:ts+i})
+    ));
+    const total=items.reduce((s,ev)=>s+(Number(ev.fee)||0),0);
+    // Show success
+    document.getElementById('cart-modal-body').innerHTML = `
+      <div style="text-align:center;padding:32px 16px">
+        <div style="font-size:3rem;margin-bottom:12px">🎉</div>
+        <div style="font-size:1.05rem;font-weight:800;color:var(--primary-dark);margin-bottom:6px">${name}，報名成功！</div>
+        <div style="font-size:.86rem;color:var(--muted);margin-bottom:16px">已完成 ${items.length} 堂課程報名</div>
+        ${total>0?`<div style="font-size:1rem;font-weight:800;color:var(--primary);background:var(--primary-light);border-radius:12px;padding:12px 20px;margin-bottom:16px">應繳金額 NT$${total.toLocaleString('zh-TW')} 元</div>`:''}
+        <div style="font-size:.82rem;color:var(--muted);line-height:1.9;margin-bottom:20px">匯款後請來電或 LINE 告知<br>📞 0966-864-079</div>
+        <button onclick="closeCartModal()" style="background:var(--primary);color:#fff;border:none;padding:11px 32px;border-radius:22px;font-size:.92rem;font-weight:700;cursor:pointer">完成</button>
+      </div>`;
+    cart={}; cartMode=false;
+    document.getElementById('cart-mode-btn').classList.remove('active');
+    document.getElementById('cart-mode-btn').textContent='🛒 選課報名';
+    document.getElementById('cart-bar').classList.remove('show');
+    renderCal(curYear,curMonth); renderSchedule();
+  }catch(err){
+    errEl.textContent='報名失敗，請稍後再試'; errEl.style.display='block';
+    btn.disabled=false; btn.textContent='確認報名';
+  }
+}
 
 // ── Schedule list ─────────────────────────────────────────────
 function updateStats(){
@@ -548,13 +738,13 @@ function renderSchedule(){
       html+=`<div class="dgroup"><div class="dhead"><div class="ddot"></div>${formatDate(date)}</div>`;
       byYM[ym][date].forEach(e=>{
         const c = colorById(e.color);
-        html+=`<div class="ecard">
+        html+=`<div class="ecard" data-eid="${e.id}">
           ${e.image?`<img class="ethumb" src="${e.image}" alt="${e.title}">`:`<div class="ebar" style="background:${c.hex}"></div>`}
           <div class="einfo">
             <div class="etitle">${e.teacher}｜${e.title}</div>
             <div class="etime">🕐 ${e.start} – ${e.end}</div>
             ${formatFee(e.fee)?`<div class="efee">💵 ${formatFee(e.fee)}</div>`:''}
-            <div class="elink"><a href="#" onclick="event.preventDefault();openRegFromSchedule('${e.id}')" style="color:var(--primary);text-decoration:none;font-weight:600">📝 立即報名</a></div>
+            <div class="elink"><a href="#" onclick="event.preventDefault();handleSchedReg(event,'${e.id}')" style="color:var(--primary);text-decoration:none;font-weight:600">📝 立即報名</a></div>
           </div>
         </div>`;
       });

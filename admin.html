@@ -170,6 +170,13 @@ tr:hover td{background:var(--primary-light)}
 .toast.success{background:var(--green)}
 .toast.error{background:var(--red)}
 
+/* Batch reg */
+.batch-course-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:9px;border:1px solid var(--border);margin-bottom:6px;cursor:pointer;transition:background .15s}
+.batch-course-item:hover{background:var(--primary-light)}
+.batch-course-item.sel{background:var(--primary-light);border-color:var(--primary)}
+.batch-course-item input[type=checkbox]{width:16px;height:16px;margin-top:2px;flex-shrink:0;accent-color:var(--primary)}
+.batch-total{font-size:1rem;font-weight:800;color:var(--primary-dark);padding:10px 0 0;border-top:2px solid var(--border);display:flex;justify-content:space-between}
+
 /* Reg list table (desktop) */
 .reg-table{width:100%;border-collapse:collapse;font-size:.84rem}
 .reg-table th{background:var(--primary-dark);color:#fff;padding:9px 12px;text-align:left;font-size:.76rem;font-weight:700;white-space:nowrap}
@@ -312,6 +319,7 @@ tr:hover td{background:var(--primary-light)}
 <button class="btn-poster" onclick="openPoster()">🎨 月份海報</button>
     <button class="btn-paste" onclick="openPaste()">📋 貼上新增</button>
     <button class="btn-cloud" onclick="openCloudSettings()">☁️ 圖片設定</button>
+    <button class="btn-paste" onclick="openBatchReg()" style="background:#2e7d52">👥 批次報名</button>
     <button class="btn-add" onclick="openAdd()">＋ 手動新增</button>
   </div>
 </div>
@@ -451,6 +459,42 @@ tr:hover td{background:var(--primary-light)}
         <button type="submit" class="btn-save">儲存課程</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Batch reg modal -->
+<div id="batch-overlay" class="overlay" onclick="if(event.target===this)closeBatchReg()">
+  <div class="modal" style="width:680px;max-height:92vh;overflow-y:auto">
+    <div class="modal-hd">
+      <h3>👥 批次報名</h3>
+      <button class="modal-close" onclick="closeBatchReg()">×</button>
+    </div>
+    <div style="padding:0 4px">
+      <div class="fg-row">
+        <div class="fg"><label>姓名 *</label><input class="ma-input" id="br-name" type="text" placeholder="學員姓名"></div>
+        <div class="fg"><label>電話 *</label><input class="ma-input" id="br-phone" type="tel" placeholder="0912-345-678"></div>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>人數</label><input class="ma-input" id="br-count" type="number" value="1" min="1"></div>
+        <div class="fg"><label>備註</label><input class="ma-input" id="br-note" type="text" placeholder="（選填）"></div>
+      </div>
+      <div class="fg" style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="br-paid" style="width:16px;height:16px;accent-color:var(--green)">
+        <label for="br-paid" style="font-size:.86rem;font-weight:600;text-transform:none;letter-spacing:0;color:var(--text);margin:0;cursor:pointer">已繳費</label>
+      </div>
+      <div class="fg">
+        <label>選擇課程（可複選）</label>
+        <input type="text" class="ma-input" id="br-search" placeholder="🔍 搜尋課程…" oninput="renderBatchCourseList()" style="margin-bottom:10px">
+        <div id="br-course-list" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:0"></div>
+      </div>
+      <div class="batch-total" id="br-total" style="display:none">
+        <span>合計費用</span><span id="br-total-val" style="color:var(--primary)"></span>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-cancel" onclick="closeBatchReg()">取消</button>
+      <button type="button" class="btn-save" onclick="submitBatchReg()">確認報名</button>
+    </div>
   </div>
 </div>
 
@@ -923,6 +967,91 @@ function renderTable(){
   document.getElementById('tbody').innerHTML = html;
   // keep overview in sync if visible
   if(document.getElementById('tab-regs').style.display !== 'none') renderRegOverview();
+}
+
+// ── Batch registration ────────────────────────────────────────
+let batchSelected = {};
+
+function openBatchReg(){
+  batchSelected = {};
+  ['br-name','br-phone','br-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('br-count').value = 1;
+  document.getElementById('br-paid').checked = false;
+  document.getElementById('br-search').value = '';
+  renderBatchCourseList();
+  document.getElementById('batch-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('br-name').focus(),80);
+}
+
+function closeBatchReg(){
+  document.getElementById('batch-overlay').classList.remove('open');
+}
+
+function renderBatchCourseList(){
+  const q = (document.getElementById('br-search').value||'').toLowerCase();
+  const sorted = [...events].sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
+  const filtered = q ? sorted.filter(e=>(e.title+e.teacher).toLowerCase().includes(q)) : sorted;
+  document.getElementById('br-course-list').innerHTML = filtered.map(e=>{
+    const c = colorById(e.color);
+    const sel = !!batchSelected[e.id];
+    const feeStr = formatFee(e.fee);
+    return `<label class="batch-course-item${sel?' sel':''}" style="border-left:4px solid ${c.hex}">
+      <input type="checkbox" ${sel?'checked':''} onchange="toggleBatchCourse('${e.id}',this.checked)">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:.88rem;color:var(--primary-dark)">${e.title}</div>
+        <div style="font-size:.76rem;color:var(--muted)">${formatDate(e.date)} ${e.start}–${e.end} · ${e.teacher}</div>
+      </div>
+      ${feeStr?`<div style="font-size:.82rem;font-weight:700;white-space:nowrap;color:var(--primary-dark)">${feeStr}</div>`:''}
+    </label>`;
+  }).join('');
+  calcBatchTotal();
+}
+
+function toggleBatchCourse(id, checked){
+  const ev = events.find(e=>String(e.id)===String(id));
+  if(checked && ev) batchSelected[id]=ev;
+  else delete batchSelected[id];
+  // Update item style
+  document.querySelectorAll('.batch-course-item').forEach(el=>{
+    const cb = el.querySelector('input[type=checkbox]');
+    if(cb) el.classList.toggle('sel', cb.checked);
+  });
+  calcBatchTotal();
+}
+
+function calcBatchTotal(){
+  const items = Object.values(batchSelected);
+  const total = items.reduce((s,e)=>s+(Number(e.fee)||0),0);
+  const el = document.getElementById('br-total');
+  if(items.length && total>0){
+    el.style.display='flex';
+    document.getElementById('br-total-val').textContent = `NT$${total.toLocaleString('zh-TW')} 元`;
+  } else {
+    el.style.display='none';
+  }
+}
+
+async function submitBatchReg(){
+  const name  = document.getElementById('br-name').value.trim();
+  const phone = document.getElementById('br-phone').value.trim();
+  const count = Number(document.getElementById('br-count').value)||1;
+  const note  = document.getElementById('br-note').value.trim();
+  const paid  = document.getElementById('br-paid').checked;
+  const items = Object.values(batchSelected);
+
+  if(!name||!phone){ toast('請填寫姓名和電話','error'); return; }
+  if(!items.length){ toast('請至少選擇一堂課程','error'); return; }
+
+  const ts = Date.now();
+  try{
+    await Promise.all(items.map((ev,i)=>
+      db.ref('bakery/registrations/'+ev.id).push({name,phone,count,note,paid,createdAt:ts+i})
+    ));
+    toast(`✅ 已為「${name}」完成 ${items.length} 堂課程報名`,'success');
+    closeBatchReg();
+  }catch(e){
+    toast('報名失敗：'+(e.message||e),'error');
+  }
 }
 
 function updateImgPosPreview(){
