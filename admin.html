@@ -1833,6 +1833,15 @@ function _posterWrapText(ctx, text, maxWidth){
   return lines;
 }
 
+function _posterDrawContainedImage(ctx, img, x, y, w, h, bg='#f8efe4'){
+  ctx.fillStyle = bg;
+  ctx.fillRect(x,y,w,h);
+  const s = Math.min(w/img.width, h/img.height);
+  const dw = img.width * s;
+  const dh = img.height * s;
+  ctx.drawImage(img, x+(w-dw)/2, y+(h-dh)/2, dw, dh);
+}
+
 async function _buildPoster(monthVal){
   _posterCanvasTainted = false;
   const [year, mon] = monthVal.split('-').map(Number);
@@ -1975,8 +1984,7 @@ async function _buildPoster(monthVal){
     withImg.slice(0,n).forEach((c,i)=>{
       const img=imgMap[c.id], ix=sx+i*(IW+IGAP), iy=16, ih=108;
       ctx.save(); _posterRoundRect(ctx,ix,iy,IW,ih,8); ctx.clip();
-      const s=Math.max(IW/img.width,ih/img.height);
-      ctx.drawImage(img,ix+(IW-img.width*s)/2,iy+(ih-img.height*s)/2,img.width*s,img.height*s);
+      _posterDrawContainedImage(ctx,img,ix,iy,IW,ih,'#f8efe4');
       ctx.restore();
     });
   }
@@ -2021,8 +2029,7 @@ async function _buildPoster(monthVal){
       _posterRoundRect(ctx,cx+INNER,ty,iw,IMG_H,8); ctx.clip();
       if(imgCourse){
         const img=imgMap[imgCourse.id];
-        const s=Math.max(iw/img.width,IMG_H/img.height);
-        ctx.drawImage(img,cx+INNER+(iw-img.width*s)/2,ty+(IMG_H-img.height*s)/2,img.width*s,img.height*s);
+        _posterDrawContainedImage(ctx,img,cx+INNER,ty,iw,IMG_H,'#f8efe4');
       } else {
         const grad=ctx.createLinearGradient(cx+INNER,ty,cx+INNER+iw,ty+IMG_H);
         grad.addColorStop(0,accent.hex+'bb'); grad.addColorStop(1,accent.hex+'33');
