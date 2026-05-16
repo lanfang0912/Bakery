@@ -873,6 +873,19 @@ const SESSION_KEY = 'bakery_authed';
 const DEFAULT_PW  = 'bakery2026';
 const CALENDAR_PREVIEW_DEFAULT = {imgW:70, imgH:56};
 
+function storageGet(key){
+  try { return window.localStorage.getItem(key); }
+  catch(e){ return null; }
+}
+function storageSet(key, value){
+  try { window.localStorage.setItem(key, value); }
+  catch(e){}
+}
+function storageRemove(key){
+  try { window.localStorage.removeItem(key); }
+  catch(e){}
+}
+
 // ── Firebase init ─────────────────────────────────────────────
 firebase.initializeApp(FB_CONFIG);
 db = firebase.database();
@@ -2344,7 +2357,8 @@ async function sha256(str) {
 
 async function getStoredHash() {
   if (pwHash) return pwHash;
-  try { const l = localStorage.getItem('bakery_pw_hash'); if(l) return l; } catch(e){}
+  const l = storageGet('bakery_pw_hash');
+  if(l) return l;
   return await sha256(DEFAULT_PW);
 }
 
@@ -2363,7 +2377,7 @@ async function doLogin(e) {
         db.ref('bakery/settings/pwHash').set(null);
         pwHash = null;
       }
-      localStorage.setItem(SESSION_KEY,'1');
+      storageSet(SESSION_KEY,'1');
       firebase.auth().signInAnonymously().catch(()=>{});
       document.getElementById('login-screen').classList.add('hidden');
       err.textContent='';
@@ -2381,7 +2395,7 @@ async function doLogin(e) {
 }
 
 function doLogout() {
-  localStorage.removeItem(SESSION_KEY);
+  storageRemove(SESSION_KEY);
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('login-pw').focus();
 }
@@ -3247,7 +3261,7 @@ async function downloadPoster(){
 
 // Check session on load
 (async()=>{
-  if(localStorage.getItem(SESSION_KEY)==='1'){
+  if(storageGet(SESSION_KEY)==='1'){
     firebase.auth().signInAnonymously().catch(()=>{});
     document.getElementById('login-screen').classList.add('hidden');
   } else {
