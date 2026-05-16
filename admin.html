@@ -2772,7 +2772,7 @@ function _buildPosterPptx(monthVal){
   return pptx;
 }
 
-async function _buildPoster(monthVal, skipIds = null){
+async function _buildPoster(monthVal, skipIds = null, forDownload = false){
   if(!skipIds){ _posterCanvasTainted = false; _taintedIds = new Set(); }
   const [year, mon] = monthVal.split('-').map(Number);
   const WDAYS = ['日','一','二','三','四','五','六'];
@@ -2816,7 +2816,7 @@ async function _buildPoster(monthVal, skipIds = null){
         let proxyOk = false;
         if(cloudCfg.cloudName && !src.includes('res.cloudinary.com')){
           try {
-            const proxyUrl = `https://res.cloudinary.com/${cloudCfg.cloudName}/image/fetch/${encodeURIComponent(src)}`;
+            const proxyUrl = `https://res.cloudinary.com/${cloudCfg.cloudName}/image/fetch/${src}`;
             const pr = await fetch(proxyUrl, {cache:'reload'});
             if(pr.ok){
               imgSrc = URL.createObjectURL(await pr.blob());
@@ -2826,7 +2826,18 @@ async function _buildPoster(monthVal, skipIds = null){
           } catch(e2){}
         }
         if(!proxyOk){
-          // Still failed — use direct URL for preview only (taints canvas)
+          if(forDownload){
+            // For download: try crossOrigin='anonymous' — works if server sends CORS headers for img requests
+            await new Promise(r=>{
+              const t = new Image();
+              t.crossOrigin = 'anonymous';
+              t.onload = ()=>{ imgMap[c.id]=t; r(); };
+              t.onerror = ()=>r(); // Skip → colour gradient placeholder, canvas stays clean
+              t.src = src;
+            });
+            return;
+          }
+          // Preview: use direct URL (taints canvas for download but preview works)
           imgSrc = src;
           usedDirectFallback = true;
         }
@@ -3088,10 +3099,10 @@ async function downloadPoster(){
   const filename = _posterFileName('png');
   let canvas = _posterCanvas;
   if(_posterCanvasTainted){
-    // Rebuild a clean canvas, skipping images that caused tainting (replaced by colour gradients)
+    // Rebuild without tainted-skip: try crossOrigin='anonymous' for blocked images so they appear in download
     const monthVal = document.getElementById('poster-month').value;
-    toast('重新生成無跨域限制版本…','success');
-    canvas = await _buildPoster(monthVal, _taintedIds);
+    toast('重新生成下載版…','success');
+    canvas = await _buildPoster(monthVal, null, true);
     if(!canvas){ toast('重新生成失敗','error'); return; }
   }
 
@@ -3113,12 +3124,18 @@ async function downloadPoster(){
     }
   }
 
-  // Desktop / fallback: trigger file download
-  const link = document.createElement('a');
-  link.download = filename;
-  link.href = canvas.toDataURL('image/png');
-  link.click();
-  toast('海報已下載 ✓','success');
+  // Desktop / fallback: trigger file download via blob URL (handles large images reliably)
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    toast('海報已下載 ✓','success');
+  }, 'image/png');
 }
 
 // Check session on load
