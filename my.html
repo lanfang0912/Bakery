@@ -88,14 +88,9 @@ main{max-width:520px;margin:32px auto;padding:0 16px 60px}
   </div>
 </main>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="data.js"></script>
 <script>
-firebase.initializeApp(FB_CONFIG);
-const db = firebase.database();
-const authReady = firebase.auth().signInAnonymously().catch(()=>{});
+const DB_ROOT = FB_CONFIG.databaseURL;
 
 const WEEKDAYS = ['日','一','二','三','四','五','六'];
 function formatDate(d){
@@ -111,7 +106,6 @@ async function doQuery(){
   const phone = normalizePhone(document.getElementById('q-phone').value);
   const errEl  = document.getElementById('q-err');
 
-  // Validate
   document.getElementById('q-phone').classList.toggle('err', phone.length < 8);
   errEl.style.display = 'none';
 
@@ -126,33 +120,32 @@ async function doQuery(){
   btn.textContent = '查詢中…';
 
   try {
-    await authReady;
-    // Fetch events & registrations
-    const [evSnap, regSnap] = await Promise.all([
-      db.ref('bakery/events').once('value'),
-      db.ref('bakery/registrations').once('value')
+    // Use REST API directly — no Firebase SDK auth needed
+    const [evRes, regRes] = await Promise.all([
+      fetch(`${DB_ROOT}/bakery/events.json`),
+      fetch(`${DB_ROOT}/bakery/registrations.json`)
     ]);
+    if(!evRes.ok || !regRes.ok) throw new Error('資料讀取失敗，請稍後再試');
+
+    const eventsData  = await evRes.json();
+    const allRegs     = await regRes.json() || {};
 
     const eventsMap = {};
-    (evSnap.val() || {});
-    Object.entries(evSnap.val() || {}).forEach(([k,v]) => eventsMap[k] = {...v, id:k});
+    Object.entries(eventsData || {}).forEach(([k,v]) => eventsMap[k] = {...v, id:k});
 
-    const allRegs = regSnap.val() || {};
-
-    // Filter by full phone number after removing spaces and punctuation
+    // Match by full phone number (digits only)
     const matches = [];
     Object.entries(allRegs).forEach(([eventId, regs]) => {
+      if(!regs || typeof regs !== 'object') return;
       Object.entries(regs).forEach(([regId, r]) => {
-        const phoneMatch = normalizePhone(r.phone) === phone;
-        if(phoneMatch){
+        if(!r || typeof r !== 'object') return;
+        if(normalizePhone(r.phone) === phone){
           matches.push({ ...r, eventId, regId, event: eventsMap[eventId] });
         }
       });
     });
 
-    // Sort by date
     matches.sort((a,b) => (a.event?.date||'').localeCompare(b.event?.date||''));
-
     renderResults(matches);
   } catch(e) {
     errEl.textContent = '查詢失敗：' + (e.message || e);
