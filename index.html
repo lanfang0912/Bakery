@@ -10,7 +10,7 @@
   --accent:#e8a45a; --bg:#fdf8f3; --card:#fff; --text:#3d2c1e;
   --muted:#8a6d5a; --border:#e8d5c0;
   --shadow:0 2px 14px rgba(193,127,62,.13);
-  --cal-chip-img-w:70px; --cal-chip-img-h:56px;
+  --cal-chip-img-w:100%; --cal-chip-img-h:70px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{overflow-y:scroll}
@@ -418,11 +418,17 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
 firebase.initializeApp(FB_CONFIG);
 const db = firebase.database();
 firebase.auth().signInAnonymously().catch(()=>{});
-const CALENDAR_PREVIEW_DEFAULT = {imgW:70, imgH:56};
+const CALENDAR_PREVIEW_DEFAULT = {imgW:'100%', imgH:70};
 function applyCalendarPreviewSettings(cfg={}){
-  const imgW = Number(cfg.imgW) || CALENDAR_PREVIEW_DEFAULT.imgW;
+  if(!cfg.version && Number(cfg.imgW) === 70 && Number(cfg.imgH) === 56){
+    cfg = CALENDAR_PREVIEW_DEFAULT;
+  }
+  const rawW = String(cfg.imgW || CALENDAR_PREVIEW_DEFAULT.imgW).trim();
   const imgH = Number(cfg.imgH) || CALENDAR_PREVIEW_DEFAULT.imgH;
-  document.documentElement.style.setProperty('--cal-chip-img-w', `${Math.max(40, Math.min(180, imgW))}px`);
+  const width = rawW.endsWith('%')
+    ? `${Math.max(40, Math.min(100, Number(rawW.slice(0,-1)) || 100))}%`
+    : `${Math.max(40, Math.min(180, Number(rawW) || 100))}px`;
+  document.documentElement.style.setProperty('--cal-chip-img-w', width);
   document.documentElement.style.setProperty('--cal-chip-img-h', `${Math.max(30, Math.min(160, imgH))}px`);
 }
 applyCalendarPreviewSettings(CALENDAR_PREVIEW_DEFAULT);

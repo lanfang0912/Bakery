@@ -447,7 +447,7 @@ tr:hover td{background:var(--primary-light)}
           <!-- Preview -->
           <div style="flex:1;min-width:120px;max-width:200px">
             <div style="font-size:.72rem;color:var(--muted);margin-bottom:4px;font-weight:600">月曆預覽</div>
-            <img id="img-pos-preview" src="" alt="" style="width:70px;height:56px;object-fit:cover;border-radius:6px;object-position:50% 50%;display:none;border:1px solid var(--border)">
+            <img id="img-pos-preview" src="" alt="" style="width:100%;height:70px;object-fit:cover;border-radius:6px;object-position:50% 50%;display:none;border:1px solid var(--border)">
           </div>
         </div>
       </div>
@@ -619,7 +619,7 @@ tr:hover td{background:var(--primary-light)}
     <div class="fg-row">
       <div class="fg">
         <label>圖片寬度</label>
-        <input type="number" id="cal-img-w" min="40" max="180" step="1" oninput="updateCalendarPreviewSample()">
+        <input type="text" id="cal-img-w" placeholder="100% 或 70" oninput="updateCalendarPreviewSample()">
       </div>
       <div class="fg">
         <label>圖片高度</label>
@@ -632,10 +632,10 @@ tr:hover td{background:var(--primary-light)}
     <div style="margin-top:16px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#fff">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;color:var(--muted);font-size:.8rem;font-weight:800">
         <span>即時預覽</span>
-        <span id="cal-preview-size">70 × 56</span>
+        <span id="cal-preview-size">100% × 70px</span>
       </div>
-      <div style="display:inline-block;max-width:210px;padding:8px;border:1px solid #ead8c4;border-radius:8px;background:#fffaf5;color:#3c2e24;font-size:.78rem;font-weight:800;line-height:1.35">
-        <img id="cal-preview-img" alt="" style="width:70px;height:56px;object-fit:cover;border-radius:6px;display:block;margin-bottom:4px;background:#f2e7db">
+      <div id="cal-preview-card" style="display:inline-block;width:180px;max-width:210px;padding:8px;border:1px solid #ead8c4;border-radius:8px;background:#fffaf5;color:#3c2e24;font-size:.78rem;font-weight:800;line-height:1.35">
+        <img id="cal-preview-img" alt="" style="width:100%;height:70px;object-fit:cover;border-radius:6px;display:block;margin-bottom:4px;background:#f2e7db">
         <div id="cal-preview-time">09:30</div>
         <div id="cal-preview-teacher">老師姓名</div>
         <div id="cal-preview-title">課程名稱</div>
@@ -872,7 +872,8 @@ let pwHash = null;
 let calendarPreviewCfg = {};
 const SESSION_KEY = 'bakery_authed';
 const DEFAULT_PW  = 'bakery2026';
-const CALENDAR_PREVIEW_DEFAULT = {imgW:70, imgH:56};
+const CALENDAR_PREVIEW_DEFAULT = {imgW:'100%', imgH:70};
+const CALENDAR_PREVIEW_VERSION = 2;
 
 function storageGet(key){
   try { return window.localStorage.getItem(key); }
@@ -907,7 +908,7 @@ function startFbListener() {
   });
 
   db.ref('bakery/settings/calendarPreview').on('value', snap => {
-    calendarPreviewCfg = {...CALENDAR_PREVIEW_DEFAULT, ...(snap.val() || {})};
+    calendarPreviewCfg = normalizeCalendarPreviewSettings(snap.val() || {});
     syncCalendarPreviewControls();
     applyCalendarPreviewSizeToCourseEditor();
   });
@@ -1215,8 +1216,8 @@ function applyCalendarPreviewSizeToCourseEditor(){
   const prev = document.getElementById('img-pos-preview');
   if(!prev) return;
   const cfg = {...CALENDAR_PREVIEW_DEFAULT, ...(calendarPreviewCfg || {})};
-  prev.style.width = (cfg.imgW || CALENDAR_PREVIEW_DEFAULT.imgW) + 'px';
-  prev.style.height = (cfg.imgH || CALENDAR_PREVIEW_DEFAULT.imgH) + 'px';
+  prev.style.width = _calendarPreviewWidthCss(cfg.imgW);
+  prev.style.height = _calendarPreviewHeightCss(cfg.imgH);
 }
 
 function _applyFpDot(pos){
@@ -1460,20 +1461,41 @@ function openCalendarPreviewSettings(){
 function closeCalendarPreviewSettings(){
   document.getElementById('calendar-preview-overlay').classList.remove('open');
 }
+function normalizeCalendarPreviewSettings(raw={}){
+  const oldDefault = !raw.version && Number(raw.imgW) === 70 && Number(raw.imgH) === 56;
+  return oldDefault ? {...CALENDAR_PREVIEW_DEFAULT} : {...CALENDAR_PREVIEW_DEFAULT, ...raw};
+}
+function _calendarPreviewWidthCss(value){
+  const raw = String(value || CALENDAR_PREVIEW_DEFAULT.imgW).trim();
+  if(raw.endsWith('%')){
+    const pct = _num(raw.slice(0,-1), 100, 40, 100);
+    return pct + '%';
+  }
+  return _num(raw, 100, 40, 180) + 'px';
+}
+function _calendarPreviewHeightCss(value){
+  return _num(value, CALENDAR_PREVIEW_DEFAULT.imgH, 30, 160) + 'px';
+}
 function _calendarPreviewFromInputs(){
+  const rawW = String(document.getElementById('cal-img-w')?.value || CALENDAR_PREVIEW_DEFAULT.imgW).trim();
+  const imgW = rawW.endsWith('%') ? _calendarPreviewWidthCss(rawW) : _num(rawW, 100, 40, 180);
   return {
-    imgW: _num(document.getElementById('cal-img-w')?.value, CALENDAR_PREVIEW_DEFAULT.imgW, 40, 180),
+    imgW,
     imgH: _num(document.getElementById('cal-img-h')?.value, CALENDAR_PREVIEW_DEFAULT.imgH, 30, 160)
   };
 }
 function updateCalendarPreviewSample(){
   const cfg = _calendarPreviewFromInputs();
   const img = document.getElementById('cal-preview-img');
+  const card = document.getElementById('cal-preview-card');
   const size = document.getElementById('cal-preview-size');
-  if(size) size.textContent = `${cfg.imgW} × ${cfg.imgH}`;
+  const wCss = _calendarPreviewWidthCss(cfg.imgW);
+  const hCss = _calendarPreviewHeightCss(cfg.imgH);
+  if(size) size.textContent = `${wCss} × ${hCss}`;
+  if(card) card.style.width = wCss.endsWith('%') ? '180px' : 'auto';
   if(img){
-    img.style.width = cfg.imgW + 'px';
-    img.style.height = cfg.imgH + 'px';
+    img.style.width = wCss;
+    img.style.height = hCss;
   }
 
   const eventList = (typeof events !== 'undefined' && Array.isArray(events)) ? events : [];
@@ -1493,14 +1515,14 @@ function updateCalendarPreviewSample(){
 async function saveCalendarPreviewSettings(){
   calendarPreviewCfg = _calendarPreviewFromInputs();
   syncCalendarPreviewControls();
-  await db.ref('bakery/settings/calendarPreview').set(calendarPreviewCfg);
+  await db.ref('bakery/settings/calendarPreview').set({...calendarPreviewCfg, version:CALENDAR_PREVIEW_VERSION});
   closeCalendarPreviewSettings();
   toast('月曆縮圖設定已儲存 ✓','success');
 }
 async function resetCalendarPreviewSettings(){
   calendarPreviewCfg = {...CALENDAR_PREVIEW_DEFAULT};
   syncCalendarPreviewControls();
-  await db.ref('bakery/settings/calendarPreview').set(calendarPreviewCfg);
+  await db.ref('bakery/settings/calendarPreview').set({...calendarPreviewCfg, version:CALENDAR_PREVIEW_VERSION});
   toast('已恢復月曆縮圖預設','success');
 }
 
