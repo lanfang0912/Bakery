@@ -311,14 +311,37 @@ renderCal(2026, curMonth);
 renderSchedule();
 updateStats();
 
-db.ref('bakery/events').on('value', snap => {
-  const val = snap.val();
-  if(!val) return; // keep showing bundled data if DB empty
-  events = Object.entries(val).map(([key, e]) => ({...e, id: key})).sort((a,b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
+// Load events from Firebase (with REST API fallback for LINE browser / private mode)
+let _fbEventsLoaded = false;
+const DB_ROOT = 'https://whitedessert-default-rtdb.asia-southeast1.firebasedatabase.app';
+
+function _applyEvents(val){
+  if(!val) return;
+  events = Object.entries(val).map(([key, e]) => ({...e, id: key}))
+    .sort((a,b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
   renderCal(2026, curMonth);
   renderSchedule();
   updateStats();
+}
+
+async function _fetchEventsREST(){
+  try {
+    const res = await fetch(`${DB_ROOT}/bakery/events.json`);
+    if(!res.ok) return;
+    _applyEvents(await res.json());
+  } catch(e) {}
+}
+
+db.ref('bakery/events').on('value', snap => {
+  _fbEventsLoaded = true;
+  _applyEvents(snap.val());
+}, () => {
+  // Firebase SDK failed (auth blocked in LINE/private browser) → use REST API
+  _fetchEventsREST();
 });
+
+// Fallback: if Firebase hasn't responded in 4s, try REST API directly
+setTimeout(()=>{ if(!_fbEventsLoaded) _fetchEventsREST(); }, 4000);
 
 function switchTab(name, el) {
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
