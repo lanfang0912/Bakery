@@ -1764,20 +1764,25 @@ async function _buildPoster(monthVal){
   const INNER = 16;
   const IMG_H = 110; // fixed image / placeholder height
   const FONT_TIME = 16, FONT_TITLE = 19, FONT_DATE = 22;
+  const TEXT_W = CARD_W - INNER * 2;
 
-  // Estimate card height
+  // Use a temp context to measure actual text widths
+  const _mc = document.createElement('canvas').getContext('2d');
+
   function cardH(dateStr){
     const cs = byDay[dateStr];
-    let h = INNER + FONT_DATE + 14; // top pad + date + divider
-    h += IMG_H + 10;                // image area (always)
+    // Header: top-pad + date-text + 10-gap + 1-divider + 10-gap
+    let h = INNER + FONT_DATE + 21;
+    h += IMG_H + 10; // image + gap below
+    _mc.font = `bold ${FONT_TITLE}px ${FONT}`;
     cs.forEach(c=>{
-      h += FONT_TIME + 3;
-      const chars = `${c.teacher}｜${c.title}`.length;
-      h += (chars > 16 ? 2 : 1) * (FONT_TITLE + 3);
-      h += 8;
+      h += FONT_TIME + 5;                                          // time line
+      const lines = _posterWrapText(_mc, `${c.teacher}｜${c.title}`, TEXT_W).length;
+      h += Math.min(lines, 2) * (FONT_TITLE + 4);                 // title lines
+      h += 8;                                                      // gap between courses
     });
-    h += INNER;
-    return Math.max(180, h);
+    h += INNER; // bottom pad
+    return Math.max(200, h);
   }
 
   // Rows of cards
