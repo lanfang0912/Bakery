@@ -747,9 +747,10 @@ function startFbListener() {
   });
 }
 
-firebase.auth().signInAnonymously()
-  .then(startFbListener)
-  .catch(() => startFbListener()); // still try even if anon auth fails
+// Start loading data immediately (events/registrations are public read)
+// Auth runs in parallel — only needed for write operations & settings
+startFbListener();
+firebase.auth().signInAnonymously().catch(()=>{});
 
 // ── Table button delegation ───────────────────────────────────
 document.getElementById('tbody').addEventListener('click', e => {
