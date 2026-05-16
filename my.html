@@ -156,7 +156,7 @@ async function doQuery(){
 
     renderResults(matches);
   } catch(e) {
-    errEl.textContent = '查詢失敗，請稍後再試';
+    errEl.textContent = '查詢失敗：' + (e.message || e);
     errEl.style.display = 'block';
   } finally {
     btn.disabled = false;
