@@ -1887,37 +1887,26 @@ function _buildPosterSvg(monthVal){
   monthCourses.forEach(c=>{ (byDay[c.date]=byDay[c.date]||[]).push(c); });
   const days = Object.keys(byDay).sort();
 
-  const W = 1080, PAD = 36, GAP = 14, COLS = 3;
-  const CARD_W = Math.floor((W - PAD*2 - GAP*(COLS-1)) / COLS);
+  // Each course = own card; same-day courses stack vertically
+  const W = 1080, PAD = 36, CARD_GAP = 16, INNER_CARD_GAP = 8, DAY_GAP = 20, COLS = 3;
+  const CARD_W = Math.floor((W - PAD*2 - CARD_GAP*(COLS-1)) / COLS);
   const INNER = 16;
-  const IMG_H = CARD_W - INNER * 2;
-  const FONT_TIME = 16, FONT_TITLE = 19, FONT_TEACHER = 16, FONT_DATE = 22;
-  const TEXT_W = CARD_W - INNER * 2;
-  const GAP_IMG = Math.ceil(FONT_TIME * 0.8) + 14;
-  const TIME_TITLE_GAP = 11;
+  const IMG_H = 200;
+  const FONT_DATE = 22, FONT_TEACHER = 26, FONT_TITLE = 22, FONT_TIME = 18;
   const _mc = document.createElement('canvas').getContext('2d');
+  // Fixed card height: date(22)+sep(14)+img(200)+gap(14)+teacher(26)+gap(6)+title×2(22+6+22)+gap(8)+time(18)+padding(32)
+  const CARD_H = INNER + FONT_DATE + 14 + IMG_H + 14 + FONT_TEACHER + 6 + FONT_TITLE + 6 + FONT_TITLE + 8 + FONT_TIME + INNER;
 
-  function cardH(dateStr){
-    const cs = byDay[dateStr];
-    let h = INNER + FONT_DATE + 21;
-    h += IMG_H + GAP_IMG;
-    _mc.font = `bold ${FONT_TITLE}px ${FONT}`;
-    cs.forEach(c=>{
-      h += FONT_TIME + TIME_TITLE_GAP;
-      const titleLines = _posterWrapText(_mc, c.title, TEXT_W).length;
-      h += Math.min(titleLines, 2) * (FONT_TITLE + 5);
-      h += FONT_TEACHER + 6;
-      h += 12;
-    });
-    h += INNER;
-    return Math.max(200, h);
-  }
+  const dayRows = [];
+  for(let i=0;i<days.length;i+=COLS) dayRows.push(days.slice(i,i+COLS));
 
-  const rows = [];
-  for(let i=0;i<days.length;i+=COLS) rows.push(days.slice(i,i+COLS));
-  const rowH = rows.map(row=>Math.max(...row.map(cardH)));
   const HEADER_H = 140;
-  const H = HEADER_H + PAD + rowH.reduce((s,h)=>s+h+GAP,0) - GAP + PAD + 20;
+  let H = HEADER_H + PAD;
+  dayRows.forEach(row=>{
+    const maxSlots = Math.max(...row.map(d=>byDay[d].length));
+    H += maxSlots * CARD_H + (maxSlots-1) * INNER_CARD_GAP + DAY_GAP;
+  });
+  H += PAD;
 
   const defs = [`<linearGradient id="posterBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fdf8f2"/><stop offset="1" stop-color="#f3e8d8"/></linearGradient>`];
   const out = [];
@@ -1954,45 +1943,49 @@ function _buildPosterSvg(monthVal){
   }
 
   let curY = HEADER_H + PAD;
-  rows.forEach((row,ri)=>{
-    const rh = rowH[ri];
-    row.forEach((dateStr,ci)=>{
-      const cx = PAD + ci*(CARD_W+GAP);
-      const courses = byDay[dateStr];
-      const [dy,dm,dd] = dateStr.split('-').map(Number);
-      const dow = new Date(dy,dm-1,dd).getDay();
-      const isWkend = dow===0||dow===6;
-      const imgCourse = courses.find(c=>c.imagesPoster?.[0]||c.imagePoster||c.images?.[0]||c.image);
-      const accent = colorById(courses[0].color);
+  dayRows.forEach(row=>{
+    const maxSlots = Math.max(...row.map(d=>byDay[d].length));
+    for(let slot=0; slot<maxSlots; slot++){
+      row.forEach((dateStr,ci)=>{
+        const cs = byDay[dateStr];
+        const c = cs[slot];
+        if(!c) return;
+        const cx = PAD + ci*(CARD_W+CARD_GAP);
+        const [dy,dm,dd] = dateStr.split('-').map(Number);
+        const dow = new Date(dy,dm-1,dd).getDay();
+        const isWkend = dow===0||dow===6;
+        const accent = colorById(c.color);
+        const src = c.imagesPoster?.[0]||c.imagePoster||c.images?.[0]||c.image||'';
+        const iw = CARD_W - INNER*2;
 
-      rect(cx,curY,CARD_W,rh,'#fff',14,`filter="drop-shadow(0 4px 16px rgba(100,60,10,0.12))"`);
-      rect(cx,curY,CARD_W,6,accent.hex,3);
-      let ty = curY+INNER+FONT_DATE;
-      text(cx+INNER,ty,`📅 ${dm}/${String(dd).padStart(2,'0')} (${WDAYS[dow]})`,FONT_DATE,isWkend?'#c0392b':'#3d2c1e','700');
-      ty+=10; rect(cx+INNER,ty,CARD_W-INNER*2,1,'#e0cbb8'); ty+=10;
+        rect(cx,curY,CARD_W,CARD_H,'#fff',14,`filter="drop-shadow(0 4px 16px rgba(100,60,10,0.12))"`);
+        rect(cx,curY,CARD_W,6,accent.hex,3);
 
-      const iw=CARD_W-INNER*2;
-      if(imgCourse){
-        const src = imgCourse.imagesPoster?.[0] || imgCourse.imagePoster || imgCourse.images?.[0] || imgCourse.image || '';
-        image(src,cx+INNER,ty,iw,IMG_H,'slice',8);
-      } else {
-        rect(cx+INNER,ty,iw,IMG_H,accent.hex+'33',8);
-        text(cx+INNER+iw/2,ty+IMG_H/2+14,'🥐',40,'rgba(255,255,255,0.65)','400','middle');
-      }
-      ty += IMG_H + GAP_IMG;
+        let ty = curY + INNER + FONT_DATE;
+        text(cx+INNER, ty, `${dm}/${String(dd).padStart(2,'0')} (${WDAYS[dow]})`, FONT_DATE, isWkend?'#c0392b':'#3d2c1e','700');
+        ty += 8; rect(cx+INNER,ty,iw,1,'#e0cbb8'); ty += 6;
 
-      courses.forEach(c=>{
-        const ci=colorById(c.color);
-        text(cx+INNER,ty,`${c.start}－${c.end}`,FONT_TIME,'#a07850','400'); ty+=FONT_TIME+TIME_TITLE_GAP;
-        _mc.font = `bold ${FONT_TITLE}px ${FONT}`;
-        _posterWrapText(_mc,c.title,iw).slice(0,2).forEach(l=>{
-          text(cx+INNER,ty,l,FONT_TITLE,ci.hex,'700'); ty+=FONT_TITLE+5;
-        });
-        text(cx+INNER,ty,c.teacher,FONT_TEACHER,'#6f5a46','400'); ty+=FONT_TEACHER+6;
-        ty+=12;
+        image(src, cx+INNER, ty, iw, IMG_H, 'slice', 8);
+        ty += IMG_H + 14;
+
+        // Teacher first (big, bold)
+        text(cx+INNER, ty, c.teacher, FONT_TEACHER, accent.hex, '700');
+        ty += FONT_TEACHER + 6;
+
+        // Title second (up to 2 lines, always reserve 2-line space)
+        _mc.font = `${FONT_TITLE}px sans-serif`;
+        const tLines = _posterWrapText(_mc, c.title, iw).slice(0,2);
+        text(cx+INNER, ty, tLines[0]||c.title, FONT_TITLE, '#3d2c1e', '400');
+        ty += FONT_TITLE + 6;
+        if(tLines[1]) text(cx+INNER, ty, tLines[1], FONT_TITLE, '#3d2c1e', '400');
+        ty += FONT_TITLE + 8;
+
+        // Time
+        text(cx+INNER, ty, `${c.start}－${c.end}`, FONT_TIME, '#a07850', '400');
       });
-    });
-    curY+=rh+GAP;
+      curY += CARD_H + (slot < maxSlots-1 ? INNER_CARD_GAP : 0);
+    }
+    curY += DAY_GAP;
   });
 
   out.push('</svg>');
@@ -2016,40 +2009,28 @@ function _buildPosterPptx(monthVal){
   monthCourses.forEach(c=>{ (byDay[c.date]=byDay[c.date]||[]).push(c); });
   const days = Object.keys(byDay).sort();
 
-  const W = 1080, PAD = 36, GAP = 14, COLS = 3;
-  const CARD_W = Math.floor((W - PAD*2 - GAP*(COLS-1)) / COLS);
+  const W = 1080, PAD = 36, CARD_GAP = 16, INNER_CARD_GAP = 8, DAY_GAP = 20, COLS = 3;
+  const CARD_W = Math.floor((W - PAD*2 - CARD_GAP*(COLS-1)) / COLS);
   const INNER = 16;
-  const IMG_H = CARD_W - INNER * 2;
-  const FONT_TIME = 16, FONT_TITLE = 19, FONT_TEACHER = 16, FONT_DATE = 22;
-  const TEXT_W = CARD_W - INNER * 2;
-  const GAP_IMG = Math.ceil(FONT_TIME * 0.8) + 14;
-  const TIME_TITLE_GAP = 11;
+  const IMG_H = 200;
+  const FONT_DATE = 22, FONT_TEACHER = 26, FONT_TITLE = 22, FONT_TIME = 18;
   const _mc = document.createElement('canvas').getContext('2d');
   const U = 100;
   const u = v => v / U;
   const hex = v => String(v||'').replace('#','').slice(0,6);
 
-  function cardH(dateStr){
-    const cs = byDay[dateStr];
-    let h = INNER + FONT_DATE + 21;
-    h += IMG_H + GAP_IMG;
-    _mc.font = `bold ${FONT_TITLE}px ${FONT}`;
-    cs.forEach(c=>{
-      h += FONT_TIME + TIME_TITLE_GAP;
-      const titleLines = _posterWrapText(_mc, c.title, TEXT_W).length;
-      h += Math.min(titleLines, 2) * (FONT_TITLE + 5);
-      h += FONT_TEACHER + 6;
-      h += 12;
-    });
-    h += INNER;
-    return Math.max(200, h);
-  }
+  const CARD_H = INNER + FONT_DATE + 14 + IMG_H + 14 + FONT_TEACHER + 6 + FONT_TITLE + 6 + FONT_TITLE + 8 + FONT_TIME + INNER;
 
-  const rows = [];
-  for(let i=0;i<days.length;i+=COLS) rows.push(days.slice(i,i+COLS));
-  const rowH = rows.map(row=>Math.max(...row.map(cardH)));
+  const dayRows = [];
+  for(let i=0;i<days.length;i+=COLS) dayRows.push(days.slice(i,i+COLS));
+
   const HEADER_H = 140;
-  const H = HEADER_H + PAD + rowH.reduce((s,h)=>s+h+GAP,0) - GAP + PAD + 20;
+  let H = HEADER_H + PAD;
+  dayRows.forEach(row=>{
+    const maxSlots = Math.max(...row.map(d=>byDay[d].length));
+    H += maxSlots * CARD_H + (maxSlots-1) * INNER_CARD_GAP + DAY_GAP;
+  });
+  H += PAD;
 
   const pptx = new PptxGenJS();
   pptx.author = 'Jen 手作烘焙課程';
@@ -2106,46 +2087,55 @@ function _buildPosterPptx(monthVal){
   }
 
   let curY = HEADER_H + PAD;
-  rows.forEach((row,ri)=>{
-    const rh = rowH[ri];
-    row.forEach((dateStr,ci)=>{
-      const cx = PAD + ci*(CARD_W+GAP);
-      const courses = byDay[dateStr];
-      const [dy,dm,dd] = dateStr.split('-').map(Number);
-      const dow = new Date(dy,dm-1,dd).getDay();
-      const isWkend = dow===0||dow===6;
-      const imgCourse = courses.find(c=>c.imagesPoster?.[0]||c.imagePoster);
-      const accent = colorById(courses[0].color);
-      const accentHex = hex(accent.hex);
+  dayRows.forEach(row=>{
+    const maxSlots = Math.max(...row.map(d=>byDay[d].length));
+    for(let slot=0; slot<maxSlots; slot++){
+      row.forEach((dateStr,ci)=>{
+        const cs = byDay[dateStr];
+        const c = cs[slot];
+        if(!c) return;
+        const cx = PAD + ci*(CARD_W+CARD_GAP);
+        const [dy,dm,dd] = dateStr.split('-').map(Number);
+        const dow = new Date(dy,dm-1,dd).getDay();
+        const isWkend = dow===0||dow===6;
+        const accent = colorById(c.color);
+        const accentHex = hex(accent.hex);
+        const src = c.imagesPoster?.[0] || c.imagePoster || '';
+        const iw = CARD_W - INNER*2;
 
-      addRect(cx,curY,CARD_W,rh,'FFFFFF',{line:'F0E2D4',radius:14});
-      addRect(cx,curY,CARD_W,6,accentHex);
-      let ty = curY + INNER;
-      addText(`📅 ${dm}/${String(dd).padStart(2,'0')} (${WDAYS[dow]})`,cx+INNER,ty,CARD_W-INNER*2,28,FONT_DATE,isWkend?'c0392b':'3d2c1e',true);
-      ty += FONT_DATE + 20;
-      addRect(cx+INNER,ty,CARD_W-INNER*2,1,'e0cbb8'); ty += 10;
+        addRect(cx,curY,CARD_W,CARD_H,'FFFFFF',{line:'F0E2D4',radius:14});
+        addRect(cx,curY,CARD_W,6,accentHex);
 
-      const iw = CARD_W - INNER*2;
-      const src = imgCourse ? (imgCourse.imagesPoster?.[0] || imgCourse.imagePoster || '') : '';
-      if(src) addImage(src,cx+INNER,ty,iw,IMG_H,'cover');
-      else {
-        addRect(cx+INNER,ty,iw,IMG_H,accentHex,{transparency:70,radius:8});
-        addText('🥐',cx+INNER,ty+IMG_H/2-20,iw,40,40,'FFFFFF',false,{align:'center'});
-      }
-      ty += IMG_H + GAP_IMG;
+        let ty = curY + INNER;
+        addText(`${dm}/${String(dd).padStart(2,'0')} (${WDAYS[dow]})`,cx+INNER,ty,iw,FONT_DATE+4,FONT_DATE,isWkend?'c0392b':'3d2c1e',true);
+        ty += FONT_DATE + 8;
+        addRect(cx+INNER,ty,iw,1,'e0cbb8'); ty += 6;
 
-      courses.forEach(c=>{
-        const ci=colorById(c.color);
-        addText(`${c.start}－${c.end}`,cx+INNER,ty,iw,20,FONT_TIME,'a07850'); ty+=FONT_TIME+TIME_TITLE_GAP;
-        _mc.font = `bold ${FONT_TITLE}px ${FONT}`;
-        _posterWrapText(_mc,c.title,iw).slice(0,2).forEach(l=>{
-          addText(l,cx+INNER,ty,iw,24,FONT_TITLE,hex(ci.hex),true); ty+=FONT_TITLE+8;
-        });
-        addText(c.teacher,cx+INNER,ty,iw,20,FONT_TEACHER,'6f5a46'); ty+=FONT_TEACHER+6;
-        ty+=8;
+        if(src) addImage(src,cx+INNER,ty,iw,IMG_H,'cover');
+        else {
+          addRect(cx+INNER,ty,iw,IMG_H,accentHex,{transparency:70,radius:8});
+          addText('🥐',cx+INNER,ty+IMG_H/2-20,iw,40,40,'FFFFFF',false,{align:'center'});
+        }
+        ty += IMG_H + 14;
+
+        // Teacher first (big, bold, accent color)
+        addText(c.teacher,cx+INNER,ty,iw,FONT_TEACHER+4,FONT_TEACHER,accentHex,true);
+        ty += FONT_TEACHER + 6;
+
+        // Title second (up to 2 lines, always reserve 2-line space)
+        _mc.font = `${FONT_TITLE}px sans-serif`;
+        const tLines = _posterWrapText(_mc,c.title,iw).slice(0,2);
+        addText(tLines[0]||c.title,cx+INNER,ty,iw,FONT_TITLE+4,FONT_TITLE,'3d2c1e');
+        ty += FONT_TITLE + 6;
+        addText(tLines[1]||'',cx+INNER,ty,iw,FONT_TITLE+4,FONT_TITLE,'3d2c1e');
+        ty += FONT_TITLE + 8;
+
+        // Time
+        addText(`${c.start}－${c.end}`,cx+INNER,ty,iw,FONT_TIME+4,FONT_TIME,'a07850');
       });
-    });
-    curY+=rh+GAP;
+      curY += CARD_H + (slot < maxSlots-1 ? INNER_CARD_GAP : 0);
+    }
+    curY += DAY_GAP;
   });
 
   return pptx;
@@ -2216,46 +2206,26 @@ async function _buildPoster(monthVal){
   const imgTotal  = monthCourses.filter(c=>c.imagePoster||c.imagesPoster?.[0]||c.image||c.images?.length).length;
   document.getElementById('poster-msg').textContent = `⏳ 生成中… 圖片 ${imgLoaded}/${imgTotal} 載入成功`;
 
-  // Layout: portrait 1080px, 3 cards per row
-  const W = 1080, PAD = 36, GAP = 14, COLS = 3;
-  const CARD_W = Math.floor((W - PAD*2 - GAP*(COLS-1)) / COLS);
+  // Layout: each course = own card, same-day courses stack vertically
+  const W = 1080, PAD = 36, CARD_GAP = 16, INNER_CARD_GAP = 8, DAY_GAP = 20, COLS = 3;
+  const CARD_W = Math.floor((W - PAD*2 - CARD_GAP*(COLS-1)) / COLS);
   const INNER = 16;
-  const IMG_H = CARD_W - INNER * 2; // square image frame reduces crop/letterbox tradeoffs
-  const FONT_TIME = 16, FONT_TITLE = 19, FONT_TEACHER = 16, FONT_DATE = 22;
-  const TEXT_W = CARD_W - INNER * 2;
-
-  // Use a temp context to measure actual text widths
+  const IMG_H = 200;
+  const FONT_DATE = 22, FONT_TEACHER = 26, FONT_TITLE = 22, FONT_TIME = 18;
   const _mc = document.createElement('canvas').getContext('2d');
+  // Fixed card height per course
+  const CARD_H = INNER + FONT_DATE + 14 + IMG_H + 14 + FONT_TEACHER + 6 + FONT_TITLE + 6 + FONT_TITLE + 8 + FONT_TIME + INNER;
 
-  // GAP_IMG: space between image bottom and first text top
-  // textBaseline='alphabetic' → text top ≈ baseline - fontSize*0.78
-  // So we need gap > fontSize*0.78 to avoid overlapping the image
-  const GAP_IMG = Math.ceil(FONT_TIME * 0.8) + 14; // ~27px
-  const TIME_TITLE_GAP = 11;
-
-  function cardH(dateStr){
-    const cs = byDay[dateStr];
-    let h = INNER + FONT_DATE + 21; // header
-    h += IMG_H + GAP_IMG;           // image + enough gap so text top clears image bottom
-    _mc.font = `bold ${FONT_TITLE}px ${FONT}`;
-    cs.forEach(c=>{
-      h += FONT_TIME + TIME_TITLE_GAP;
-      const titleLines = _posterWrapText(_mc, c.title, TEXT_W).length;
-      h += Math.min(titleLines, 2) * (FONT_TITLE + 5);
-      h += FONT_TEACHER + 6;
-      h += 12;                      // gap between courses
-    });
-    h += INNER;
-    return Math.max(200, h);
-  }
-
-  // Rows of cards
-  const rows = [];
-  for(let i=0;i<days.length;i+=COLS) rows.push(days.slice(i,i+COLS));
-  const rowH = rows.map(row=>Math.max(...row.map(cardH)));
+  const dayRows = [];
+  for(let i=0;i<days.length;i+=COLS) dayRows.push(days.slice(i,i+COLS));
 
   const HEADER_H = 140;
-  const H = HEADER_H + PAD + rowH.reduce((s,h)=>s+h+GAP,0) - GAP + PAD + 20;
+  let H = HEADER_H + PAD;
+  dayRows.forEach(row=>{
+    const maxSlots = Math.max(...row.map(d=>byDay[d].length));
+    H += maxSlots * CARD_H + (maxSlots-1) * INNER_CARD_GAP + DAY_GAP;
+  });
+  H += PAD;
 
   const canvas = document.getElementById('poster-canvas');
   canvas.width = W; canvas.height = H;
@@ -2302,73 +2272,78 @@ async function _buildPoster(monthVal){
 
   // ── Cards ────────────────────────────────────────────────
   let curY = HEADER_H + PAD;
+  dayRows.forEach(row=>{
+    const maxSlots = Math.max(...row.map(d=>byDay[d].length));
+    for(let slot=0; slot<maxSlots; slot++){
+      row.forEach((dateStr,ci)=>{
+        const cs = byDay[dateStr];
+        const c = cs[slot];
+        if(!c) return;
+        const cx = PAD + ci*(CARD_W+CARD_GAP);
+        const [dy,dm,dd] = dateStr.split('-').map(Number);
+        const dow = new Date(dy,dm-1,dd).getDay();
+        const isWkend = dow===0||dow===6;
+        const accent = colorById(c.color);
+        const img = imgMap[c.id];
+        const iw = CARD_W - INNER*2;
 
-  rows.forEach((row,ri)=>{
-    const rh = rowH[ri];
-    row.forEach((dateStr,ci)=>{
-      const cx = PAD + ci*(CARD_W+GAP);
-      const courses = byDay[dateStr];
-      const [dy,dm,dd] = dateStr.split('-').map(Number);
-      const dow = new Date(dy,dm-1,dd).getDay();
-      const isWkend = dow===0||dow===6;
-      const imgCourse = courses.find(c=>imgMap[c.id]);
-      const accent = colorById(courses[0].color);
+        // Card shadow + white bg
+        ctx.shadowColor='rgba(100,60,10,0.12)'; ctx.shadowBlur=16; ctx.shadowOffsetY=4;
+        ctx.fillStyle='#fff';
+        _posterRoundRect(ctx,cx,curY,CARD_W,CARD_H,14); ctx.fill();
+        ctx.shadowBlur=0; ctx.shadowOffsetY=0;
 
-      // Card shadow + white bg
-      ctx.shadowColor='rgba(100,60,10,0.12)'; ctx.shadowBlur=16; ctx.shadowOffsetY=4;
-      ctx.fillStyle='#fff';
-      _posterRoundRect(ctx,cx,curY,CARD_W,rh,14); ctx.fill();
-      ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+        // Top color bar
+        ctx.fillStyle=accent.hex;
+        _posterRoundRect(ctx,cx,curY,CARD_W,6,[14,14,0,0]); ctx.fill();
 
-      // Top color bar
-      ctx.fillStyle=accent.hex;
-      _posterRoundRect(ctx,cx,curY,CARD_W,6,[14,14,0,0]); ctx.fill();
+        let ty = curY + INNER + FONT_DATE;
+        ctx.textAlign='left';
+        ctx.font=`bold ${FONT_DATE}px ${FONT}`;
+        ctx.fillStyle = isWkend?'#c0392b':'#3d2c1e';
+        ctx.fillText(`${dm}/${String(dd).padStart(2,'0')} (${WDAYS[dow]})`, cx+INNER, ty);
+        ty += 8;
+        ctx.fillStyle='#e0cbb8'; ctx.fillRect(cx+INNER,ty,iw,1); ty += 6;
 
-      let ty = curY+INNER+FONT_DATE;
+        // Image
+        ctx.save();
+        _posterRoundRect(ctx,cx+INNER,ty,iw,IMG_H,8); ctx.clip();
+        if(img){
+          _posterDrawWidthFillImage(ctx,img,cx+INNER,ty,iw,IMG_H,'#f8efe4');
+        } else {
+          const grad=ctx.createLinearGradient(cx+INNER,ty,cx+INNER+iw,ty+IMG_H);
+          grad.addColorStop(0,accent.hex+'bb'); grad.addColorStop(1,accent.hex+'33');
+          ctx.fillStyle=grad; ctx.fillRect(cx+INNER,ty,iw,IMG_H);
+          ctx.restore(); ctx.save();
+          ctx.font='40px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillStyle='rgba(255,255,255,0.6)';
+          ctx.fillText('🥐',cx+INNER+iw/2,ty+IMG_H/2);
+          ctx.textBaseline='alphabetic'; ctx.textAlign='left';
+        }
+        ctx.restore();
+        ty += IMG_H + 14;
 
-      // Date
-      ctx.textAlign='left';
-      ctx.font=`bold ${FONT_DATE}px ${FONT}`;
-      ctx.fillStyle = isWkend?'#c0392b':'#3d2c1e';
-      ctx.fillText(`📅 ${dm}/${String(dd).padStart(2,'0')} (${WDAYS[dow]})`, cx+INNER, ty);
-      ty+=10;
-      ctx.fillStyle='#e0cbb8'; ctx.fillRect(cx+INNER,ty,CARD_W-INNER*2,1); ty+=10;
+        // Teacher first (big, bold, accent color)
+        ctx.font=`bold ${FONT_TEACHER}px ${FONT}`;
+        ctx.fillStyle=accent.hex;
+        ctx.fillText(c.teacher, cx+INNER, ty);
+        ty += FONT_TEACHER + 6;
 
-      // Image or color placeholder
-      const iw=CARD_W-INNER*2;
-      ctx.save();
-      _posterRoundRect(ctx,cx+INNER,ty,iw,IMG_H,8); ctx.clip();
-      if(imgCourse){
-        const img=imgMap[imgCourse.id];
-        _posterDrawWidthFillImage(ctx,img,cx+INNER,ty,iw,IMG_H,'#f8efe4');
-      } else {
-        const grad=ctx.createLinearGradient(cx+INNER,ty,cx+INNER+iw,ty+IMG_H);
-        grad.addColorStop(0,accent.hex+'bb'); grad.addColorStop(1,accent.hex+'33');
-        ctx.fillStyle=grad; ctx.fillRect(cx+INNER,ty,iw,IMG_H);
-        ctx.restore(); ctx.save();
-        ctx.font='40px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillStyle='rgba(255,255,255,0.6)';
-        ctx.fillText('🥐',cx+INNER+iw/2,ty+IMG_H/2);
-        ctx.textBaseline='alphabetic'; ctx.textAlign='left';
-      }
-      ctx.restore();
-      ty += IMG_H + GAP_IMG; // guaranteed gap: image bottom → text top clear
+        // Title second (up to 2 lines, always reserve 2-line space)
+        _mc.font = `${FONT_TITLE}px ${FONT}`;
+        const tLines = _posterWrapText(_mc, c.title, iw).slice(0,2);
+        ctx.font=`${FONT_TITLE}px ${FONT}`; ctx.fillStyle='#3d2c1e';
+        ctx.fillText(tLines[0]||c.title, cx+INNER, ty); ty += FONT_TITLE + 6;
+        if(tLines[1]) ctx.fillText(tLines[1], cx+INNER, ty);
+        ty += FONT_TITLE + 8;
 
-      // Courses: time, title, then teacher
-      courses.forEach(c=>{
-        const ci=colorById(c.color);
-        ctx.fillStyle='#a07850'; ctx.font=`${FONT_TIME}px ${FONT}`;
-        ctx.fillText(`${c.start}－${c.end}`,cx+INNER,ty); ty+=FONT_TIME+TIME_TITLE_GAP;
-        ctx.fillStyle=ci.hex; ctx.font=`bold ${FONT_TITLE}px ${FONT}`;
-        _posterWrapText(ctx,c.title,iw).slice(0,2).forEach(l=>{
-          ctx.fillText(l,cx+INNER,ty); ty+=FONT_TITLE+5;
-        });
-        ctx.fillStyle='#6f5a46'; ctx.font=`${FONT_TEACHER}px ${FONT}`;
-        ctx.fillText(c.teacher,cx+INNER,ty); ty+=FONT_TEACHER+6;
-        ty+=12;
+        // Time
+        ctx.font=`${FONT_TIME}px ${FONT}`; ctx.fillStyle='#a07850';
+        ctx.fillText(`${c.start}－${c.end}`, cx+INNER, ty);
       });
-    });
-    curY+=rh+GAP;
+      curY += CARD_H + (slot < maxSlots-1 ? INNER_CARD_GAP : 0);
+    }
+    curY += DAY_GAP;
   });
 
   return canvas;
