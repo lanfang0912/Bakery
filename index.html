@@ -226,7 +226,7 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
 <header>
   <div>
     <h1>🥐 Jen 手作烘焙</h1>
-    <p>2026年 5月 – 7月 課程行事曆</p>
+    <p id="header-subtitle">課程行事曆</p>
   </div>
   <a class="admin-link" href="admin.html">⚙️ 管理後台</a>
 </header>
@@ -240,11 +240,7 @@ main{padding:28px 36px;max-width:1300px;margin:0 auto}
   <div id="view-calendar" class="view active">
     <div class="cal-top">
       <h2 id="cal-title">2026年 5月</h2>
-      <div class="month-btns">
-        <button class="m-btn active" onclick="showMonth(5,this)">5月</button>
-        <button class="m-btn" onclick="showMonth(6,this)">6月</button>
-        <button class="m-btn" onclick="showMonth(7,this)">7月</button>
-      </div>
+      <div class="month-btns" id="month-btns"></div>
     </div>
     <div id="legend" class="legend"></div>
     <div id="cal-grid" class="cal-grid"></div>
@@ -306,8 +302,10 @@ firebase.auth().signInAnonymously().catch(()=>{});
 
 // Pre-load with bundled data so page renders instantly
 let events = INITIAL_EVENTS.map((e,i)=>({...e, id:'local'+i}));
-let curMonth = 5;
-renderCal(2026, curMonth);
+let curMonth = new Date().getMonth()+1;
+let curYear  = new Date().getFullYear();
+buildMonthBtns();
+renderCal(curYear, curMonth);
 renderSchedule();
 updateStats();
 
@@ -319,7 +317,8 @@ function _applyEvents(val){
   if(!val) return;
   events = Object.entries(val).map(([key, e]) => ({...e, id: key}))
     .sort((a,b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
-  renderCal(2026, curMonth);
+  buildMonthBtns();
+  renderCal(curYear, curMonth);
   renderSchedule();
   updateStats();
 }
@@ -348,17 +347,45 @@ function switchTab(name, el) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('view-'+name).classList.add('active');
   el.classList.add('active');
-  if (name==='calendar') renderCal(2026, curMonth);
+  if (name==='calendar') renderCal(curYear, curMonth);
   if (name==='schedule') renderSchedule();
   closeDetail();
 }
 
+// ── Build month buttons from events ──────────────────────────
+function buildMonthBtns(){
+  const months = [...new Set(events.map(e=>e.date.slice(0,7)))].sort();
+  if(!months.length) return;
+
+  // Pick the closest month to today as default
+  const today = new Date().toISOString().slice(0,7);
+  const best  = months.find(m=>m>=today) || months[months.length-1];
+  const [by, bm] = best.split('-').map(Number);
+  curYear  = by;
+  curMonth = bm;
+
+  // Update header subtitle
+  const first = months[0], last = months[months.length-1];
+  const [fy,fm] = first.split('-').map(Number);
+  const [ly,lm] = last.split('-').map(Number);
+  const range = fy===ly ? `${fy}年 ${fm}月 – ${lm}月` : `${fy}年${fm}月 – ${ly}年${lm}月`;
+  document.getElementById('header-subtitle').textContent = range + ' 課程行事曆';
+
+  const wrap = document.getElementById('month-btns');
+  wrap.innerHTML = months.map(m=>{
+    const [y,mo] = m.split('-').map(Number);
+    const active = (y===curYear && mo===curMonth) ? ' active' : '';
+    return `<button class="m-btn${active}" onclick="showMonth(${y},${mo},this)">${mo}月</button>`;
+  }).join('');
+}
+
 // ── Calendar ─────────────────────────────────────────────────
-function showMonth(m, btn) {
+function showMonth(y, m, btn) {
+  curYear  = y;
   curMonth = m;
   document.querySelectorAll('.m-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  renderCal(2026, m);
+  renderCal(y, m);
 }
 
 function renderCal(y, m) {
@@ -503,20 +530,21 @@ function updateStats(){
 
 function renderSchedule(){
   const sorted = [...events].sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
-  const byMonth = {};
+  const byYM = {};
   sorted.forEach(e=>{
-    const mo = e.date.slice(5,7);
-    if(!byMonth[mo]) byMonth[mo]={};
-    if(!byMonth[mo][e.date]) byMonth[mo][e.date]=[];
-    byMonth[mo][e.date].push(e);
+    const ym = e.date.slice(0,7); // "2026-08"
+    if(!byYM[ym]) byYM[ym]={};
+    if(!byYM[ym][e.date]) byYM[ym][e.date]=[];
+    byYM[ym][e.date].push(e);
   });
 
   let html='';
-  Object.keys(byMonth).sort().forEach(mo=>{
-    html+=`<div class="msec"><div class="mlabel">2026年 ${mo}月</div>`;
-    Object.keys(byMonth[mo]).sort().forEach(date=>{
+  Object.keys(byYM).sort().forEach(ym=>{
+    const [y,mo] = ym.split('-').map(Number);
+    html+=`<div class="msec"><div class="mlabel">${y}年 ${mo}月</div>`;
+    Object.keys(byYM[ym]).sort().forEach(date=>{
       html+=`<div class="dgroup"><div class="dhead"><div class="ddot"></div>${formatDate(date)}</div>`;
-      byMonth[mo][date].forEach(e=>{
+      byYM[ym][date].forEach(e=>{
         const c = colorById(e.color);
         html+=`<div class="ecard">
           ${e.image?`<img class="ethumb" src="${e.image}" alt="${e.title}">`:`<div class="ebar" style="background:${c.hex}"></div>`}
