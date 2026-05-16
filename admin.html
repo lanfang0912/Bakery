@@ -1856,6 +1856,7 @@ async function _buildPoster(monthVal){
     const src = posterSrc || rawUrl;
     if(!src) return;
     let imgSrc = src;
+    let fromCorsFetch = false;
     if(!src.startsWith('data:')){
       // No stored thumbnail — try CORS fetch
       const corsUrl = src.includes('res.cloudinary.com')&&src.includes('/image/upload/')&&!src.includes('q_auto')
@@ -1864,11 +1865,23 @@ async function _buildPoster(monthVal){
         const resp = await fetch(corsUrl, {cache:'reload'});
         if(!resp.ok) return;
         imgSrc = URL.createObjectURL(await resp.blob());
+        fromCorsFetch = true;
       } catch(e){ return; }
     }
     await new Promise(res=>{
       const img = new Image();
-      img.onload=()=>{ imgMap[c.id]=img; res(); };
+      img.onload=()=>{
+        imgMap[c.id]=img;
+        if(fromCorsFetch && !posterSrc && !String(c.id).startsWith('local')){
+          _compressImgToDataUrl(img, 400, 0.72).then(d=>{
+            if(!d) return;
+            db.ref('bakery/events/'+c.id).update({imagePoster:d, imagesPoster:[d]}).catch(()=>{});
+            const ev = events.find(e=>String(e.id)===String(c.id));
+            if(ev){ ev.imagePoster=d; ev.imagesPoster=[d]; }
+          });
+        }
+        res();
+      };
       img.onerror=res; img.src=imgSrc;
     });
   }));
