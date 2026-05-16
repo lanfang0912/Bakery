@@ -799,7 +799,12 @@ async function submitCart(e){
         <div style="font-size:1.05rem;font-weight:800;color:var(--primary-dark);margin-bottom:6px">${name}，報名成功！</div>
         <div style="font-size:.86rem;color:var(--muted);margin-bottom:16px">已完成 ${items.length} 堂課程報名</div>
         ${total>0?`<div style="font-size:1rem;font-weight:800;color:var(--primary);background:var(--primary-light);border-radius:12px;padding:12px 20px;margin-bottom:16px">應繳金額 NT$${total.toLocaleString('zh-TW')} 元</div>`:''}
-        <div style="font-size:.82rem;color:var(--muted);line-height:1.9;margin-bottom:20px">匯款後請來電或 LINE 告知<br>📞 0966-864-079</div>
+        <div style="font-size:.84rem;background:#f7f2ed;border-radius:12px;padding:14px 18px;margin-bottom:16px;text-align:left;line-height:2">
+          💳 合作金庫（006）蘇澳分行<br>
+          帳號：<strong>0140765234715</strong>　戶名：楊宜蓁<br>
+          📲 電話 / LINE：<a href="tel:0966864079" style="color:var(--primary);font-weight:600">0966-864-079</a><br>
+          <span style="font-size:.78rem;color:var(--muted)">匯款後請來電或 LINE 告知確認</span>
+        </div>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
           <button onclick="downloadIcs(cartSuccessItems)" style="background:var(--primary-light);color:var(--primary-dark);border:2px solid var(--primary);padding:10px 20px;border-radius:22px;font-size:.86rem;font-weight:700;cursor:pointer">📅 加入行事曆</button>
           <button onclick="closeCartModal()" style="background:var(--primary);color:#fff;border:none;padding:10px 24px;border-radius:22px;font-size:.86rem;font-weight:700;cursor:pointer">完成</button>
