@@ -817,6 +817,7 @@ tr:hover td{background:var(--primary-light)}
         </select>
       </div>
       <button class="btn-save" onclick="previewPoster()" style="padding:11px 22px;white-space:nowrap">👁 預覽海報</button>
+      <button class="btn-export" onclick="repairPosterMonthImages()" style="padding:11px 18px;white-space:nowrap">☁️ 修復本月圖片</button>
       <button class="btn-add" id="poster-dl-btn" onclick="downloadPoster()" style="display:none;padding:11px 22px;white-space:nowrap">⬇ 下載 PNG</button>
       <button class="btn-export" id="poster-pptx-btn" onclick="downloadPosterPptx()" style="display:none;padding:11px 22px;white-space:nowrap">✏️ 下載可編輯 PPTX</button>
     </div>
@@ -1613,6 +1614,97 @@ async function _fetchAndCompressUrl(url, maxPx=400, quality=0.72){
     const blob = await resp.blob();
     return _compressImgToDataUrl(blob, maxPx, quality);
   } catch(e){ return null; }
+}
+
+function _isCloudinaryUrl(url){
+  return /^https?:\/\/res\.cloudinary\.com\//i.test(url||'');
+}
+function _isOwnCloudinaryUrl(url){
+  const cfg = getCloudCfg();
+  return !!(cfg.cloudName && _isCloudinaryUrl(url) && url.includes(`/res.cloudinary.com/${cfg.cloudName}/`));
+}
+function _optimizedCloudinaryUrl(url){
+  if(!url || !_isCloudinaryUrl(url) || !url.includes('/image/upload/')) return url;
+  return url.includes('/image/upload/f_auto,q_auto/')
+    ? url
+    : url.replace('/image/upload/','/image/upload/f_auto,q_auto/');
+}
+async function _uploadRemoteImageToCloudinary(url){
+  const cfg = getCloudCfg();
+  if(!cfg.cloudName || !cfg.preset) throw new Error('請先設定 Cloudinary');
+  const fd = new FormData();
+  fd.append('file', url);
+  fd.append('upload_preset', cfg.preset);
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${cfg.cloudName}/image/upload`, {method:'POST', body:fd});
+  if(!res.ok) throw new Error(await res.text());
+  const data = await res.json();
+  const uploadedUrl = _optimizedCloudinaryUrl(data.secure_url || data.url || '');
+  if(!uploadedUrl) throw new Error('Cloudinary 沒有回傳圖片網址');
+  return uploadedUrl;
+}
+async function _posterDataForUrl(url){
+  if(!url) return '';
+  if(url.startsWith('data:')) return url;
+  return await _fetchAndCompressUrl(url, 400, 0.72) || '';
+}
+
+async function repairPosterMonthImages(){
+  const monthVal = document.getElementById('poster-month').value;
+  if(!monthVal){ toast('請先選擇月份','error'); return; }
+  const cfg = getCloudCfg();
+  if(!cfg.cloudName || !cfg.preset){ toast('請先設定 Cloudinary','error'); openCloudSettings(); return; }
+  const [year, mon] = monthVal.split('-').map(Number);
+  const courses = events
+    .filter(e=>{ const [y,m]=e.date.split('-').map(Number); return !e.hidden&&y===year&&m===mon&&!String(e.id).startsWith('local'); })
+    .filter(e=>(e.images&&e.images.length)||e.image);
+  if(!courses.length){ toast('本月沒有需要處理的圖片','success'); return; }
+
+  const msg = document.getElementById('poster-msg');
+  let changed = 0, failed = 0, done = 0;
+  for(const c of courses){
+    done++;
+    if(msg) msg.textContent = `☁️ 修復圖片中 ${done}/${courses.length}：${c.title || c.teacher || c.date}`;
+    const original = c.images && c.images.length ? c.images.slice() : (c.image ? [c.image] : []);
+    const nextImages = [];
+    const nextPosters = [];
+    let eventChanged = false;
+
+    for(const src of original){
+      if(!src){ continue; }
+      let finalUrl = src;
+      try {
+        if(/^https?:\/\//i.test(src) && !_isOwnCloudinaryUrl(src)){
+          finalUrl = await _uploadRemoteImageToCloudinary(src);
+          eventChanged = true;
+        } else if(_isOwnCloudinaryUrl(src)){
+          finalUrl = _optimizedCloudinaryUrl(src);
+          if(finalUrl !== src) eventChanged = true;
+        }
+        nextImages.push(finalUrl);
+        nextPosters.push(await _posterDataForUrl(finalUrl));
+      } catch(e){
+        failed++;
+        nextImages.push(src);
+        nextPosters.push('');
+      }
+    }
+
+    const hasPoster = nextPosters.some(Boolean);
+    if(eventChanged || hasPoster){
+      const cleanPosters = nextPosters.map(d=>d||'');
+      const update = {
+        images: nextImages,
+        image: nextImages[0] || '',
+        imagesPoster: cleanPosters,
+        imagePoster: cleanPosters[0] || ''
+      };
+      await db.ref('bakery/events/'+c.id).update(update);
+      Object.assign(c, update);
+      changed++;
+    }
+  }
+  if(msg) msg.textContent = `✅ 圖片修復完成：更新 ${changed} 筆，失敗 ${failed} 張`;
+  toast(`圖片修復完成：更新 ${changed} 筆${failed?`，失敗 ${failed} 張`:''}`,'success');
 }
 
 // ── Image upload ─────────────────────────────────────────────
