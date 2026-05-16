@@ -70,17 +70,12 @@ main{max-width:520px;margin:32px auto;padding:0 16px 60px}
 
 <main>
   <div class="card">
-    <div class="card-title">📋 輸入報名資訊查詢</div>
+    <div class="card-title">📋 輸入完整電話查詢</div>
 
     <div class="fg">
-      <label>電話末四碼 *</label>
-      <input type="text" id="q-phone4" placeholder="例：1234" maxlength="4" inputmode="numeric">
-      <div class="hint">報名時填寫的電話號碼末四碼</div>
-    </div>
-    <div class="fg">
-      <label>電子信箱（選填）</label>
-      <input type="email" id="q-email" placeholder="填寫可讓結果更精準" autocomplete="email">
-      <div class="hint">若沒有填過 Email，留空即可</div>
+      <label>完整電話 *</label>
+      <input type="tel" id="q-phone" placeholder="例：0912-345-678" inputmode="tel" autocomplete="tel">
+      <div class="hint">請輸入報名時填寫的完整電話號碼</div>
     </div>
 
     <button class="btn-query" id="q-btn" onclick="doQuery()">查詢我的報名</button>
@@ -95,10 +90,12 @@ main{max-width:520px;margin:32px auto;padding:0 16px 60px}
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="data.js"></script>
 <script>
 firebase.initializeApp(FB_CONFIG);
 const db = firebase.database();
+const authReady = firebase.auth().signInAnonymously().catch(()=>{});
 
 const WEEKDAYS = ['日','一','二','三','四','五','六'];
 function formatDate(d){
@@ -106,18 +103,20 @@ function formatDate(d){
   const dow = WEEKDAYS[new Date(y,m-1,dd).getDay()];
   return `${m}/${String(dd).padStart(2,'0')} (${dow})`;
 }
+function normalizePhone(v){
+  return String(v||'').replace(/\D/g,'');
+}
 
 async function doQuery(){
-  const phone4 = document.getElementById('q-phone4').value.trim();
-  const email  = document.getElementById('q-email').value.trim().toLowerCase();
+  const phone = normalizePhone(document.getElementById('q-phone').value);
   const errEl  = document.getElementById('q-err');
 
   // Validate
-  document.getElementById('q-phone4').classList.toggle('err', !phone4 || phone4.length < 4);
+  document.getElementById('q-phone').classList.toggle('err', phone.length < 8);
   errEl.style.display = 'none';
 
-  if(!phone4 || phone4.length < 4){
-    errEl.textContent = '請填入電話末四碼';
+  if(phone.length < 8){
+    errEl.textContent = '請填入完整電話號碼';
     errEl.style.display = 'block';
     return;
   }
@@ -127,6 +126,7 @@ async function doQuery(){
   btn.textContent = '查詢中…';
 
   try {
+    await authReady;
     // Fetch events & registrations
     const [evSnap, regSnap] = await Promise.all([
       db.ref('bakery/events').once('value'),
@@ -139,13 +139,12 @@ async function doQuery(){
 
     const allRegs = regSnap.val() || {};
 
-    // Filter by email + phone last 4
+    // Filter by full phone number after removing spaces and punctuation
     const matches = [];
     Object.entries(allRegs).forEach(([eventId, regs]) => {
       Object.entries(regs).forEach(([regId, r]) => {
-        const phoneMatch = (r.phone||'').replace(/\D/g,'').endsWith(phone4);
-        const emailMatch = !email || (r.email||'').toLowerCase() === email;
-        if(phoneMatch && emailMatch){
+        const phoneMatch = normalizePhone(r.phone) === phone;
+        if(phoneMatch){
           matches.push({ ...r, eventId, regId, event: eventsMap[eventId] });
         }
       });
@@ -176,7 +175,7 @@ function renderResults(matches){
       <div class="empty-result">
         <div>🔍</div>
         查無報名記錄<br>
-        <small>請確認 Email 和電話末四碼是否正確</small>
+        <small>請確認完整電話號碼是否與報名時填寫一致</small>
       </div>`;
     return;
   }
