@@ -146,7 +146,7 @@ tr:hover td{background:var(--primary-light)}
 .btn-add-img{background:var(--primary-light);color:var(--primary-dark);border:2px dashed var(--primary);border-radius:10px;padding:8px;font-size:.82rem;font-weight:700;cursor:pointer;width:100%;transition:all .2s}
 .btn-add-img:hover{background:var(--primary);color:#fff}
 /* Table thumbnail */
-.img-thumb{width:36px;height:36px;object-fit:cover;border-radius:6px;vertical-align:middle}
+.img-thumb{width:40px;height:40px;object-fit:cover;border-radius:6px;vertical-align:middle}
 
 .modal-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:26px;padding-top:18px;border-top:1px solid var(--border)}
 .btn-cancel{background:var(--border);color:var(--muted);padding:10px 24px;border:none;border-radius:22px;cursor:pointer;font-size:.86rem;font-weight:600}
@@ -310,14 +310,14 @@ tr:hover td{background:var(--primary-light)}
     <div class="table-wrap">
       <table>
         <colgroup>
-          <col style="width:64px">
-          <col style="width:80px">
-          <col style="width:90px">
-          <col style="width:110px">
-          <col style="width:100px">
+          <col style="width:48px"><!-- 圖片 -->
+          <col style="width:52px"><!-- 顏色 -->
+          <col style="width:68px"><!-- 日期 -->
+          <col style="width:88px"><!-- 時間 -->
+          <col style="width:90px"><!-- 老師 -->
           <col><!-- 課程名稱：佔剩餘全部 -->
-          <col style="width:70px">
-          <col style="width:220px">
+          <col style="width:64px"><!-- 費用 -->
+          <col style="width:220px"><!-- 操作 -->
         </colgroup>
         <thead>
           <tr>
@@ -850,7 +850,7 @@ function renderTable(){
       const hidden = !!e.hidden;
       html += `<tr style="${hidden?'opacity:.58;background:#f7f1ea':''}">
         <td>${e.image?`<img class="img-thumb" src="${e.image}" alt="">`:'—'}</td>
-        <td><span class="cdot" style="background:${c.hex}"></span><span class="tag" style="background:${c.bg};color:${c.hex}">${e.color}</span>${hidden?`<span class="tag" style="background:#eee;color:#777;margin-left:4px">已隱藏</span>`:''}</td>
+        <td style="text-align:center"><span class="cdot" style="background:${c.hex};margin:0" title="${e.color}"></span>${hidden?`<br><span class="tag" style="background:#eee;color:#777;font-size:.65rem">隱藏</span>`:''}</td>
         <td>${formatDate(e.date)}</td>
         <td style="white-space:nowrap;font-size:.8rem">${e.start}–${e.end}</td>
         <td style="font-weight:600">${e.teacher}</td>
