@@ -1471,12 +1471,20 @@ function renderRegList(eventId) {
   const list = Object.entries(regs).map(([key, r]) => ({...r, key}))
     .sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
   const paidN = list.filter(r=>r.paid).length;
+  const normalizeName = v => String(v||'').trim().replace(/\s+/g,'').toLowerCase();
+  const nameCount = {};
+  list.forEach(r=>{
+    const nameKey = normalizeName(r.name);
+    if(nameKey) nameCount[nameKey] = (nameCount[nameKey] || 0) + 1;
+  });
+  const duplicateN = list.filter(r=>nameCount[normalizeName(r.name)] > 1).length;
 
   const statsHtml = `
     <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
       <span style="font-size:.82rem;background:var(--primary-light);color:var(--primary-dark);padding:4px 12px;border-radius:12px;font-weight:600">共 ${list.length} 人</span>
       <span style="font-size:.82rem;background:#e8f5ed;color:#5c9e6e;padding:4px 12px;border-radius:12px;font-weight:600">✅ ${paidN} 人已繳</span>
       <span style="font-size:.82rem;background:#fdeaea;color:#e05c5c;padding:4px 12px;border-radius:12px;font-weight:600">⏳ ${list.length-paidN} 人未繳</span>
+      ${duplicateN?`<span style="font-size:.82rem;background:#fff3cd;color:#9a6a00;padding:4px 12px;border-radius:12px;font-weight:700">⚠️ ${duplicateN} 筆姓名重複</span>`:''}
     </div>`;
 
   if(!list.length){
@@ -1487,10 +1495,15 @@ function renderRegList(eventId) {
 
   document.getElementById('reg-modal-body').innerHTML = statsHtml + `
     <div style="display:flex;flex-direction:column;gap:10px">
-      ${list.map(r=>`
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)">
+      ${list.map(r=>{
+        const duplicated = nameCount[normalizeName(r.name)] > 1;
+        return `
+        <div style="background:${duplicated?'#fff9e8':'var(--card)'};border:1px solid ${duplicated?'#e8b85c':'var(--border)'};border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
-            <div style="font-weight:700;font-size:.95rem;line-height:1.3">${r.name}${r.count&&r.count>1?` <span style="font-size:.8rem;color:var(--muted)">×${r.count}人</span>`:''}</div>
+            <div style="font-weight:700;font-size:.95rem;line-height:1.3">
+              ${r.name}${r.count&&r.count>1?` <span style="font-size:.8rem;color:var(--muted)">×${r.count}人</span>`:''}
+              ${duplicated?`<span style="font-size:.72rem;background:#f6c85f;color:#5f3b00;border-radius:10px;padding:2px 7px;margin-left:6px;white-space:nowrap">姓名重複</span>`:''}
+            </div>
             <span class="paid-badge${r.paid?' paid':''}" onclick="togglePaid('${eventId}','${r.key}',${!r.paid})" style="flex-shrink:0">
               ${r.paid?'✅ 已繳':'⏳ 未繳'}
             </span>
@@ -1507,7 +1520,7 @@ function renderRegList(eventId) {
             <button class="btn-edit" style="padding:6px 14px;font-size:.78rem" onclick="editReg('${eventId}','${r.key}')">編輯</button>
             <button class="btn-del"  style="padding:6px 14px;font-size:.78rem" onclick="deleteReg('${eventId}','${r.key}','${r.name}')">刪除</button>
           </div>
-        </div>`).join('')}
+        </div>`}).join('')}
     </div>`;
 }
 
