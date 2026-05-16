@@ -661,7 +661,7 @@ tr:hover td{background:var(--primary-light)}
       </div>
       <button class="btn-save" onclick="previewPoster()" style="padding:11px 22px;white-space:nowrap">👁 預覽海報</button>
       <button class="btn-add" id="poster-dl-btn" onclick="downloadPoster()" style="display:none;padding:11px 22px;white-space:nowrap">⬇ 下載 PNG</button>
-      <button class="btn-export" id="poster-svg-btn" onclick="downloadPosterSvg()" style="display:none;padding:11px 22px;white-space:nowrap">✏️ 下載可編輯 SVG</button>
+      <button class="btn-export" id="poster-pptx-btn" onclick="downloadPosterPptx()" style="display:none;padding:11px 22px;white-space:nowrap">✏️ 下載可編輯 PPTX</button>
     </div>
     <div id="poster-msg" style="font-size:.82rem;color:var(--muted);margin-top:10px"></div>
     <div class="poster-preview-wrap" id="poster-preview-wrap">
@@ -676,6 +676,7 @@ tr:hover td{background:var(--primary-light)}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <script src="data.js"></script>
 <script>
 let events = [];
@@ -1800,7 +1801,7 @@ function openPoster(){
   sel.value = cur && months.includes(cur) ? cur : (months[0]||'');
   document.getElementById('poster-preview-wrap').style.display = 'none';
   document.getElementById('poster-dl-btn').style.display = 'none';
-  document.getElementById('poster-svg-btn').style.display = 'none';
+  document.getElementById('poster-pptx-btn').style.display = 'none';
   document.getElementById('poster-msg').textContent = '';
   _posterCanvas = null;
   document.getElementById('poster-overlay').classList.add('open');
@@ -1994,6 +1995,154 @@ function _buildPosterSvg(monthVal){
   out.push('</svg>');
   out.splice(1,1,`<defs>${defs.join('')}</defs>`);
   return out.join('\n');
+}
+
+function _buildPosterPptx(monthVal){
+  if(typeof pptxgen === 'undefined') throw new Error('PPTX 工具尚未載入，請確認網路後重新整理');
+
+  const [year, mon] = monthVal.split('-').map(Number);
+  const WDAYS = ['日','一','二','三','四','五','六'];
+  const FONT = 'Microsoft JhengHei';
+
+  const monthCourses = [...events]
+    .filter(e=>{ const [y,m]=e.date.split('-').map(Number); return y===year&&m===mon; })
+    .sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
+  if(!monthCourses.length) return null;
+
+  const byDay = {};
+  monthCourses.forEach(c=>{ (byDay[c.date]=byDay[c.date]||[]).push(c); });
+  const days = Object.keys(byDay).sort();
+
+  const W = 1080, PAD = 36, GAP = 14, COLS = 3;
+  const CARD_W = Math.floor((W - PAD*2 - GAP*(COLS-1)) / COLS);
+  const INNER = 16;
+  const IMG_H = CARD_W - INNER * 2;
+  const FONT_TIME = 16, FONT_TITLE = 19, FONT_DATE = 22;
+  const TEXT_W = CARD_W - INNER * 2;
+  const GAP_IMG = Math.ceil(FONT_TIME * 0.8) + 14;
+  const _mc = document.createElement('canvas').getContext('2d');
+  const U = 100;
+  const u = v => v / U;
+  const hex = v => String(v||'').replace('#','').slice(0,6);
+
+  function cardH(dateStr){
+    const cs = byDay[dateStr];
+    let h = INNER + FONT_DATE + 21;
+    h += IMG_H + GAP_IMG;
+    _mc.font = `bold ${FONT_TITLE}px ${FONT}`;
+    cs.forEach(c=>{
+      h += FONT_TIME + 4;
+      const lines = _posterWrapText(_mc, `${c.teacher}｜${c.title}`, TEXT_W).length;
+      h += Math.min(lines, 2) * (FONT_TITLE + 5);
+      h += 12;
+    });
+    h += INNER;
+    return Math.max(200, h);
+  }
+
+  const rows = [];
+  for(let i=0;i<days.length;i+=COLS) rows.push(days.slice(i,i+COLS));
+  const rowH = rows.map(row=>Math.max(...row.map(cardH)));
+  const HEADER_H = 140;
+  const H = HEADER_H + PAD + rowH.reduce((s,h)=>s+h+GAP,0) - GAP + PAD + 20;
+
+  const pptx = new pptxgen();
+  pptx.author = 'Jen 手作烘焙課程';
+  pptx.subject = `${year}年${mon}月課程表`;
+  pptx.title = `${year}年${mon}月課程總覽`;
+  pptx.company = 'Jen 手作烘焙';
+  pptx.lang = 'zh-TW';
+  pptx.defineLayout({ name:'BAKERY_POSTER', width:u(W), height:u(H) });
+  pptx.layout = 'BAKERY_POSTER';
+  pptx.theme = {
+    headFontFace: FONT,
+    bodyFontFace: FONT,
+    lang: 'zh-TW'
+  };
+
+  const slide = pptx.addSlide();
+  slide.background = { color:'FDF8F2' };
+  const addRect = (x,y,w,h,color,opts={}) => slide.addShape(pptx.ShapeType.rect, {
+    x:u(x), y:u(y), w:u(w), h:u(h),
+    fill:{color:hex(color), transparency:opts.transparency||0},
+    line:{color:hex(opts.line||color), transparency:opts.line ? 0 : 100},
+    radius:u(opts.radius||0)
+  });
+  const addText = (content,x,y,w,h,size,color,bold=false,opts={}) => slide.addText(String(content), {
+    x:u(x), y:u(y), w:u(w), h:u(h),
+    fontFace:FONT, fontSize:size*0.72,
+    bold, color:hex(color),
+    margin:0, breakLine:false,
+    fit:'shrink',
+    valign:opts.valign||'mid',
+    align:opts.align||'left'
+  });
+  const addImage = (src,x,y,w,h,type='cover') => {
+    if(!src || !src.startsWith('data:')){ addRect(x,y,w,h,'F8EFE4',{radius:8}); return; }
+    addRect(x,y,w,h,'F8EFE4',{radius:8});
+    slide.addImage({ data:src, x:u(x), y:u(y), w:u(w), h:u(h), sizing:{type, x:u(x), y:u(y), w:u(w), h:u(h)} });
+  };
+
+  addRect(0,0,W,H,'FDF8F2');
+  let hx = PAD, hy = 42;
+  addText(`${year}年`,hx,hy,190,62,58,'3d2c1e',true); hx += 190;
+  addText(`${mon}`,hx,hy-8,80,92,92,'c0392b',true); hx += 78;
+  addText('月課程總覽',hx,hy,310,62,54,'3d2c1e',true);
+  addRect(PAD,112,W-PAD*2,3,'c17f3e');
+
+  const withImg = monthCourses.filter(c=>c.imagesPoster?.[0]||c.imagePoster);
+  if(withImg.length){
+    const IW=72, IGAP=6, n=Math.min(6,withImg.length);
+    const sw=n*IW+(n-1)*IGAP, sx=W-PAD-sw;
+    withImg.slice(0,n).forEach((c,i)=>{
+      const src = c.imagesPoster?.[0] || c.imagePoster || '';
+      addImage(src,sx+i*(IW+IGAP),16,IW,108,'contain');
+    });
+  }
+
+  let curY = HEADER_H + PAD;
+  rows.forEach((row,ri)=>{
+    const rh = rowH[ri];
+    row.forEach((dateStr,ci)=>{
+      const cx = PAD + ci*(CARD_W+GAP);
+      const courses = byDay[dateStr];
+      const [dy,dm,dd] = dateStr.split('-').map(Number);
+      const dow = new Date(dy,dm-1,dd).getDay();
+      const isWkend = dow===0||dow===6;
+      const imgCourse = courses.find(c=>c.imagesPoster?.[0]||c.imagePoster);
+      const accent = colorById(courses[0].color);
+      const accentHex = hex(accent.hex);
+
+      addRect(cx,curY,CARD_W,rh,'FFFFFF',{line:'F0E2D4',radius:14});
+      addRect(cx,curY,CARD_W,6,accentHex);
+      let ty = curY + INNER;
+      addText(`📅 ${dm}/${String(dd).padStart(2,'0')} (${WDAYS[dow]})`,cx+INNER,ty,CARD_W-INNER*2,28,FONT_DATE,isWkend?'c0392b':'3d2c1e',true);
+      ty += FONT_DATE + 20;
+      addRect(cx+INNER,ty,CARD_W-INNER*2,1,'e0cbb8'); ty += 10;
+
+      const iw = CARD_W - INNER*2;
+      const src = imgCourse ? (imgCourse.imagesPoster?.[0] || imgCourse.imagePoster || '') : '';
+      if(src) addImage(src,cx+INNER,ty,iw,IMG_H,'cover');
+      else {
+        addRect(cx+INNER,ty,iw,IMG_H,accentHex,{transparency:70,radius:8});
+        addText('🥐',cx+INNER,ty+IMG_H/2-20,iw,40,40,'FFFFFF',false,{align:'center'});
+      }
+      ty += IMG_H + GAP_IMG;
+
+      courses.forEach(c=>{
+        const ci=colorById(c.color);
+        addText(`${c.start}－${c.end}`,cx+INNER,ty,iw,20,FONT_TIME,'a07850'); ty+=FONT_TIME+6;
+        _mc.font = `bold ${FONT_TITLE}px ${FONT}`;
+        _posterWrapText(_mc,`${c.teacher}｜${c.title}`,iw).slice(0,2).forEach(l=>{
+          addText(l,cx+INNER,ty,iw,24,FONT_TITLE,hex(ci.hex),true); ty+=FONT_TITLE+8;
+        });
+        ty+=8;
+      });
+    });
+    curY+=rh+GAP;
+  });
+
+  return pptx;
 }
 
 async function _buildPoster(monthVal){
@@ -2222,13 +2371,13 @@ async function previewPoster(){
   msg.textContent = '⏳ 生成中…';
   document.getElementById('poster-preview-wrap').style.display = 'none';
   document.getElementById('poster-dl-btn').style.display = 'none';
-  document.getElementById('poster-svg-btn').style.display = 'none';
+  document.getElementById('poster-pptx-btn').style.display = 'none';
   try {
     _posterCanvas = await _buildPoster(monthVal);
     if(!_posterCanvas){ msg.textContent = '⚠️ 該月份沒有課程'; return; }
     document.getElementById('poster-preview-wrap').style.display = 'block';
     document.getElementById('poster-dl-btn').style.display = _posterCanvasTainted ? 'none' : 'inline-block';
-    document.getElementById('poster-svg-btn').style.display = 'inline-block';
+    document.getElementById('poster-pptx-btn').style.display = 'inline-block';
     msg.textContent = _posterCanvasTainted
       ? `⚠️ 海報預覽完成，但部分舊圖需先修復成縮圖後才能下載 PNG`
       : `✅ 海報預覽完成（共 ${document.getElementById('poster-month').options[document.getElementById('poster-month').selectedIndex].text}）`;
@@ -2244,6 +2393,19 @@ function downloadPosterSvg(){
   if(!svg){ toast('該月份沒有課程','error'); return; }
   _downloadTextFile(svg, _posterFileName('svg'), 'image/svg+xml;charset=utf-8');
   toast('可編輯 SVG 已下載 ✓','success');
+}
+
+async function downloadPosterPptx(){
+  const monthVal = document.getElementById('poster-month').value;
+  if(!monthVal){ toast('請選擇月份','error'); return; }
+  try {
+    const pptx = _buildPosterPptx(monthVal);
+    if(!pptx){ toast('該月份沒有課程','error'); return; }
+    await pptx.writeFile({ fileName:_posterFileName('pptx') });
+    toast('可編輯 PPTX 已下載 ✓','success');
+  } catch(e) {
+    toast('PPTX 下載失敗：' + (e.message||e), 'error');
+  }
 }
 
 async function downloadPoster(){
