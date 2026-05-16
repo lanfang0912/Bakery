@@ -2816,7 +2816,7 @@ async function _buildPoster(monthVal, skipIds = null, forDownload = false){
         let proxyOk = false;
         if(cloudCfg.cloudName && !src.includes('res.cloudinary.com')){
           try {
-            const proxyUrl = `https://res.cloudinary.com/${cloudCfg.cloudName}/image/fetch/${src}`;
+            const proxyUrl = `https://res.cloudinary.com/${cloudCfg.cloudName}/image/fetch/f_auto,q_auto/${encodeURIComponent(src)}`;
             const pr = await fetch(proxyUrl, {cache:'reload'});
             if(pr.ok){
               imgSrc = URL.createObjectURL(await pr.blob());
