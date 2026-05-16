@@ -2310,6 +2310,7 @@ async function saveNewPw(e){
 // ── Monthly poster ───────────────────────────────────────────
 let _posterCanvas = null;
 let _posterCanvasTainted = false;
+let _taintedIds = new Set();
 
 function openPoster(){
   // Build month options from events
@@ -2771,8 +2772,8 @@ function _buildPosterPptx(monthVal){
   return pptx;
 }
 
-async function _buildPoster(monthVal){
-  _posterCanvasTainted = false;
+async function _buildPoster(monthVal, skipIds = null){
+  if(!skipIds){ _posterCanvasTainted = false; _taintedIds = new Set(); }
   const [year, mon] = monthVal.split('-').map(Number);
   const WDAYS = ['日','一','二','三','四','五','六'];
   const FONT = '"PingFang TC","Microsoft JhengHei",Arial,sans-serif';
@@ -2791,6 +2792,9 @@ async function _buildPoster(monthVal){
   // Fall back to CORS fetch for Cloudinary URLs that don't yet have a thumbnail
   const imgMap = {};
   await Promise.all(monthCourses.map(async c=>{
+    // When rebuilding for download, skip images that tainted the preview canvas
+    if(skipIds && skipIds.has(String(c.id))) return;
+
     const posterSrc = c.imagesPoster?.[0] || c.imagePoster || '';
     const rawUrl    = c.images?.[0] || c.image || '';
     const src = posterSrc || rawUrl;
@@ -2808,8 +2812,7 @@ async function _buildPoster(monthVal){
         imgSrc = URL.createObjectURL(await resp.blob());
         fromCorsFetch = true;
       } catch(e){
-        // Some old Google Forms image URLs can be displayed as <img> but cannot be fetched.
-        // Use them for preview, while marking the canvas as non-downloadable until backfilled.
+        // URL cannot be CORS-fetched — use direct load for preview only
         imgSrc = src;
         usedDirectFallback = true;
       }
@@ -2826,7 +2829,7 @@ async function _buildPoster(monthVal){
             if(ev){ ev.imagePoster=d; ev.imagesPoster=[d]; }
           });
         }
-        if(usedDirectFallback) _posterCanvasTainted = true;
+        if(usedDirectFallback){ _posterCanvasTainted = true; _taintedIds.add(String(c.id)); }
         res();
       };
       img.onerror=res; img.src=imgSrc;
@@ -3026,11 +3029,12 @@ async function previewPoster(){
     _posterCanvas = await _buildPoster(monthVal);
     if(!_posterCanvas){ msg.textContent = '⚠️ 該月份沒有課程'; return; }
     document.getElementById('poster-preview-wrap').style.display = 'block';
-    document.getElementById('poster-dl-btn').style.display = _posterCanvasTainted ? 'none' : 'inline-block';
+    document.getElementById('poster-dl-btn').style.display = 'inline-block';
     document.getElementById('poster-pptx-btn').style.display = 'inline-block';
+    const selText = document.getElementById('poster-month').options[document.getElementById('poster-month').selectedIndex].text;
     msg.textContent = _posterCanvasTainted
-      ? `⚠️ 海報預覽完成，但部分舊圖需先修復成縮圖後才能下載 PNG`
-      : `✅ 海報預覽完成（共 ${document.getElementById('poster-month').options[document.getElementById('poster-month').selectedIndex].text}）`;
+      ? `✅ 海報預覽完成（${selText}）⚠️ 部分圖片無法跨域讀取，下載版將以色塊代替`
+      : `✅ 海報預覽完成（${selText}）`;
   } catch(e) {
     msg.textContent = '⚠️ 生成失敗：' + e.message;
   }
@@ -3066,8 +3070,15 @@ async function downloadPosterPptx(){
 
 async function downloadPoster(){
   if(!_posterCanvas){ toast('請先預覽海報','error'); return; }
-  if(_posterCanvasTainted){ toast('部分舊圖尚未修復，請先補縮圖後再下載','error'); return; }
   const filename = _posterFileName('png');
+  let canvas = _posterCanvas;
+  if(_posterCanvasTainted){
+    // Rebuild a clean canvas, skipping images that caused tainting (replaced by colour gradients)
+    const monthVal = document.getElementById('poster-month').value;
+    toast('重新生成無跨域限制版本…','success');
+    canvas = await _buildPoster(monthVal, _taintedIds);
+    if(!canvas){ toast('重新生成失敗','error'); return; }
+  }
 
   // Mobile/tablet: use Web Share API so users can save to Photos from the share sheet.
   // Desktop browsers may expose Web Share too, but often show AirDrop/share instead of Save As.
@@ -3075,7 +3086,7 @@ async function downloadPoster(){
     || (navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent));
   if(isMobileShareTarget && navigator.share){
     try {
-      const blob = await new Promise(res=>_posterCanvas.toBlob(res,'image/png'));
+      const blob = await new Promise(res=>canvas.toBlob(res,'image/png'));
       const file = new File([blob], filename, {type:'image/png'});
       if(navigator.canShare && navigator.canShare({files:[file]})){
         await navigator.share({files:[file], title:filename});
@@ -3088,15 +3099,11 @@ async function downloadPoster(){
   }
 
   // Desktop / fallback: trigger file download
-  try {
-    const link = document.createElement('a');
-    link.download = filename;
-    link.href = _posterCanvas.toDataURL('image/png');
-    link.click();
-    toast('海報已下載 ✓','success');
-  } catch(e){
-    toast('下載失敗：圖片 CORS 限制，請改用 Cloudinary 上傳圖片','error');
-  }
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  toast('海報已下載 ✓','success');
 }
 
 // Check session on load
