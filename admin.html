@@ -2808,13 +2808,28 @@ async function _buildPoster(monthVal, skipIds = null){
         ? src.replace('/image/upload/','/image/upload/q_auto/') : src;
       try {
         const resp = await fetch(corsUrl, {cache:'reload'});
-        if(!resp.ok) return;
+        if(!resp.ok) throw new Error('not ok');
         imgSrc = URL.createObjectURL(await resp.blob());
         fromCorsFetch = true;
       } catch(e){
-        // URL cannot be CORS-fetched — use direct load for preview only
-        imgSrc = src;
-        usedDirectFallback = true;
+        // Direct CORS fetch failed — try Cloudinary fetch proxy if configured
+        let proxyOk = false;
+        if(cloudCfg.cloudName && !src.includes('res.cloudinary.com')){
+          try {
+            const proxyUrl = `https://res.cloudinary.com/${cloudCfg.cloudName}/image/fetch/${encodeURIComponent(src)}`;
+            const pr = await fetch(proxyUrl, {cache:'reload'});
+            if(pr.ok){
+              imgSrc = URL.createObjectURL(await pr.blob());
+              fromCorsFetch = true;
+              proxyOk = true;
+            }
+          } catch(e2){}
+        }
+        if(!proxyOk){
+          // Still failed — use direct URL for preview only (taints canvas)
+          imgSrc = src;
+          usedDirectFallback = true;
+        }
       }
     }
     await new Promise(res=>{
