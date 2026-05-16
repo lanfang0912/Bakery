@@ -663,6 +663,31 @@ tr:hover td{background:var(--primary-light)}
       <button class="btn-add" id="poster-dl-btn" onclick="downloadPoster()" style="display:none;padding:11px 22px;white-space:nowrap">⬇ 下載 PNG</button>
       <button class="btn-export" id="poster-pptx-btn" onclick="downloadPosterPptx()" style="display:none;padding:11px 22px;white-space:nowrap">✏️ 下載可編輯 PPTX</button>
     </div>
+    <div style="margin-top:14px;padding:14px;border:1px solid var(--border);background:#fffaf5">
+      <div style="font-size:.82rem;font-weight:800;color:var(--primary-dark);margin-bottom:10px">卡片模板</div>
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(110px,1fr));gap:10px">
+        <div class="fg" style="margin-bottom:0">
+          <label>圖片到老師</label>
+          <input id="pt-image-gap" type="number" min="12" max="80" step="1" onchange="applyPosterTemplateControls(false)" style="padding:8px 10px">
+        </div>
+        <div class="fg" style="margin-bottom:0">
+          <label>老師到課名</label>
+          <input id="pt-teacher-gap" type="number" min="0" max="40" step="1" onchange="applyPosterTemplateControls(false)" style="padding:8px 10px">
+        </div>
+        <div class="fg" style="margin-bottom:0">
+          <label>課名行距</label>
+          <input id="pt-title-gap" type="number" min="0" max="30" step="1" onchange="applyPosterTemplateControls(false)" style="padding:8px 10px">
+        </div>
+        <div class="fg" style="margin-bottom:0">
+          <label>底部留白</label>
+          <input id="pt-bottom-pad" type="number" min="0" max="50" step="1" onchange="applyPosterTemplateControls(false)" style="padding:8px 10px">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn-save" onclick="applyPosterTemplateControls(true)" style="padding:8px 16px">套用並預覽</button>
+        <button class="btn-cancel" onclick="resetPosterTemplateControls()" style="padding:8px 16px">恢復預設</button>
+      </div>
+    </div>
     <div id="poster-msg" style="font-size:.82rem;color:var(--muted);margin-top:10px"></div>
     <div class="poster-preview-wrap" id="poster-preview-wrap">
       <canvas id="poster-canvas"></canvas>
@@ -1800,6 +1825,7 @@ function openPoster(){
   document.getElementById('poster-dl-btn').style.display = 'none';
   document.getElementById('poster-pptx-btn').style.display = 'none';
   document.getElementById('poster-msg').textContent = '';
+  syncPosterTemplateControls();
   _posterCanvas = null;
   document.getElementById('poster-overlay').classList.add('open');
 }
@@ -1865,13 +1891,53 @@ const POSTER_CONTACT_ADDR = '宜蘭縣羅東鎮羅莊二街198號';
 const POSTER_CONTACT_PHONE = '0966-864-079';
 const POSTER_CONTACT_LINE = 'LINE ID：0966864079';
 
-// 海報卡片模板設定：要微調版型，優先改這裡。
-const POSTER_TEMPLATE = {
+const POSTER_TEMPLATE_KEY = 'bakery_poster_template';
+const POSTER_TEMPLATE_DEFAULT = {
   imageToTeacherGap: 36, // 圖片底部到老師名字的距離
   teacherToTitleGap: 10, // 老師名字到課程名稱的距離
   titleLineGap: 6,       // 課程名稱兩行之間的距離
   cardBottomPad: 12      // 卡片底部預留空間
 };
+const POSTER_TEMPLATE = {...POSTER_TEMPLATE_DEFAULT};
+try {
+  Object.assign(POSTER_TEMPLATE, JSON.parse(localStorage.getItem(POSTER_TEMPLATE_KEY) || '{}'));
+} catch(e) {}
+
+function _num(v, fallback, min, max){
+  const n = Number(v);
+  if(!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, n));
+}
+
+function syncPosterTemplateControls(){
+  const pairs = [
+    ['pt-image-gap','imageToTeacherGap'],
+    ['pt-teacher-gap','teacherToTitleGap'],
+    ['pt-title-gap','titleLineGap'],
+    ['pt-bottom-pad','cardBottomPad']
+  ];
+  pairs.forEach(([id,key])=>{
+    const el = document.getElementById(id);
+    if(el) el.value = POSTER_TEMPLATE[key];
+  });
+}
+
+function applyPosterTemplateControls(withPreview){
+  POSTER_TEMPLATE.imageToTeacherGap = _num(document.getElementById('pt-image-gap')?.value, POSTER_TEMPLATE.imageToTeacherGap, 12, 80);
+  POSTER_TEMPLATE.teacherToTitleGap = _num(document.getElementById('pt-teacher-gap')?.value, POSTER_TEMPLATE.teacherToTitleGap, 0, 40);
+  POSTER_TEMPLATE.titleLineGap = _num(document.getElementById('pt-title-gap')?.value, POSTER_TEMPLATE.titleLineGap, 0, 30);
+  POSTER_TEMPLATE.cardBottomPad = _num(document.getElementById('pt-bottom-pad')?.value, POSTER_TEMPLATE.cardBottomPad, 0, 50);
+  localStorage.setItem(POSTER_TEMPLATE_KEY, JSON.stringify(POSTER_TEMPLATE));
+  syncPosterTemplateControls();
+  if(withPreview) previewPoster();
+}
+
+function resetPosterTemplateControls(){
+  Object.assign(POSTER_TEMPLATE, POSTER_TEMPLATE_DEFAULT);
+  localStorage.removeItem(POSTER_TEMPLATE_KEY);
+  syncPosterTemplateControls();
+  previewPoster();
+}
 
 function _downloadTextFile(text, filename, mime){
   const blob = new Blob([text], {type:mime});
