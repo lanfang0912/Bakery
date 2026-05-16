@@ -1732,21 +1732,26 @@ async function _buildPoster(monthVal){
   monthCourses.forEach(c=>{ (byDay[c.date]=byDay[c.date]||[]).push(c); });
   const days = Object.keys(byDay).sort();
 
-  // Load images
+  // Load images — try with crossOrigin first (needed for canvas export),
+  // fall back to without (image will still render but drawImage may throw)
   const imgMap = {};
   await Promise.all(monthCourses.filter(c=>c.image).map(c=>new Promise(res=>{
-    const img = new Image();
-    if(!c.image.startsWith('data:')) img.crossOrigin='anonymous';
-    img.onload=()=>{ imgMap[c.id]=img; res(); };
-    img.onerror=res; img.src=c.image;
+    const tryLoad = (cors) => {
+      const img = new Image();
+      if(cors && !c.image.startsWith('data:')) img.crossOrigin='anonymous';
+      img.onload=()=>{ imgMap[c.id]=img; res(); };
+      img.onerror=()=>{ if(cors) tryLoad(false); else res(); };
+      img.src = c.image + (cors && !c.image.startsWith('data:') ? (c.image.includes('?')?'&':'?')+'_t='+Date.now() : '');
+    };
+    tryLoad(true);
   })));
 
   // Layout: portrait 1080px, 3 cards per row
   const W = 1080, PAD = 36, GAP = 14, COLS = 3;
   const CARD_W = Math.floor((W - PAD*2 - GAP*(COLS-1)) / COLS);
-  const INNER = 14;
-  const IMG_H = 100; // fixed image / placeholder height
-  const FONT_TIME = 12, FONT_TITLE = 15, FONT_DATE = 18;
+  const INNER = 16;
+  const IMG_H = 110; // fixed image / placeholder height
+  const FONT_TIME = 17, FONT_TITLE = 22, FONT_DATE = 24;
 
   // Estimate card height
   function cardH(dateStr){
@@ -1852,9 +1857,22 @@ async function _buildPoster(monthVal){
       ctx.save();
       _posterRoundRect(ctx,cx+INNER,ty,iw,IMG_H,8); ctx.clip();
       if(imgCourse){
-        const img=imgMap[imgCourse.id];
-        const s=Math.max(iw/img.width,IMG_H/img.height);
-        ctx.drawImage(img,cx+INNER+(iw-img.width*s)/2,ty+(IMG_H-img.height*s)/2,img.width*s,img.height*s);
+        try {
+          const img=imgMap[imgCourse.id];
+          const s=Math.max(iw/img.width,IMG_H/img.height);
+          ctx.drawImage(img,cx+INNER+(iw-img.width*s)/2,ty+(IMG_H-img.height*s)/2,img.width*s,img.height*s);
+        } catch(e) {
+          // CORS blocked → show colour placeholder
+          const grad=ctx.createLinearGradient(cx+INNER,ty,cx+INNER+iw,ty+IMG_H);
+          const ac=colorById(courses[0].color);
+          grad.addColorStop(0,ac.hex+'bb'); grad.addColorStop(1,ac.hex+'33');
+          ctx.fillStyle=grad; ctx.fillRect(cx+INNER,ty,iw,IMG_H);
+          ctx.restore(); ctx.save();
+          ctx.font='40px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillStyle='rgba(255,255,255,0.6)';
+          ctx.fillText('🥐',cx+INNER+iw/2,ty+IMG_H/2);
+          ctx.textBaseline='alphabetic'; ctx.textAlign='left';
+        }
       } else {
         const grad=ctx.createLinearGradient(cx+INNER,ty,cx+INNER+iw,ty+IMG_H);
         grad.addColorStop(0,accent.hex+'bb'); grad.addColorStop(1,accent.hex+'33');
@@ -1904,12 +1922,30 @@ async function previewPoster(){
   }
 }
 
-function downloadPoster(){
+async function downloadPoster(){
   if(!_posterCanvas){ toast('請先預覽海報','error'); return; }
   const sel = document.getElementById('poster-month');
   const [y,m] = sel.value.split('-');
+  const filename = `${y}年${Number(m)}月課程表.png`;
+
+  // iOS / Android: use Web Share API → 可直接存到照片圖庫
+  if(navigator.share){
+    try {
+      const blob = await new Promise(res=>_posterCanvas.toBlob(res,'image/png'));
+      const file = new File([blob], filename, {type:'image/png'});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({files:[file], title:filename});
+        return;
+      }
+    } catch(e){
+      if(e.name==='AbortError') return; // user cancelled share sheet
+      // fall through to normal download
+    }
+  }
+
+  // Desktop / fallback: trigger file download
   const link = document.createElement('a');
-  link.download = `${y}年${Number(m)}月課程表.png`;
+  link.download = filename;
   link.href = _posterCanvas.toDataURL('image/png');
   link.click();
   toast('海報已下載 ✓','success');
