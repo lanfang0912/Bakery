@@ -173,13 +173,7 @@ function renderResults(matches){
     const title = ev ? ev.title : '（課程已移除）';
     const dateStr = ev ? `${formatDate(ev.date)}　${ev.start} – ${ev.end}` : '';
     const teacher = ev ? ev.teacher : '';
-
-    const remitInfo = (r.remitDate || r.remitLast5)
-      ? `<div class="reg-remit">
-           💳 匯款日期：${r.remitDate || '未填'}<br>
-           帳號末五碼：${r.remitLast5 ? `…${r.remitLast5}` : '未填'}
-         </div>`
-      : '';
+    const feeStr  = ev && ev.fee ? formatFee(ev.fee) : '';
 
     return `
       <div class="reg-card">
@@ -190,7 +184,7 @@ function renderResults(matches){
         ${dateStr ? `<div class="reg-meta">🗓 ${dateStr}</div>` : ''}
         ${teacher ? `<div class="reg-meta">👩‍🏫 ${teacher}</div>` : ''}
         ${r.count > 1 ? `<div class="reg-meta">👥 ${r.count} 人</div>` : ''}
-        ${remitInfo}
+        ${feeStr ? `<div class="reg-meta">💰 ${feeStr}</div>` : ''}
       </div>`;
   }).join('');
 }
