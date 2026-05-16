@@ -170,6 +170,18 @@ tr:hover td{background:var(--primary-light)}
 .toast.success{background:var(--green)}
 .toast.error{background:var(--red)}
 
+/* Reg list table (desktop) */
+.reg-table{width:100%;border-collapse:collapse;font-size:.84rem}
+.reg-table th{background:var(--primary-dark);color:#fff;padding:9px 12px;text-align:left;font-size:.76rem;font-weight:700;white-space:nowrap}
+.reg-table th:first-child{border-radius:10px 0 0 0}.reg-table th:last-child{border-radius:0 10px 0 0}
+.reg-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.reg-table tr:last-child td{border-bottom:none}
+.reg-table tr:hover td{background:var(--primary-light)}
+.reg-table tr.dup-row td{background:#fff9e8}
+.reg-table tr.dup-row:hover td{background:#fef3d0}
+.reg-cards-wrap{display:none}
+@media(max-width:700px){.reg-table-wrap{display:none}.reg-cards-wrap{display:block}}
+
 /* Name search tab */
 .nsearch-wrap{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:18px 20px;margin-bottom:18px;box-shadow:var(--shadow);display:flex;gap:10px;align-items:center}
 .nsearch-input{flex:1;padding:10px 16px;border:2px solid var(--border);border-radius:22px;font-size:.92rem;font-family:inherit;color:var(--text);background:var(--bg);outline:none;transition:border-color .2s}
@@ -297,8 +309,7 @@ tr:hover td{background:var(--primary-light)}
     </select>
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-    <button class="btn-export" onclick="exportCSV()" style="padding:10px 18px;font-size:.85rem;font-weight:700">⬇ 匯出 CSV</button>
-    <button class="btn-poster" onclick="openPoster()">🎨 月份海報</button>
+<button class="btn-poster" onclick="openPoster()">🎨 月份海報</button>
     <button class="btn-paste" onclick="openPaste()">📋 貼上新增</button>
     <button class="btn-cloud" onclick="openCloudSettings()">☁️ 圖片設定</button>
     <button class="btn-add" onclick="openAdd()">＋ 手動新增</button>
@@ -1054,22 +1065,6 @@ function toast(msg, type=''){
   setTimeout(()=>t.className='toast', 2800);
 }
 
-// ── Export CSV ───────────────────────────────────────────────
-function exportCSV(){
-  const WEEKDAYS=['日','一','二','三','四','五','六'];
-  const rows = [...events]
-    .sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start))
-    .map(e=>{
-      const dow=WEEKDAYS[new Date(e.date).getDay()];
-      return [e.date,dow,e.start,e.end,e.teacher,e.title]
-        .map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
-    });
-  const csv='﻿'+['日期,星期,開始時間,結束時間,老師,課程名稱',...rows].join('\n');
-  const a=document.createElement('a');
-  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download='烘焙課程2026.csv'; a.click();
-  toast('CSV 已匯出 ✓','success');
-}
 
 // ── Init ─────────────────────────────────────────────────────
 buildColorFilter();
@@ -1483,6 +1478,10 @@ function searchByName(){
         <div class="nreg-course" style="color:${c.hex}">${courseTitle}</div>
         ${dateStr?`<div class="nreg-meta">🗓 ${dateStr}</div>`:''}
         ${feeStr?`<div class="nreg-meta">💰 ${feeStr}</div>`:''}
+        <div style="display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+          <button class="btn-edit" style="padding:5px 12px;font-size:.78rem" onclick="openRegModal('${r.eventId}');editReg('${r.eventId}','${r.regKey}')">編輯</button>
+          <button class="btn-del"  style="padding:5px 12px;font-size:.78rem" onclick="deleteReg('${r.eventId}','${r.regKey}','${r.name}')">刪除</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -1598,35 +1597,61 @@ function renderRegList(eventId) {
     return;
   }
 
-  document.getElementById('reg-modal-body').innerHTML = statsHtml + `
-    <div style="display:flex;flex-direction:column;gap:10px">
-      ${list.map(r=>{
-        const duplicated = nameCount[normalizeName(r.name)] > 1;
-        return `
-        <div style="background:${duplicated?'#fff9e8':'var(--card)'};border:1px solid ${duplicated?'#e8b85c':'var(--border)'};border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
-            <div style="font-weight:700;font-size:.95rem;line-height:1.3">
-              ${r.name}${r.count&&r.count>1?` <span style="font-size:.8rem;color:var(--muted)">×${r.count}人</span>`:''}
-              ${duplicated?`<span style="font-size:.72rem;background:#f6c85f;color:#5f3b00;border-radius:10px;padding:2px 7px;margin-left:6px;white-space:nowrap">姓名重複</span>`:''}
-            </div>
-            <span class="paid-badge${r.paid?' paid':''}" onclick="togglePaid('${eventId}','${r.key}',${!r.paid})" style="flex-shrink:0">
-              ${r.paid?'✅ 已繳':'⏳ 未繳'}
-            </span>
+  // Desktop: table
+  const tableHtml = `<div class="table-wrap" style="margin-bottom:0;border-radius:10px">
+    <table class="reg-table">
+      <thead><tr>
+        <th>#</th><th>姓名</th><th>電話</th><th>人數</th><th>繳費</th><th>匯款</th><th>備註</th><th>操作</th>
+      </tr></thead>
+      <tbody>${list.map((r,i)=>{
+        const dup = nameCount[normalizeName(r.name)] > 1;
+        const remit = [r.remitDate, r.remitLast5?`…${r.remitLast5}`:''].filter(Boolean).join(' ');
+        return `<tr class="${dup?'dup-row':''}">
+          <td style="color:var(--muted);font-size:.76rem">${i+1}${dup?` <span style="font-size:.7rem;background:#f6c85f;color:#5f3b00;border-radius:8px;padding:1px 6px">重複</span>`:''}</td>
+          <td style="font-weight:700">${r.name}${r.count&&r.count>1?` <span style="font-size:.78rem;color:var(--muted)">×${r.count}</span>`:''}</td>
+          <td><a href="tel:${r.phone}" style="color:var(--primary);font-weight:600">${r.phone}</a></td>
+          <td style="text-align:center">${r.count||1}</td>
+          <td><span class="paid-badge${r.paid?' paid':''}" onclick="togglePaid('${eventId}','${r.key}',${!r.paid})">${r.paid?'✅ 已繳':'⏳ 未繳'}</span></td>
+          <td style="font-size:.78rem;color:var(--muted)">${remit||'—'}</td>
+          <td style="font-size:.78rem;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.note||'—'}</td>
+          <td><div style="display:flex;gap:5px">
+            <button class="btn-edit" style="padding:5px 10px;font-size:.76rem" onclick="editReg('${eventId}','${r.key}')">編輯</button>
+            <button class="btn-del"  style="padding:5px 10px;font-size:.76rem" onclick="deleteReg('${eventId}','${r.key}','${r.name}')">刪除</button>
+          </div></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  </div>`;
+
+  // Mobile: cards
+  const cardsHtml = `<div style="display:flex;flex-direction:column;gap:10px">
+    ${list.map(r=>{
+      const dup = nameCount[normalizeName(r.name)] > 1;
+      return `
+      <div style="background:${dup?'#fff9e8':'var(--card)'};border:1px solid ${dup?'#e8b85c':'var(--border)'};border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
+          <div style="font-weight:700;font-size:.95rem;line-height:1.3">
+            ${r.name}${r.count&&r.count>1?` <span style="font-size:.8rem;color:var(--muted)">×${r.count}人</span>`:''}
+            ${dup?`<span style="font-size:.72rem;background:#f6c85f;color:#5f3b00;border-radius:10px;padding:2px 7px;margin-left:6px;white-space:nowrap">姓名重複</span>`:''}
           </div>
-          <div style="font-size:.85rem;margin-bottom:5px">
-            📞 <a href="tel:${r.phone}" style="color:var(--primary);font-weight:600">${r.phone}</a>
-          </div>
-          ${r.email?`<div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">✉️ <a href="mailto:${r.email}" style="color:var(--muted)">${r.email}</a></div>`:''}
-          ${r.fb||r.line?`<div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">${[r.fb?`FB: ${r.fb}`:'', r.line?`LINE: ${r.line}`:''].filter(Boolean).join('　')}</div>`:''}
-          ${r.remitDate||r.remitLast5?`<div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">💳 ${[r.remitDate, r.remitLast5?`末五碼 …${r.remitLast5}`:''].filter(Boolean).join(' ')}</div>`:''}
-          ${r.shuttle?`<div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">🚗 ${r.shuttle.startsWith('是')?'需要接送':'自行前往'}</div>`:''}
-          ${r.note?`<div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">📝 ${r.note}</div>`:''}
-          <div style="display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-            <button class="btn-edit" style="padding:6px 14px;font-size:.78rem" onclick="editReg('${eventId}','${r.key}')">編輯</button>
-            <button class="btn-del"  style="padding:6px 14px;font-size:.78rem" onclick="deleteReg('${eventId}','${r.key}','${r.name}')">刪除</button>
-          </div>
-        </div>`}).join('')}
-    </div>`;
+          <span class="paid-badge${r.paid?' paid':''}" onclick="togglePaid('${eventId}','${r.key}',${!r.paid})" style="flex-shrink:0">
+            ${r.paid?'✅ 已繳':'⏳ 未繳'}
+          </span>
+        </div>
+        <div style="font-size:.85rem;margin-bottom:5px">📞 <a href="tel:${r.phone}" style="color:var(--primary);font-weight:600">${r.phone}</a></div>
+        ${r.remitDate||r.remitLast5?`<div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">💳 ${[r.remitDate, r.remitLast5?`末五碼 …${r.remitLast5}`:''].filter(Boolean).join(' ')}</div>`:''}
+        ${r.note?`<div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">📝 ${r.note}</div>`:''}
+        <div style="display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+          <button class="btn-edit" style="padding:6px 14px;font-size:.78rem" onclick="editReg('${eventId}','${r.key}')">編輯</button>
+          <button class="btn-del"  style="padding:6px 14px;font-size:.78rem" onclick="deleteReg('${eventId}','${r.key}','${r.name}')">刪除</button>
+        </div>
+      </div>`}).join('')}
+  </div>`;
+
+  // Show table on desktop (>700px), cards on mobile via CSS class toggling
+  document.getElementById('reg-modal-body').innerHTML = statsHtml +
+    `<div class="reg-table-wrap">${tableHtml}</div>` +
+    `<div class="reg-cards-wrap">${cardsHtml}</div>`;
 }
 
 function closeRegModal(){
