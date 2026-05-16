@@ -1911,7 +1911,7 @@ async function _buildPoster(monthVal){
   const W = 1080, PAD = 36, GAP = 14, COLS = 3;
   const CARD_W = Math.floor((W - PAD*2 - GAP*(COLS-1)) / COLS);
   const INNER = 16;
-  const IMG_H = 170; // taller image area keeps full-fit photos readable without cropping
+  const IMG_H = CARD_W - INNER * 2; // square image frame reduces crop/letterbox tradeoffs
   const FONT_TIME = 16, FONT_TITLE = 19, FONT_DATE = 22;
   const TEXT_W = CARD_W - INNER * 2;
 
