@@ -840,7 +840,7 @@ function renderSchedule(){
       html+=`<div class="dgroup"><div class="dhead"><div class="ddot"></div>${formatDate(date)}</div>`;
       byYM[ym][date].forEach(e=>{
         const c = colorById(e.color);
-        html+=`<div class="ecard" data-eid="${e.id}">
+        html+=`<div class="ecard" data-eid="${e.id}" onclick="if(cartMode)toggleCartItem('${e.id}')">
           ${e.image?`<img class="ethumb" src="${e.image}" alt="${e.title}">`:`<div class="ebar" style="background:${c.hex}"></div>`}
           <div class="einfo">
             <div class="etitle">${e.teacher}｜${e.title}</div>
