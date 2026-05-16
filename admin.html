@@ -820,7 +820,7 @@ function renderTable(){
         <td>${formatDate(e.date)}</td>
         <td style="white-space:nowrap;font-size:.8rem">${e.start} – ${e.end}</td>
         <td style="font-weight:600">${e.teacher}</td>
-        <td>${e.title}</td>
+        <td style="max-width:220px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${e.title}</td>
         <td style="font-size:.8rem;color:var(--muted)">${formatFee(e.fee)||'-'}</td>
         <td><div class="act-btns">
           <button class="btn-reg"    data-reg="${e.id}">👥 ${regCount(e.id)}</button>
@@ -1826,15 +1826,17 @@ async function _buildPoster(monthVal){
   ctx.fillStyle='#c17f3e';
   ctx.fillRect(PAD, hy+16, W-PAD*2, 3);
 
-  // Course image strip (top right)
+  // Course image strip (top right) — up to 6 images, 72px each
   const withImg = monthCourses.filter(c=>imgMap[c.id]);
   if(withImg.length){
-    const n=Math.min(3,withImg.length), sw=n*96+(n-1)*4, sx=W-PAD-sw;
+    const IW=72, IGAP=6;
+    const n=Math.min(6,withImg.length);
+    const sw=n*IW+(n-1)*IGAP, sx=W-PAD-sw;
     withImg.slice(0,n).forEach((c,i)=>{
-      const img=imgMap[c.id], ix=sx+i*100, iy=14, iw=96, ih=110;
-      ctx.save(); _posterRoundRect(ctx,ix,iy,iw,ih,10); ctx.clip();
-      const s=Math.max(iw/img.width,ih/img.height);
-      ctx.drawImage(img,ix+(iw-img.width*s)/2,iy+(ih-img.height*s)/2,img.width*s,img.height*s);
+      const img=imgMap[c.id], ix=sx+i*(IW+IGAP), iy=16, ih=108;
+      ctx.save(); _posterRoundRect(ctx,ix,iy,IW,ih,8); ctx.clip();
+      const s=Math.max(IW/img.width,ih/img.height);
+      ctx.drawImage(img,ix+(IW-img.width*s)/2,iy+(ih-img.height*s)/2,img.width*s,img.height*s);
       ctx.restore();
     });
   }
