@@ -1769,19 +1769,23 @@ async function _buildPoster(monthVal){
   // Use a temp context to measure actual text widths
   const _mc = document.createElement('canvas').getContext('2d');
 
+  const TIME_BAR = 26; // height of time overlay bar inside image
+
   function cardH(dateStr){
     const cs = byDay[dateStr];
     // Header: top-pad + date-text + 10-gap + 1-divider + 10-gap
     let h = INNER + FONT_DATE + 21;
-    h += IMG_H + 10; // image + gap below
+    h += IMG_H + 10; // image (time is overlaid inside) + gap below
     _mc.font = `bold ${FONT_TITLE}px ${FONT}`;
     cs.forEach(c=>{
-      h += FONT_TIME + 5;                                          // time line
+      // time no longer takes its own row — it's inside the image for first course,
+      // but multi-course days still need a time label per course below image
+      if(cs.length > 1) h += FONT_TIME + 4;                       // small time label per course
       const lines = _posterWrapText(_mc, `${c.teacher}｜${c.title}`, TEXT_W).length;
-      h += Math.min(lines, 2) * (FONT_TITLE + 4);                 // title lines
-      h += 8;                                                      // gap between courses
+      h += Math.min(lines, 2) * (FONT_TITLE + 4);
+      h += 8;
     });
-    h += INNER; // bottom pad
+    h += INNER;
     return Math.max(200, h);
   }
 
@@ -1871,6 +1875,7 @@ async function _buildPoster(monthVal){
 
       // Image or color placeholder
       const iw=CARD_W-INNER*2;
+      const imgY=ty;
       ctx.save();
       _posterRoundRect(ctx,cx+INNER,ty,iw,IMG_H,8); ctx.clip();
       if(imgCourse){
@@ -1887,19 +1892,32 @@ async function _buildPoster(monthVal){
         ctx.fillText('🥐',cx+INNER+iw/2,ty+IMG_H/2);
         ctx.textBaseline='alphabetic'; ctx.textAlign='left';
       }
+      // Time overlay bar — single-course: show in image; multi: skip (drawn per-course below)
+      if(courses.length===1){
+        const barY=imgY+IMG_H-TIME_BAR;
+        ctx.fillStyle='rgba(0,0,0,0.45)';
+        ctx.fillRect(cx+INNER,barY,iw,TIME_BAR);
+        ctx.font=`bold ${FONT_TIME}px ${FONT}`; ctx.fillStyle='#fff';
+        ctx.textBaseline='middle'; ctx.textAlign='left';
+        ctx.fillText(`${courses[0].start}－${courses[0].end}`,cx+INNER+8,barY+TIME_BAR/2);
+        ctx.textBaseline='alphabetic'; ctx.textAlign='left';
+      }
       ctx.restore();
       ty+=IMG_H+10;
 
       // Courses
       courses.forEach(c=>{
         const ci=colorById(c.color);
-        ctx.fillStyle='#5a3a1a'; ctx.font=`bold ${FONT_TIME}px ${FONT}`;
-        ctx.fillText(`${c.start}－${c.end}`,cx+INNER,ty); ty+=FONT_TIME+5;
+        // Multi-course: small time label per course; single-course: already in image overlay
+        if(courses.length>1){
+          ctx.fillStyle='#6b4c2a'; ctx.font=`bold ${FONT_TIME}px ${FONT}`;
+          ctx.fillText(`${c.start}－${c.end}`,cx+INNER,ty); ty+=FONT_TIME+4;
+        }
         ctx.fillStyle=ci.hex; ctx.font=`bold ${FONT_TITLE}px ${FONT}`;
         _posterWrapText(ctx,`${c.teacher}｜${c.title}`,iw).slice(0,2).forEach(l=>{
           ctx.fillText(l,cx+INNER,ty); ty+=FONT_TITLE+4;
         });
-        ty+=6;
+        ty+=8;
       });
     });
     curY+=rh+GAP;
