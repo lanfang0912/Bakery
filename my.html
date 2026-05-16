@@ -185,6 +185,7 @@ function renderResults(matches){
         ${teacher ? `<div class="reg-meta">👩‍🏫 ${teacher}</div>` : ''}
         ${r.count > 1 ? `<div class="reg-meta">👥 ${r.count} 人</div>` : ''}
         ${feeStr ? `<div class="reg-meta">💰 ${feeStr}</div>` : ''}
+        ${ev ? `<div style="margin-top:10px"><button class="ics-btn" data-date="${ev.date}" data-start="${ev.start}" data-end="${ev.end}" data-title="${(ev.title||'').replace(/"/g,'&quot;')}" data-teacher="${(ev.teacher||'').replace(/"/g,'&quot;')}" style="background:var(--primary-light);color:var(--primary-dark);border:2px solid var(--primary);padding:6px 14px;border-radius:16px;font-size:.78rem;font-weight:700;cursor:pointer">📅 加入行事曆</button></div>` : ''}
       </div>`;
   }).join('');
 }
@@ -193,6 +194,27 @@ function renderResults(matches){
 document.addEventListener('keydown', e => {
   if(e.key === 'Enter') doQuery();
 });
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.ics-btn');
+  if(!btn) return;
+  const {date,start,end,title,teacher} = btn.dataset;
+  downloadIcs({date,start,end,title,teacher});
+});
+
+function downloadIcs(e){
+  const pad = n=>String(n).padStart(2,'0');
+  const dt = (d,t)=>{ const [y,m,dd]=d.split('-');const [hh,mm]=(t||'00:00').split(':');return `${y}${pad(m)}${pad(dd)}T${pad(hh)}${pad(mm)}00`; };
+  const ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Jen手作烘焙//TC','CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',`UID:${Math.random().toString(36).slice(2)}@jen-bakery`,
+    `DTSTART:${dt(e.date,e.start)}`,`DTEND:${dt(e.date,e.end)}`,
+    `SUMMARY:${e.title}`,`DESCRIPTION:${e.teacher}`,
+    'LOCATION:宜蘭縣羅東鎮羅莊二街198號',
+    'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar;charset=utf-8'}));
+  a.download=`${e.title}.ics`; a.click();
+}
 </script>
 </body>
 </html>

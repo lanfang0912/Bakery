@@ -248,7 +248,10 @@ header h1{font-size:1.1rem;font-weight:800}
          💳 合作金庫（006）蘇澳分行<br>
          帳號：0140765234715 ／ 戶名：楊宜蓁<br><br>
          📲 電話 / LINE：<a href="tel:0966864079" style="color:var(--primary);font-weight:600">0966-864-079</a></p>
-      <a href="index.html" class="btn-back">← 返回課程行事曆</a>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:12px">
+        <button id="ics-btn" onclick="downloadIcs()" style="background:var(--primary-light);color:var(--primary-dark);border:2px solid var(--primary);padding:10px 20px;border-radius:22px;font-size:.88rem;font-weight:700;cursor:pointer">📅 加入行事曆</button>
+        <a href="index.html" class="btn-back">← 返回課程行事曆</a>
+      </div>
     </div>
 
   </div>
@@ -282,6 +285,7 @@ async function loadEvent(){
 }
 
 let _galIdx = 0, _galTotal = 1;
+let _regEvent = null;
 
 function galTo(idx){
   _galIdx = idx;
@@ -293,6 +297,7 @@ function galAdj(dir){
 }
 
 function renderCourse(e){
+  _regEvent = e;
   const c = colorById(e.color);
   submitColor = c.hex;
   document.title = `${e.title} 報名 | Jen 手作烘焙`;
@@ -341,6 +346,21 @@ function selectRadio(groupId, el){
 }
 
 function getRadio(name){ const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : ''; }
+
+function downloadIcs(){
+  const e = _regEvent; if(!e) return;
+  const pad = n=>String(n).padStart(2,'0');
+  const dt = (d,t)=>{ const [y,m,dd]=d.split('-');const [hh,mm]=(t||'00:00').split(':');return `${y}${pad(m)}${pad(dd)}T${pad(hh)}${pad(mm)}00`; };
+  const ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Jen手作烘焙//TC','CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',`UID:${Math.random().toString(36).slice(2)}@jen-bakery`,
+    `DTSTART:${dt(e.date,e.start)}`,`DTEND:${dt(e.date,e.end)}`,
+    `SUMMARY:${e.title}`,`DESCRIPTION:${e.teacher}`,
+    'LOCATION:宜蘭縣羅東鎮羅莊二街198號',
+    'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar;charset=utf-8'}));
+  a.download=`${e.title}.ics`; a.click();
+}
 
 async function submitReg(){
   const name       = document.getElementById('r-name').value.trim();
