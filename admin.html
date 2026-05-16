@@ -560,6 +560,14 @@ tr:hover td{background:var(--primary-light)}
         <input class="login-input" type="number" id="pp-fee" placeholder="例：1800" min="0" step="1">
       </div>
       <div class="fg" style="grid-column:1/-1">
+        <label>報名連結</label>
+        <input class="login-input" type="url" id="pp-link" placeholder="https://forms.gle/…">
+      </div>
+      <div class="fg" style="grid-column:1/-1">
+        <label>課程介紹</label>
+        <textarea class="paste-textarea" id="pp-desc" style="height:100px" placeholder="自動擷取，可自行修改…"></textarea>
+      </div>
+      <div class="fg" style="grid-column:1/-1">
         <label>標籤顏色</label>
         <div class="color-opts" id="pp-color-opts"></div>
       </div>
@@ -1604,51 +1612,85 @@ function parsePaste(){
 
   // ── Teacher & Title ───────────────────────────────────────────
   let teacher = '', title = '';
+  const cnName = /[\u4e00-\u9fa5\s]{2,12}/;
 
-  // A: "謝岳恩老師 × 蟹式甜燒餅" / "老師合體 X 課程"
+  // A0: "《課程名》— 林侑賢老師" / "「課程名」— teacher"  (most common TW format)
   for(const line of lines){
-    const m = line.match(/^(.{2,12}(?:老師|師傅|合體))\s*[×X｜|xX]\s*(.{3,})/);
-    if(m){ teacher = m[1].trim(); title = m[2].trim(); break; }
+    const m = line.match(/^[《「]([^》」\n]{3,})[》」]\s*[-—–]\s*([\u4e00-\u9fa5][\u4e00-\u9fa5\s]{1,10}(?:老師|師傅|合體))/);
+    if(m){ title = m[1].trim(); teacher = m[2].trim(); break; }
   }
 
-  // B: teacher on own line
+  // A: "謝岳恩老師 × 蟹式甜燒餅" / "老師合體 X 課程"
   if(!teacher){
     for(const line of lines){
-      if(/^.{2,12}(?:老師|師傅|合體)$/.test(line)){ teacher = line; break; }
+      const m = line.match(/^([\u4e00-\u9fa5][\u4e00-\u9fa5\s]{1,10}(?:老師|師傅|合體))\s*[×X｜|xX]\s*(.{3,})/);
+      if(m){ teacher = m[1].trim(); title = m[2].trim(); break; }
+    }
+  }
+
+  // B: teacher name alone on its own line
+  if(!teacher){
+    for(const line of lines){
+      if(/^[\u4e00-\u9fa5][\u4e00-\u9fa5\s]{1,10}(?:老師|師傅|合體)$/.test(line)){ teacher = line.trim(); break; }
     }
   }
 
   // C: "老師：謝岳恩老師" / "指導老師 謝岳恩老師"
   if(!teacher){
-    const m = text.match(/(?:老師|指導)[: \s]+(.{2,12}(?:老師|師傅|合體))/);
+    const m = text.match(/(?:老師|指導)[: \s]+([\u4e00-\u9fa5][\u4e00-\u9fa5\s]{1,10}(?:老師|師傅|合體))/);
     if(m) teacher = m[1].trim();
   }
 
-  // D: first mention of XX老師 anywhere
+  // D: first mention of XX老師 in first 8 lines — Chinese chars only to avoid bracket contamination
   if(!teacher){
-    for(const line of lines.slice(0,6)){
-      const m = line.match(/(.{2,8}(?:老師|師傅|合體))/);
+    for(const line of lines.slice(0,8)){
+      const m = line.match(/([\u4e00-\u9fa5]{2,8}(?:老師|師傅|合體))/);
       if(m){ teacher = m[1].trim(); break; }
     }
   }
 
-  // Title: 【課程名】 bracket
+  // Title: 【課程名】/《課程名》 brackets
   if(!title){
-    const bm = text.match(/[【\[「]([^】\]」\n]{3,})[】\]」]/);
-    if(bm) title = bm[1].replace(/.{2,8}(?:老師|師傅|合體)/g,'').trim();
+    const bm = text.match(/[【\[《「]([^】\]》」\n]{3,})[】\]》」]/);
+    if(bm) title = bm[1].replace(/[\u4e00-\u9fa5]{2,8}(?:老師|師傅|合體)/g,'').replace(/[-—–]\s*$/,'').trim();
   }
 
-  // Title: line containing baking keywords
+  // Title: line with baking keywords (excluding teacher / structural lines)
   if(!title){
-    const kwRe = /課|班|酥|餅|蛋糕|月餅|麵|炒飯|塔|派|捲|餅乾|馬卡龍|泡芙|布朗尼|乳酪|起司|麻糬|湯圓|吐司|貝果|巴斯克/;
-    const noisy = /^\d|元$|http|^老師|日期|時間|費用|報名|地點|聯絡|電話|LINE/i;
-    const cands = lines.filter(l => l.length >= 4 && !noisy.test(l) && l !== teacher);
-    title = (cands.find(l=>kwRe.test(l)) || cands.find(l=>l.length>6) || '');
-    if(teacher) title = title.replace(teacher,'').replace(/^[\s×X｜|xX]+/,'').trim();
+    const kwRe = /課程|專修|班|酥|餅|蛋糕|月餅|麵食|炒飯|塔|蛋捲|餅乾|馬卡龍|泡芙|布朗尼|乳酪|起司|麻糬|湯圓|吐司|貝果|巴斯克|千層|瑪德蕾|磅蛋糕|司康|可頌|馬芬/;
+    const noisy = /[\d,]{3,}元|https?:|日期|時間|費用|報名|地點|聯絡|電話|LINE|地址|集合|注意|備註|提醒|限額|名額/i;
+    const cands = lines.filter(l => l.length >= 4 && !noisy.test(l) && l !== teacher && !/^[\u{1F300}-\u{1FFFF}\u{2300}-\u{27BF}]/u.test(l));
+    const kwMatch = cands.find(l => kwRe.test(l));
+    title = kwMatch || '';
+    if(teacher) title = title.replace(teacher,'').replace(/^[\s×X｜|xX《》「」【】\[【-—–]+/,'').replace(/[\s×X｜|xX《》「」【】\]】-—–]+$/,'').trim();
   }
 
   if(teacher) document.getElementById('pp-teacher').value = teacher;
   if(title)   document.getElementById('pp-title').value   = title;
+
+  // ── Link ──────────────────────────────────────────────────────
+  document.getElementById('pp-link').value = linkM ? linkM[0].replace(/[.,。，]+$/, '') : '';
+
+  // ── Description ───────────────────────────────────────────────
+  // Logistics emoji (date/time/fee/location/contact) → always exclude
+  const logisticsEmoji = /^[•·\s]*[📌📍📅⏰💰🗓🔗📲🚌💬]/u;
+  // Structural content patterns → always exclude
+  const logisticsContent = /https?:\/\/|^[-_─━=＝•·]{3,}|^[#＃]|\d{4}[年\/]\d{1,2}[月\/]\d{1,2}|\d{1,2}:\d{2}\s*[-–—]\s*\d{1,2}:\d{2}/;
+  // Generic emoji detector (to filter short emoji-only headers)
+  const emojiStart = /^[\u{1F300}-\u{1FFFF}\u{2300}-\u{27BF}]/u;
+
+  const titleTeacherLine = lines.find(l => title && teacher && l.includes(title) && l.includes(teacher));
+  const usedSet = new Set([teacher, title, titleTeacherLine].filter(Boolean));
+
+  const descLines = lines.filter(l => {
+    if(usedSet.has(l)) return false;
+    if(logisticsEmoji.test(l)) return false;
+    if(logisticsContent.test(l)) return false;
+    // Short emoji-header lines like "🍪 課程介紹" "🎁 伴手禮首選"
+    if(emojiStart.test(l) && l.replace(/[\u{1F300}-\u{1FFFF}\u{2300}-\u{27BF}\s]+/gu,'').length < 8) return false;
+    return l.length >= 8;
+  });
+  document.getElementById('pp-desc').value = descLines.join('\n');
 
   // ── Color ─────────────────────────────────────────────────────
   const t = (document.getElementById('pp-teacher').value||'').trim();
@@ -1683,11 +1725,16 @@ async function saveParsed(){
   if(!title||!teacher||!date||!start||!end){
     toast('請確認課程名稱、老師、日期和時間都已填寫','error'); return;
   }
-  await db.ref('bakery/events').push({
+  const link = document.getElementById('pp-link').value.trim();
+  const description = document.getElementById('pp-desc').value.trim();
+  const ev = {
     date, teacher, start, end, title,
-    fee:  Number(document.getElementById('pp-fee').value) || '',
+    fee:   Number(document.getElementById('pp-fee').value) || '',
     color: ppSelColor,
-  });
+  };
+  if(link) ev.link = link;
+  if(description) ev.description = description;
+  await db.ref('bakery/events').push(ev);
   closePaste();
   toast('課程已新增 ✓','success');
 }
