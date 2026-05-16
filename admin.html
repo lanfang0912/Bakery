@@ -1894,8 +1894,8 @@ function _buildPosterSvg(monthVal){
   const IMG_H = 200;
   const FONT_DATE = 22, FONT_TEACHER = 26, FONT_TITLE = 22, FONT_TIME = 18;
   const _mc = document.createElement('canvas').getContext('2d');
-  // Fixed card height: date(22)+sep(14)+img(200)+gap(14)+teacher(26)+gap(6)+title×2(22+6+22)+gap(8)+time(18)+padding(32)
-  const CARD_H = INNER + FONT_DATE + 14 + IMG_H + 14 + FONT_TEACHER + 6 + FONT_TITLE + 6 + FONT_TITLE + 8 + FONT_TIME + INNER;
+  // Fixed card height: date(22)+sep(14)+img(200)+gap(35)+teacher(26)+gap(6)+title×2(22+6+22)+gap(8)+time(18)+padding(32)
+  const CARD_H = INNER + FONT_DATE + 14 + IMG_H + 35 + FONT_TEACHER + 6 + FONT_TITLE + 6 + FONT_TITLE + 8 + FONT_TIME + INNER;
 
   const dayRows = [];
   for(let i=0;i<days.length;i+=COLS) dayRows.push(days.slice(i,i+COLS));
@@ -1966,7 +1966,7 @@ function _buildPosterSvg(monthVal){
         ty += 8; rect(cx+INNER,ty,iw,1,'#e0cbb8'); ty += 6;
 
         image(src, cx+INNER, ty, iw, IMG_H, 'slice', 8);
-        ty += IMG_H + 14;
+        ty += IMG_H + 35;
 
         // Teacher first (big, bold)
         text(cx+INNER, ty, c.teacher, FONT_TEACHER, accent.hex, '700');
@@ -2019,7 +2019,7 @@ function _buildPosterPptx(monthVal){
   const u = v => v / U;
   const hex = v => String(v||'').replace('#','').slice(0,6);
 
-  const CARD_H = INNER + FONT_DATE + 14 + IMG_H + 14 + FONT_TEACHER + 6 + FONT_TITLE + 6 + FONT_TITLE + 8 + FONT_TIME + INNER;
+  const CARD_H = INNER + FONT_DATE + 14 + IMG_H + 35 + FONT_TEACHER + 6 + FONT_TITLE + 6 + FONT_TITLE + 8 + FONT_TIME + INNER;
 
   const dayRows = [];
   for(let i=0;i<days.length;i+=COLS) dayRows.push(days.slice(i,i+COLS));
@@ -2116,7 +2116,7 @@ function _buildPosterPptx(monthVal){
           addRect(cx+INNER,ty,iw,IMG_H,accentHex,{transparency:70,radius:8});
           addText('🥐',cx+INNER,ty+IMG_H/2-20,iw,40,40,'FFFFFF',false,{align:'center'});
         }
-        ty += IMG_H + 14;
+        ty += IMG_H + 35;
 
         // Teacher first (big, bold, accent color)
         addText(c.teacher,cx+INNER,ty,iw,FONT_TEACHER+4,FONT_TEACHER,accentHex,true);
@@ -2214,7 +2214,7 @@ async function _buildPoster(monthVal){
   const FONT_DATE = 22, FONT_TEACHER = 26, FONT_TITLE = 22, FONT_TIME = 18;
   const _mc = document.createElement('canvas').getContext('2d');
   // Fixed card height per course
-  const CARD_H = INNER + FONT_DATE + 14 + IMG_H + 14 + FONT_TEACHER + 6 + FONT_TITLE + 6 + FONT_TITLE + 8 + FONT_TIME + INNER;
+  const CARD_H = INNER + FONT_DATE + 14 + IMG_H + 35 + FONT_TEACHER + 6 + FONT_TITLE + 6 + FONT_TITLE + 8 + FONT_TIME + INNER;
 
   const dayRows = [];
   for(let i=0;i<days.length;i+=COLS) dayRows.push(days.slice(i,i+COLS));
@@ -2321,7 +2321,7 @@ async function _buildPoster(monthVal){
           ctx.textBaseline='alphabetic'; ctx.textAlign='left';
         }
         ctx.restore();
-        ty += IMG_H + 14;
+        ty += IMG_H + 35;
 
         // Teacher first (big, bold, accent color)
         ctx.font=`bold ${FONT_TEACHER}px ${FONT}`;
