@@ -1732,19 +1732,25 @@ async function _buildPoster(monthVal){
   monthCourses.forEach(c=>{ (byDay[c.date]=byDay[c.date]||[]).push(c); });
   const days = Object.keys(byDay).sort();
 
-  // Load images — try with crossOrigin first (needed for canvas export),
-  // fall back to without (image will still render but drawImage may throw)
+  // Load images via fetch (bypasses browser cache, avoids tainted-canvas CORS issue)
   const imgMap = {};
-  await Promise.all(monthCourses.filter(c=>c.image).map(c=>new Promise(res=>{
-    const tryLoad = (cors) => {
-      const img = new Image();
-      if(cors && !c.image.startsWith('data:')) img.crossOrigin='anonymous';
-      img.onload=()=>{ imgMap[c.id]=img; res(); };
-      img.onerror=()=>{ if(cors) tryLoad(false); else res(); };
-      img.src = c.image + (cors && !c.image.startsWith('data:') ? (c.image.includes('?')?'&':'?')+'_t='+Date.now() : '');
-    };
-    tryLoad(true);
-  })));
+  await Promise.all(monthCourses.filter(c=>c.image).map(async c=>{
+    try {
+      let src = c.image;
+      if(!c.image.startsWith('data:')){
+        const resp = await fetch(c.image, {cache:'reload'});
+        if(!resp.ok) return;
+        const blob = await resp.blob();
+        src = URL.createObjectURL(blob);
+      }
+      await new Promise(res=>{
+        const img = new Image();
+        img.onload=()=>{ imgMap[c.id]=img; res(); };
+        img.onerror=res;
+        img.src=src;
+      });
+    } catch(e){ /* CORS or network error → show placeholder */ }
+  }));
 
   // Layout: portrait 1080px, 3 cards per row
   const W = 1080, PAD = 36, GAP = 14, COLS = 3;
