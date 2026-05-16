@@ -2001,7 +2001,7 @@ function _buildPosterSvg(monthVal){
 }
 
 function _buildPosterPptx(monthVal){
-  if(typeof pptxgen === 'undefined') throw new Error('PPTX 工具尚未載入，請確認網路後重新整理');
+  if(typeof PptxGenJS === 'undefined') throw new Error('PPTX 工具尚未載入，請確認網路後重新整理');
 
   const [year, mon] = monthVal.split('-').map(Number);
   const WDAYS = ['日','一','二','三','四','五','六'];
@@ -2051,7 +2051,7 @@ function _buildPosterPptx(monthVal){
   const HEADER_H = 140;
   const H = HEADER_H + PAD + rowH.reduce((s,h)=>s+h+GAP,0) - GAP + PAD + 20;
 
-  const pptx = new pptxgen();
+  const pptx = new PptxGenJS();
   pptx.author = 'Jen 手作烘焙課程';
   pptx.subject = `${year}年${mon}月課程表`;
   pptx.title = `${year}年${mon}月課程總覽`;
