@@ -101,6 +101,11 @@ tr:hover td{background:var(--primary-light)}
 .parse-hint{font-size:.75rem;color:var(--muted);margin-top:8px}
 
 .tfoot-note{padding:10px 0;text-align:center;font-size:.77rem;color:var(--muted)}
+.btn-poster{background:#f0f8f0;color:#3a7a50;border:none;padding:10px 18px;border-radius:22px;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-poster:hover{background:#3a7a50;color:#fff}
+.poster-modal{background:#fff;border-radius:18px;padding:28px 32px;width:680px;max-width:96vw;max-height:94vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.28);animation:mIn .22s ease}
+.poster-preview-wrap{margin-top:18px;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:#f0e8de;display:none;text-align:center}
+.poster-preview-wrap canvas{max-width:100%;display:block;margin:0 auto}
 
 /* Modal */
 .overlay{display:none;position:fixed;inset:0;background:rgba(30,20,10,.55);z-index:1000;align-items:center;justify-content:center}
@@ -279,6 +284,7 @@ tr:hover td{background:var(--primary-light)}
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <button class="btn-export" onclick="exportCSV()" style="padding:10px 18px;font-size:.85rem;font-weight:700">⬇ 匯出 CSV</button>
+    <button class="btn-poster" onclick="openPoster()">🎨 月份海報</button>
     <button class="btn-paste" onclick="openPaste()">📋 貼上新增</button>
     <button class="btn-cloud" onclick="openCloudSettings()">☁️ 圖片設定</button>
     <button class="btn-add" onclick="openAdd()">＋ 手動新增</button>
@@ -634,6 +640,30 @@ tr:hover td{background:var(--primary-light)}
         預覽報名頁 ↗
       </a>
       <button class="btn-save" onclick="closeRegLink()">完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- Monthly poster modal -->
+<div id="poster-overlay" class="overlay" onclick="if(event.target===this)closePoster()">
+  <div class="poster-modal">
+    <div class="modal-hd">
+      <h3>🎨 生成月份課程海報</h3>
+      <button class="modal-close" onclick="closePoster()">×</button>
+    </div>
+    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+      <div class="fg" style="flex:1;min-width:160px;margin-bottom:0">
+        <label>選擇月份</label>
+        <select id="poster-month" style="width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:9px;font-size:.9rem;font-family:inherit;color:var(--text);background:var(--bg);outline:none">
+          <option value="">— 請選擇 —</option>
+        </select>
+      </div>
+      <button class="btn-save" onclick="previewPoster()" style="padding:11px 22px;white-space:nowrap">👁 預覽海報</button>
+      <button class="btn-add" id="poster-dl-btn" onclick="downloadPoster()" style="display:none;padding:11px 22px;white-space:nowrap">⬇ 下載 PNG</button>
+    </div>
+    <div id="poster-msg" style="font-size:.82rem;color:var(--muted);margin-top:10px"></div>
+    <div class="poster-preview-wrap" id="poster-preview-wrap">
+      <canvas id="poster-canvas"></canvas>
     </div>
   </div>
 </div>
@@ -1623,6 +1653,235 @@ async function saveNewPw(e){
   try { localStorage.removeItem('bakery_pw_hash'); } catch(e) {}
   closeChpw();
   toast('密碼已更新 ✓','success');
+}
+
+// ── Monthly poster ───────────────────────────────────────────
+let _posterCanvas = null;
+
+function openPoster(){
+  // Build month options from events
+  const months = [...new Set(events.map(e=>e.date.slice(0,7)))].sort();
+  const sel = document.getElementById('poster-month');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— 請選擇 —</option>';
+  months.forEach(m=>{
+    const [y,mo] = m.split('-');
+    sel.innerHTML += `<option value="${m}">${y} 年 ${Number(mo)} 月</option>`;
+  });
+  sel.value = cur && months.includes(cur) ? cur : (months[0]||'');
+  document.getElementById('poster-preview-wrap').style.display = 'none';
+  document.getElementById('poster-dl-btn').style.display = 'none';
+  document.getElementById('poster-msg').textContent = '';
+  _posterCanvas = null;
+  document.getElementById('poster-overlay').classList.add('open');
+}
+function closePoster(){ document.getElementById('poster-overlay').classList.remove('open'); }
+
+function _posterRoundRect(ctx, x, y, w, h, r){
+  if(typeof r === 'number') r = [r,r,r,r];
+  const [tl,tr,br,bl] = r;
+  ctx.beginPath();
+  ctx.moveTo(x+tl, y);
+  ctx.lineTo(x+w-tr, y);
+  ctx.arcTo(x+w, y, x+w, y+tr, tr);
+  ctx.lineTo(x+w, y+h-br);
+  ctx.arcTo(x+w, y+h, x+w-br, y+h, br);
+  ctx.lineTo(x+bl, y+h);
+  ctx.arcTo(x, y+h, x, y+h-bl, bl);
+  ctx.lineTo(x, y+tl);
+  ctx.arcTo(x, y, x+tl, y, tl);
+  ctx.closePath();
+}
+
+function _posterWrapText(ctx, text, maxWidth){
+  const chars = [...text];
+  const lines = []; let line = '';
+  for(const ch of chars){
+    const test = line + ch;
+    if(ctx.measureText(test).width > maxWidth && line){ lines.push(line); line = ch; }
+    else line = test;
+  }
+  if(line) lines.push(line);
+  return lines;
+}
+
+async function _buildPoster(monthVal){
+  const [year, mon] = monthVal.split('-').map(Number);
+  const monthCourses = events
+    .filter(e=>{ const [y,m]=e.date.split('-').map(Number); return y===year&&m===mon; })
+    .sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
+  if(!monthCourses.length) return null;
+
+  const WEEKDAYS = ['日','一','二','三','四','五','六'];
+  const W = 1080, PAD = 52, HEADER_H = 210, FOOTER_H = 90;
+  const CARD_H = 170, CARD_GAP = 18;
+  const H = HEADER_H + monthCourses.length*(CARD_H+CARD_GAP) + FOOTER_H;
+
+  // Load course images
+  const imgMap = {};
+  await Promise.all(monthCourses.map(c => {
+    if(!c.image) return;
+    return new Promise(res => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = ()=>{ imgMap[c.id]=img; res(); };
+      img.onerror = res;
+      // For base64 no crossOrigin needed
+      if(c.image.startsWith('data:')) { img.crossOrigin=''; }
+      img.src = c.image;
+    });
+  }));
+
+  const canvas = document.getElementById('poster-canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // BG
+  const bgGrad = ctx.createLinearGradient(0,0,0,H);
+  bgGrad.addColorStop(0,'#f9f3ec'); bgGrad.addColorStop(1,'#ede3d5');
+  ctx.fillStyle = bgGrad; ctx.fillRect(0,0,W,H);
+
+  // Subtle dot pattern
+  ctx.fillStyle = 'rgba(193,127,62,0.06)';
+  for(let r=0;r<H;r+=36) for(let c=0;c<W;c+=36) { ctx.beginPath(); ctx.arc(c,r,3,0,Math.PI*2); ctx.fill(); }
+
+  // Header band
+  const hGrad = ctx.createLinearGradient(0,0,W,HEADER_H);
+  hGrad.addColorStop(0,'#4a2e0e'); hGrad.addColorStop(0.55,'#8b5a27'); hGrad.addColorStop(1,'#b07230');
+  ctx.fillStyle = hGrad;
+  _posterRoundRect(ctx, 0,0,W,HEADER_H,0); ctx.fill();
+
+  // Decorative circles in header
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.beginPath(); ctx.arc(W-80,40,120,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(60,HEADER_H+30,90,0,Math.PI*2); ctx.fill();
+
+  ctx.textAlign = 'center';
+  // Shop name
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold 68px "PingFang TC","Microsoft JhengHei",sans-serif`;
+  ctx.fillText('Jen 手作烘焙', W/2, 96);
+  // Month subtitle
+  ctx.font = `38px "PingFang TC","Microsoft JhengHei",sans-serif`;
+  ctx.fillStyle = '#f5dfc0';
+  ctx.fillText(`${year} 年 ${mon} 月  課程一覽`, W/2, 158);
+  // Count
+  ctx.font = `24px "PingFang TC","Microsoft JhengHei",sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.fillText(`共 ${monthCourses.length} 堂課`, W/2, 196);
+
+  // Course cards
+  let cy = HEADER_H + 28;
+  for(const course of monthCourses){
+    const [ey,em,ed] = course.date.split('-').map(Number);
+    const dow = WEEKDAYS[new Date(ey,em-1,ed).getDay()];
+    const dateStr = `${em}/${String(ed).padStart(2,'0')} (${dow})`;
+
+    // Card shadow
+    ctx.shadowColor = 'rgba(120,70,20,0.13)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 4;
+    ctx.fillStyle = '#fff';
+    _posterRoundRect(ctx, PAD, cy, W-PAD*2, CARD_H, 18); ctx.fill();
+    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+    // Color accent bar
+    const colorInfo = colorById(course.color);
+    ctx.fillStyle = colorInfo.hex;
+    _posterRoundRect(ctx, PAD, cy, 10, CARD_H, [9,0,0,9]); ctx.fill();
+
+    // Course image (right side)
+    const IMG_S = 140, IMG_X = W-PAD-IMG_S-10, IMG_Y = cy+(CARD_H-IMG_S)/2;
+    if(imgMap[course.id]){
+      ctx.save();
+      _posterRoundRect(ctx, IMG_X, IMG_Y, IMG_S, IMG_S, 12); ctx.clip();
+      // draw image centered/cropped
+      const img = imgMap[course.id];
+      const scale = Math.max(IMG_S/img.width, IMG_S/img.height);
+      const iw = img.width*scale, ih = img.height*scale;
+      ctx.drawImage(img, IMG_X+(IMG_S-iw)/2, IMG_Y+(IMG_S-ih)/2, iw, ih);
+      ctx.restore();
+    } else {
+      // placeholder
+      ctx.fillStyle = '#f5e6d3';
+      _posterRoundRect(ctx, IMG_X, IMG_Y, IMG_S, IMG_S, 12); ctx.fill();
+      ctx.fillStyle = '#c17f3e'; ctx.font = '48px serif'; ctx.textAlign = 'center';
+      ctx.fillText('🥐', IMG_X+IMG_S/2, IMG_Y+IMG_S/2+16);
+    }
+
+    const TX = PAD + 26;
+    const textW = IMG_X - TX - 20;
+    ctx.textAlign = 'left';
+
+    // Date
+    ctx.fillStyle = '#8b5a27';
+    ctx.font = `bold 30px "PingFang TC","Microsoft JhengHei",sans-serif`;
+    ctx.fillText(dateStr, TX, cy+44);
+
+    // Time
+    ctx.fillStyle = '#aa7845';
+    ctx.font = `26px "PingFang TC","Microsoft JhengHei",sans-serif`;
+    ctx.fillText(`${course.start} – ${course.end}`, TX+200, cy+44);
+
+    // Title
+    ctx.fillStyle = '#2e1e0e';
+    ctx.font = `bold 34px "PingFang TC","Microsoft JhengHei",sans-serif`;
+    const titleLines = _posterWrapText(ctx, course.title, textW);
+    titleLines.slice(0,2).forEach((l,i)=>ctx.fillText(l, TX, cy+88+i*40));
+
+    // Teacher & fee bottom row
+    const botY = cy + CARD_H - 18;
+    ctx.fillStyle = '#8a6d5a';
+    ctx.font = `25px "PingFang TC","Microsoft JhengHei",sans-serif`;
+    ctx.fillText(`👩‍🏫 ${course.teacher}`, TX, botY);
+    if(course.fee){
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#5a8c5a';
+      ctx.font = `bold 26px "PingFang TC","Microsoft JhengHei",sans-serif`;
+      ctx.fillText(`💰 ${formatFee(course.fee)}`, IMG_X-14, botY);
+      ctx.textAlign = 'left';
+    }
+
+    cy += CARD_H + CARD_GAP;
+  }
+
+  // Footer
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#a07040';
+  ctx.font = `24px "PingFang TC","Microsoft JhengHei",sans-serif`;
+  ctx.fillText('🍞 報名請洽粉絲頁私訊或前往官方網站行事曆頁面', W/2, H-42);
+  ctx.fillStyle = 'rgba(160,112,64,0.5)';
+  ctx.font = `20px "PingFang TC","Microsoft JhengHei",sans-serif`;
+  ctx.fillText('bakery.urland.com.tw', W/2, H-16);
+
+  return canvas;
+}
+
+async function previewPoster(){
+  const monthVal = document.getElementById('poster-month').value;
+  if(!monthVal){ toast('請選擇月份','error'); return; }
+  const msg = document.getElementById('poster-msg');
+  msg.textContent = '⏳ 生成中…';
+  document.getElementById('poster-preview-wrap').style.display = 'none';
+  document.getElementById('poster-dl-btn').style.display = 'none';
+  try {
+    _posterCanvas = await _buildPoster(monthVal);
+    if(!_posterCanvas){ msg.textContent = '⚠️ 該月份沒有課程'; return; }
+    document.getElementById('poster-preview-wrap').style.display = 'block';
+    document.getElementById('poster-dl-btn').style.display = 'inline-block';
+    msg.textContent = `✅ 海報預覽完成（共 ${document.getElementById('poster-month').options[document.getElementById('poster-month').selectedIndex].text}）`;
+  } catch(e) {
+    msg.textContent = '⚠️ 生成失敗：' + e.message;
+  }
+}
+
+function downloadPoster(){
+  if(!_posterCanvas){ toast('請先預覽海報','error'); return; }
+  const sel = document.getElementById('poster-month');
+  const [y,m] = sel.value.split('-');
+  const link = document.createElement('a');
+  link.download = `${y}年${Number(m)}月課程表.png`;
+  link.href = _posterCanvas.toDataURL('image/png');
+  link.click();
+  toast('海報已下載 ✓','success');
 }
 
 // Check session on load
