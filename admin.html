@@ -1784,6 +1784,7 @@ async function saveNewPw(e){
 
 // ── Monthly poster ───────────────────────────────────────────
 let _posterCanvas = null;
+let _posterCanvasTainted = false;
 
 function openPoster(){
   // Build month options from events
@@ -1833,6 +1834,7 @@ function _posterWrapText(ctx, text, maxWidth){
 }
 
 async function _buildPoster(monthVal){
+  _posterCanvasTainted = false;
   const [year, mon] = monthVal.split('-').map(Number);
   const WDAYS = ['日','一','二','三','四','五','六'];
   const FONT = '"PingFang TC","Microsoft JhengHei",Arial,sans-serif';
@@ -1857,6 +1859,7 @@ async function _buildPoster(monthVal){
     if(!src) return;
     let imgSrc = src;
     let fromCorsFetch = false;
+    let usedDirectFallback = false;
     if(!src.startsWith('data:')){
       // No stored thumbnail — try CORS fetch
       const corsUrl = src.includes('res.cloudinary.com')&&src.includes('/image/upload/')&&!src.includes('q_auto')
@@ -1866,7 +1869,12 @@ async function _buildPoster(monthVal){
         if(!resp.ok) return;
         imgSrc = URL.createObjectURL(await resp.blob());
         fromCorsFetch = true;
-      } catch(e){ return; }
+      } catch(e){
+        // Some old Google Forms image URLs can be displayed as <img> but cannot be fetched.
+        // Use them for preview, while marking the canvas as non-downloadable until backfilled.
+        imgSrc = src;
+        usedDirectFallback = true;
+      }
     }
     await new Promise(res=>{
       const img = new Image();
@@ -1880,6 +1888,7 @@ async function _buildPoster(monthVal){
             if(ev){ ev.imagePoster=d; ev.imagesPoster=[d]; }
           });
         }
+        if(usedDirectFallback) _posterCanvasTainted = true;
         res();
       };
       img.onerror=res; img.src=imgSrc;
@@ -2056,8 +2065,10 @@ async function previewPoster(){
     _posterCanvas = await _buildPoster(monthVal);
     if(!_posterCanvas){ msg.textContent = '⚠️ 該月份沒有課程'; return; }
     document.getElementById('poster-preview-wrap').style.display = 'block';
-    document.getElementById('poster-dl-btn').style.display = 'inline-block';
-    msg.textContent = `✅ 海報預覽完成（共 ${document.getElementById('poster-month').options[document.getElementById('poster-month').selectedIndex].text}）`;
+    document.getElementById('poster-dl-btn').style.display = _posterCanvasTainted ? 'none' : 'inline-block';
+    msg.textContent = _posterCanvasTainted
+      ? `⚠️ 海報預覽完成，但部分舊圖需先修復成縮圖後才能下載 PNG`
+      : `✅ 海報預覽完成（共 ${document.getElementById('poster-month').options[document.getElementById('poster-month').selectedIndex].text}）`;
   } catch(e) {
     msg.textContent = '⚠️ 生成失敗：' + e.message;
   }
@@ -2065,6 +2076,7 @@ async function previewPoster(){
 
 async function downloadPoster(){
   if(!_posterCanvas){ toast('請先預覽海報','error'); return; }
+  if(_posterCanvasTainted){ toast('部分舊圖尚未修復，請先補縮圖後再下載','error'); return; }
   const sel = document.getElementById('poster-month');
   const [y,m] = sel.value.split('-');
   const filename = `${y}年${Number(m)}月課程表.png`;
