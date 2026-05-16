@@ -1865,6 +1865,14 @@ const POSTER_CONTACT_ADDR = '宜蘭縣羅東鎮羅莊二街198號';
 const POSTER_CONTACT_PHONE = '0966-864-079';
 const POSTER_CONTACT_LINE = 'LINE ID：0966864079';
 
+// 海報卡片模板設定：要微調版型，優先改這裡。
+const POSTER_TEMPLATE = {
+  imageToTeacherGap: 36, // 圖片底部到老師名字的距離
+  teacherToTitleGap: 10, // 老師名字到課程名稱的距離
+  titleLineGap: 6,       // 課程名稱兩行之間的距離
+  cardBottomPad: 12      // 卡片底部預留空間
+};
+
 function _downloadTextFile(text, filename, mime){
   const blob = new Blob([text], {type:mime});
   const url = URL.createObjectURL(blob);
@@ -1899,7 +1907,8 @@ function _buildPosterSvg(monthVal){
   const IMG_H = 200;
   const FONT_DATE = 25, FONT_TEACHER = 29, FONT_TITLE = 24, FONT_TIME = 23;
   const _mc = document.createElement('canvas').getContext('2d');
-  const CARD_H = IMG_TOP_Y + IMG_H + 26 + FONT_TEACHER + 8 + FONT_TITLE + 6 + FONT_TITLE + 12;
+  const T = POSTER_TEMPLATE;
+  const CARD_H = IMG_TOP_Y + IMG_H + T.imageToTeacherGap + FONT_TEACHER + T.teacherToTitleGap + FONT_TITLE + T.titleLineGap + FONT_TITLE + T.cardBottomPad;
 
   const dayRows = [];
   for(let i=0;i<days.length;i+=COLS) dayRows.push(days.slice(i,i+COLS));
@@ -1972,17 +1981,17 @@ function _buildPosterSvg(monthVal){
         text(cx+CARD_W-INNER,ty,`${c.start}－${c.end}`,FONT_TIME,'#9a7450','500','end');
 
         image(src, cx+INNER, curY+IMG_TOP_Y, iw, IMG_H, 'slice', 0);
-        ty = curY + IMG_TOP_Y + IMG_H + 30;
+        ty = curY + IMG_TOP_Y + IMG_H + T.imageToTeacherGap + 4;
 
         // Teacher first (big, bold)
         text(cx+INNER, ty, c.teacher, FONT_TEACHER, accent.hex, '700');
-        ty += FONT_TEACHER + 8;
+        ty += FONT_TEACHER + T.teacherToTitleGap;
 
         // Title (up to 2 lines)
         _mc.font = `${FONT_TITLE}px sans-serif`;
         const tLines = _posterWrapText(_mc, c.title, iw).slice(0,2);
         text(cx+INNER, ty, tLines[0]||c.title, FONT_TITLE, '#3d2c1e', '400');
-        ty += FONT_TITLE + 6;
+        ty += FONT_TITLE + T.titleLineGap;
         if(tLines[1]) text(cx+INNER, ty, tLines[1], FONT_TITLE, '#3d2c1e', '400');
       });
       curY += CARD_H + (slot < maxSlots-1 ? INNER_CARD_GAP : 0);
@@ -2035,7 +2044,8 @@ function _buildPosterPptx(monthVal){
   const u = v => v / U;
   const hex = v => String(v||'').replace('#','').slice(0,6);
 
-  const CARD_H = IMG_TOP_Y + IMG_H + 26 + FONT_TEACHER + 8 + FONT_TITLE + 6 + FONT_TITLE + 12;
+  const T = POSTER_TEMPLATE;
+  const CARD_H = IMG_TOP_Y + IMG_H + T.imageToTeacherGap + FONT_TEACHER + T.teacherToTitleGap + FONT_TITLE + T.titleLineGap + FONT_TITLE + T.cardBottomPad;
 
   const dayRows = [];
   for(let i=0;i<days.length;i+=COLS) dayRows.push(days.slice(i,i+COLS));
@@ -2140,17 +2150,17 @@ function _buildPosterPptx(monthVal){
           addRect(cx+INNER,ty,iw,IMG_H,accentHex,{transparency:70});
           addText('🥐',cx+INNER,ty+IMG_H/2-20,iw,40,40,'FFFFFF',false,{align:'center'});
         }
-        ty += IMG_H + 26;
+        ty += IMG_H + T.imageToTeacherGap;
 
         // Teacher first (big, bold, accent color)
         addText(c.teacher,cx+INNER,ty,iw,FONT_TEACHER+4,FONT_TEACHER,accentHex,true);
-        ty += FONT_TEACHER + 8;
+        ty += FONT_TEACHER + T.teacherToTitleGap;
 
         // Title (up to 2 lines)
         _mc.font = `${FONT_TITLE}px sans-serif`;
         const tLines = _posterWrapText(_mc,c.title,iw).slice(0,2);
         addText(tLines[0]||c.title,cx+INNER,ty,iw,FONT_TITLE+4,FONT_TITLE,'3d2c1e');
-        ty += FONT_TITLE + 6;
+        ty += FONT_TITLE + T.titleLineGap;
         addText(tLines[1]||'',cx+INNER,ty,iw,FONT_TITLE+4,FONT_TITLE,'3d2c1e');
       });
       curY += CARD_H + (slot < maxSlots-1 ? INNER_CARD_GAP : 0);
@@ -2243,7 +2253,8 @@ async function _buildPoster(monthVal){
   const FONT_DATE = 25, FONT_TEACHER = 29, FONT_TITLE = 24, FONT_TIME = 23;
   const _mc = document.createElement('canvas').getContext('2d');
   // Fixed card height per course
-  const CARD_H = IMG_TOP_Y + IMG_H + 26 + FONT_TEACHER + 8 + FONT_TITLE + 6 + FONT_TITLE + 12;
+  const T = POSTER_TEMPLATE;
+  const CARD_H = IMG_TOP_Y + IMG_H + T.imageToTeacherGap + FONT_TEACHER + T.teacherToTitleGap + FONT_TITLE + T.titleLineGap + FONT_TITLE + T.cardBottomPad;
 
   const dayRows = [];
   for(let i=0;i<days.length;i+=COLS) dayRows.push(days.slice(i,i+COLS));
@@ -2359,19 +2370,19 @@ async function _buildPoster(monthVal){
           ctx.textBaseline='alphabetic'; ctx.textAlign='left';
         }
         ctx.restore();
-        ty += IMG_H + 26;
+        ty += IMG_H + T.imageToTeacherGap;
 
         // Teacher first (big, bold, accent color)
         ctx.font=`bold ${FONT_TEACHER}px ${FONT}`;
         ctx.fillStyle=accent.hex;
         ctx.fillText(c.teacher, cx+INNER, ty);
-        ty += FONT_TEACHER + 8;
+        ty += FONT_TEACHER + T.teacherToTitleGap;
 
         // Title (up to 2 lines)
         _mc.font = `${FONT_TITLE}px ${FONT}`;
         const tLines = _posterWrapText(_mc, c.title, iw).slice(0,2);
         ctx.font=`${FONT_TITLE}px ${FONT}`; ctx.fillStyle='#3d2c1e';
-        ctx.fillText(tLines[0]||c.title, cx+INNER, ty); ty += FONT_TITLE + 6;
+        ctx.fillText(tLines[0]||c.title, cx+INNER, ty); ty += FONT_TITLE + T.titleLineGap;
         if(tLines[1]) ctx.fillText(tLines[1], cx+INNER, ty);
       });
       curY += CARD_H + (slot < maxSlots-1 ? INNER_CARD_GAP : 0);
