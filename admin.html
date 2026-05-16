@@ -728,6 +728,11 @@ function startFbListener() {
     updateCloudBadge();
   });
 
+  db.ref('bakery/settings/posterTemplate').on('value', snap => {
+    Object.assign(POSTER_TEMPLATE, POSTER_TEMPLATE_DEFAULT, snap.val() || {});
+    syncPosterTemplateControls();
+  });
+
   db.ref('bakery/settings/pwHash').once('value').then(snap => {
     if (snap.val()) pwHash = snap.val();
   });
@@ -1891,7 +1896,6 @@ const POSTER_CONTACT_ADDR = '宜蘭縣羅東鎮羅莊二街198號';
 const POSTER_CONTACT_PHONE = '0966-864-079';
 const POSTER_CONTACT_LINE = 'LINE ID：0966864079';
 
-const POSTER_TEMPLATE_KEY = 'bakery_poster_template';
 const POSTER_TEMPLATE_DEFAULT = {
   imageToTeacherGap: 36, // 圖片底部到老師名字的距離
   teacherToTitleGap: 10, // 老師名字到課程名稱的距離
@@ -1899,9 +1903,6 @@ const POSTER_TEMPLATE_DEFAULT = {
   cardBottomPad: 12      // 卡片底部預留空間
 };
 const POSTER_TEMPLATE = {...POSTER_TEMPLATE_DEFAULT};
-try {
-  Object.assign(POSTER_TEMPLATE, JSON.parse(localStorage.getItem(POSTER_TEMPLATE_KEY) || '{}'));
-} catch(e) {}
 
 function _num(v, fallback, min, max){
   const n = Number(v);
@@ -1922,21 +1923,27 @@ function syncPosterTemplateControls(){
   });
 }
 
+async function savePosterTemplate(){
+  await db.ref('bakery/settings/posterTemplate').set({...POSTER_TEMPLATE});
+}
+
 function applyPosterTemplateControls(withPreview){
   POSTER_TEMPLATE.imageToTeacherGap = _num(document.getElementById('pt-image-gap')?.value, POSTER_TEMPLATE.imageToTeacherGap, 12, 80);
   POSTER_TEMPLATE.teacherToTitleGap = _num(document.getElementById('pt-teacher-gap')?.value, POSTER_TEMPLATE.teacherToTitleGap, 0, 40);
   POSTER_TEMPLATE.titleLineGap = _num(document.getElementById('pt-title-gap')?.value, POSTER_TEMPLATE.titleLineGap, 0, 30);
   POSTER_TEMPLATE.cardBottomPad = _num(document.getElementById('pt-bottom-pad')?.value, POSTER_TEMPLATE.cardBottomPad, 0, 50);
-  localStorage.setItem(POSTER_TEMPLATE_KEY, JSON.stringify(POSTER_TEMPLATE));
   syncPosterTemplateControls();
-  if(withPreview) previewPoster();
+  savePosterTemplate()
+    .then(()=>{ if(withPreview) previewPoster(); })
+    .catch(()=>toast('模板儲存失敗，請確認已登入','error'));
 }
 
 function resetPosterTemplateControls(){
   Object.assign(POSTER_TEMPLATE, POSTER_TEMPLATE_DEFAULT);
-  localStorage.removeItem(POSTER_TEMPLATE_KEY);
   syncPosterTemplateControls();
-  previewPoster();
+  savePosterTemplate()
+    .then(()=>previewPoster())
+    .catch(()=>toast('模板儲存失敗，請確認已登入','error'));
 }
 
 function _downloadTextFile(text, filename, mime){
