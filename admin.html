@@ -274,9 +274,6 @@ tr:hover td{background:var(--primary-light)}
     <input class="search" type="text" id="search" placeholder="🔍 搜尋課程或老師…" oninput="renderTable()">
     <select class="filter-sel" id="filter-month" onchange="renderTable()">
       <option value="">全部月份</option>
-      <option value="05">5月</option>
-      <option value="06">6月</option>
-      <option value="07">7月</option>
     </select>
     <select class="filter-sel" id="filter-color" onchange="renderTable()">
       <option value="">全部顏色</option>
@@ -344,7 +341,7 @@ tr:hover td{background:var(--primary-light)}
       <div class="fg-row">
         <div class="fg">
           <label>日期</label>
-          <input type="date" id="f-date" required min="2026-01-01" max="2026-12-31">
+          <input type="date" id="f-date" required min="2026-01-01" max="2030-12-31">
         </div>
         <div class="fg">
           <label>老師姓名</label>
@@ -428,7 +425,7 @@ tr:hover td{background:var(--primary-light)}
     <div class="parse-preview" id="parse-preview" style="display:none">
       <div class="fg">
         <label>日期</label>
-        <input class="login-input" type="date" id="pp-date" min="2026-01-01" max="2026-12-31">
+        <input class="login-input" type="date" id="pp-date" min="2026-01-01" max="2030-12-31">
       </div>
       <div class="fg">
         <label>老師</label>
@@ -769,6 +766,19 @@ function regCount(eventId) {
   return r ? Object.keys(r).length : 0;
 }
 
+// ── Month filter options (dynamic from events) ────────────────
+function buildMonthFilter(){
+  const sel = document.getElementById('filter-month');
+  const cur = sel.value;
+  const months = [...new Set(events.map(e=>e.date.slice(0,7)))].sort();
+  sel.innerHTML = '<option value="">全部月份</option>';
+  months.forEach(m=>{
+    const mo = Number(m.slice(5,7));
+    sel.innerHTML += `<option value="${m.slice(5,7)}">${mo}月</option>`;
+  });
+  if(cur && months.some(m=>m.slice(5,7)===cur)) sel.value = cur;
+}
+
 // ── Color filter options ──────────────────────────────────────
 function buildColorFilter(){
   const sel = document.getElementById('filter-color');
@@ -780,6 +790,7 @@ function buildColorFilter(){
 
 // ── Render table ─────────────────────────────────────────────
 function renderTable(){
+  buildMonthFilter(); // always sync month options to actual event data
   const q    = document.getElementById('search').value.trim().toLowerCase();
   const mth  = document.getElementById('filter-month').value;
   const col  = document.getElementById('filter-color').value;
@@ -1709,223 +1720,159 @@ function _posterWrapText(ctx, text, maxWidth){
 async function _buildPoster(monthVal){
   const [year, mon] = monthVal.split('-').map(Number);
   const WDAYS = ['日','一','二','三','四','五','六'];
+  const FONT = '"PingFang TC","Microsoft JhengHei",Arial,sans-serif';
 
+  // Only courses for this month, sorted by date then time
   const monthCourses = [...events]
     .filter(e=>{ const [y,m]=e.date.split('-').map(Number); return y===year&&m===mon; })
     .sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
   if(!monthCourses.length) return null;
 
-  // Group by day number
+  // Group by full date string — only days WITH courses
   const byDay = {};
-  monthCourses.forEach(c=>{
-    const d = +c.date.split('-')[2];
-    (byDay[d] = byDay[d]||[]).push(c);
-  });
+  monthCourses.forEach(c=>{ (byDay[c.date]=byDay[c.date]||[]).push(c); });
+  const days = Object.keys(byDay).sort();
 
-  // Calendar math
-  const firstDow = new Date(year, mon-1, 1).getDay(); // 0=Sun
-  const totalDays = new Date(year, mon, 0).getDate();
-  const numWeeks  = Math.ceil((firstDow + totalDays) / 7);
-
-  // Load course images
+  // Load images
   const imgMap = {};
-  await Promise.all(monthCourses.filter(c=>c.image).map(c => new Promise(res=>{
+  await Promise.all(monthCourses.filter(c=>c.image).map(c=>new Promise(res=>{
     const img = new Image();
-    if(!c.image.startsWith('data:')) img.crossOrigin = 'anonymous';
-    img.onload = ()=>{ imgMap[c.id]=img; res(); };
-    img.onerror = res;
-    img.src = c.image;
+    if(!c.image.startsWith('data:')) img.crossOrigin='anonymous';
+    img.onload=()=>{ imgMap[c.id]=img; res(); };
+    img.onerror=res; img.src=c.image;
   })));
 
-  // Canvas dimensions
-  const W = 1400;
-  const COL_W = Math.floor(W/7);
-  const HEADER_H = 156;
-  const WDAY_H   = 52;
-  // Cell height: enough for max courses on busiest day
-  const maxCpd = Math.max(1, ...Object.values(byDay).map(a=>a.length));
-  // per course: 17px teacher label + 16px period + up to 2 title lines*20px + 8px gap
-  const CELL_H = Math.max(160, 38 + maxCpd * (17+16+40+8));
-  const H = HEADER_H + WDAY_H + numWeeks * CELL_H + 10;
+  // Layout
+  const W = 1080, PAD = 40, GAP = 14;
+  const COLS = days.length <= 3 ? days.length : (days.length <= 8 ? 2 : 3);
+  const CARD_W = Math.floor((W - PAD*2 - GAP*(COLS-1)) / COLS);
+  const INNER = 16;
+
+  // Helper: measure card height
+  function cardHeight(dateStr){
+    const cs = byDay[dateStr];
+    const hasImg = cs.some(c=>imgMap[c.id]);
+    let h = INNER + 32 + 12; // top pad + date line + divider gap
+    if(hasImg) h += 110 + 10; // image area
+    cs.forEach(c=>{
+      h += 18; // time line
+      // title: char-count estimate (17px font, CARD_W-INNER*2 wide ≈ ~15 chars/line)
+      h += Math.ceil(c.title.length / 14) <= 1 ? 20 : 40;
+      h += 16; // teacher line
+      h += 10; // gap
+    });
+    h += INNER;
+    return Math.max(120, h);
+  }
+
+  // Lay out cards into rows
+  const rows = [];
+  for(let i=0;i<days.length;i+=COLS) rows.push(days.slice(i,i+COLS));
+  const rowH = rows.map(row=>Math.max(...row.map(cardHeight)));
+
+  // Total canvas height
+  const HEADER_H = 150;
+  const H = HEADER_H + PAD + rowH.reduce((s,h)=>s+h+GAP,0) - GAP + PAD;
 
   const canvas = document.getElementById('poster-canvas');
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
   ctx.textBaseline = 'alphabetic';
 
-  // ── Background ────────────────────────────────────────────
-  ctx.fillStyle = '#cfe0f0';
-  ctx.fillRect(0, 0, W, H);
+  // ── Background ───────────────────────────────────────────
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#fdf8f0'); bg.addColorStop(1,'#f5ece0');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
 
   // ── Header ───────────────────────────────────────────────
-  ctx.fillStyle = 'rgba(255,255,255,0.62)';
-  ctx.fillRect(0, 0, W, HEADER_H);
+  // "2026年" dark
+  let hx = PAD, hy = 98;
+  ctx.textAlign='left';
+  ctx.font=`bold 60px ${FONT}`; ctx.fillStyle='#3d2c1e';
+  ctx.fillText(`${year}年`, hx, hy);
+  hx += ctx.measureText(`${year}年`).width + 16;
 
-  let tx = 22;
-  ctx.textAlign = 'left';
+  // Month number red + big
+  ctx.font=`bold 96px ${FONT}`; ctx.fillStyle='#c0392b';
+  ctx.fillText(`${mon}`, hx, hy+12);
+  hx += ctx.measureText(`${mon}`).width + 4;
 
-  // Year (dark blue, large)
-  ctx.font = `bold 96px "PingFang TC","Microsoft JhengHei",Arial,sans-serif`;
-  ctx.fillStyle = '#1a3a6b';
-  ctx.fillText(`${year}`, tx, 114);
-  tx += ctx.measureText(`${year}`).width + 24;
+  // "月課程總覽"
+  ctx.font=`bold 56px ${FONT}`; ctx.fillStyle='#3d2c1e';
+  ctx.fillText('月課程總覽', hx, hy);
 
-  // Teacher name (if single teacher)
-  const teachers = [...new Set(monthCourses.map(c=>c.teacher))];
-  if(teachers.length === 1){
-    ctx.font = `bold 56px "PingFang TC","Microsoft JhengHei",Arial,sans-serif`;
-    ctx.fillStyle = '#111';
-    ctx.fillText(teachers[0], tx, 114);
-    tx += ctx.measureText(teachers[0]).width + 24;
-  }
+  // Decorative rule under title
+  ctx.fillStyle='#c17f3e';
+  ctx.fillRect(PAD, hy+20, W-PAD*2, 3);
 
-  // Month number (red)
-  ctx.font = `bold 96px "PingFang TC","Microsoft JhengHei",Arial,sans-serif`;
-  ctx.fillStyle = '#c0392b';
-  ctx.fillText(`${mon}`, tx, 114);
-  tx += ctx.measureText(`${mon}`).width + 8;
+  // ── Cards ────────────────────────────────────────────────
+  let curY = HEADER_H + PAD;
 
-  // "月課程表"
-  ctx.font = `bold 64px "PingFang TC","Microsoft JhengHei",Arial,sans-serif`;
-  ctx.fillStyle = '#1a3a6b';
-  ctx.fillText('月課程表', tx, 114);
-
-  // Image collage (right portion of header)
-  const withImg = monthCourses.filter(c=>imgMap[c.id]);
-  const nImgs = Math.min(5, withImg.length);
-  if(nImgs > 0){
-    const collageW = Math.floor(W * 0.36);
-    const iw = Math.floor((collageW - (nImgs-1)*4) / nImgs);
-    const ih = HEADER_H - 14;
-    const startX = W - collageW - 8;
-    withImg.slice(0,nImgs).forEach((c,i)=>{
-      const img = imgMap[c.id];
-      const ix = startX + i*(iw+4), iy = 7;
-      ctx.save();
-      _posterRoundRect(ctx, ix, iy, iw, ih, 8); ctx.clip();
-      const s = Math.max(iw/img.width, ih/img.height);
-      ctx.drawImage(img, ix+(iw-img.width*s)/2, iy+(ih-img.height*s)/2, img.width*s, img.height*s);
-      ctx.restore();
-    });
-  }
-
-  // Header bottom border
-  ctx.fillStyle = '#4a7aaa'; ctx.fillRect(0, HEADER_H-2, W, 3);
-
-  // ── Weekday header row ───────────────────────────────────
-  const wTop = HEADER_H;
-  ctx.fillStyle = '#8ab5d5'; ctx.fillRect(0, wTop, W, WDAY_H);
-  WDAYS.forEach((wd,i)=>{
-    ctx.fillStyle = (i===0||i===6) ? '#c0392b' : '#1a3a6b';
-    ctx.font = `bold 28px "PingFang TC","Microsoft JhengHei",Arial,sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText(wd, i*COL_W + COL_W/2, wTop+38);
-    if(i>0){ ctx.fillStyle='#6898c0'; ctx.fillRect(i*COL_W, wTop, 1, WDAY_H); }
-  });
-  ctx.fillStyle='#4a7aaa'; ctx.fillRect(0, wTop+WDAY_H-1, W, 2);
-
-  // ── Calendar cells ───────────────────────────────────────
-  const gTop = HEADER_H + WDAY_H;
-  const allImgsList = Object.values(imgMap);
-  let fillIdx = 0;
-
-  for(let week=0; week<numWeeks; week++){
-    for(let dow=0; dow<7; dow++){
-      const cellIdx = week*7 + dow;
-      const dayNum  = cellIdx - firstDow + 1;
-      const cx = dow*COL_W, cy = gTop + week*CELL_H;
-      const inMonth  = dayNum>=1 && dayNum<=totalDays;
-      const isWkend  = dow===0 || dow===6;
-      const courses  = inMonth ? (byDay[dayNum]||[]) : [];
+  rows.forEach((row, ri)=>{
+    const rh = rowH[ri];
+    row.forEach((dateStr, ci)=>{
+      const cx = PAD + ci*(CARD_W+GAP);
+      const courses = byDay[dateStr];
+      const [dy,dm,dd] = dateStr.split('-').map(Number);
+      const dow = new Date(dy,dm-1,dd).getDay();
+      const isWkend = dow===0||dow===6;
       const imgCourse = courses.find(c=>imgMap[c.id]);
-      const singleImg = courses.length===1 && imgCourse;
 
-      // ── Cell background ───────────────────────────────
-      if(!inMonth){
-        // Fill padding cells with course images decoratively
-        if(allImgsList.length > 0){
-          const img = allImgsList[(fillIdx++)%allImgsList.length];
-          ctx.save(); ctx.rect(cx,cy,COL_W,CELL_H); ctx.clip();
-          const s=Math.max(COL_W/img.width, CELL_H/img.height);
-          ctx.drawImage(img, cx+(COL_W-img.width*s)/2, cy+(CELL_H-img.height*s)/2, img.width*s, img.height*s);
-          ctx.restore();
-          ctx.fillStyle='rgba(190,215,240,0.28)'; ctx.fillRect(cx,cy,COL_W,CELL_H);
-        } else {
-          ctx.fillStyle='#c0d8ee'; ctx.fillRect(cx,cy,COL_W,CELL_H);
-        }
-      } else if(singleImg){
-        // Single course with image → image fills the cell
-        const img = imgMap[imgCourse.id];
-        ctx.save(); ctx.rect(cx,cy,COL_W,CELL_H); ctx.clip();
-        const s=Math.max(COL_W/img.width, CELL_H/img.height);
-        ctx.drawImage(img, cx+(COL_W-img.width*s)/2, cy+(CELL_H-img.height*s)/2, img.width*s, img.height*s);
+      // Card shadow + bg
+      ctx.shadowColor='rgba(120,70,20,0.13)'; ctx.shadowBlur=18; ctx.shadowOffsetY=4;
+      ctx.fillStyle='#fff';
+      _posterRoundRect(ctx,cx,curY,CARD_W,rh,14); ctx.fill();
+      ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+
+      // Top color accent bar
+      const accent = colorById(courses[0].color);
+      ctx.fillStyle=accent.hex;
+      _posterRoundRect(ctx,cx,curY,CARD_W,6,[14,14,0,0]); ctx.fill();
+
+      let ty = curY + INNER + 24;
+
+      // Date header
+      ctx.textAlign='left';
+      ctx.font=`bold 19px ${FONT}`;
+      ctx.fillStyle = isWkend ? '#c0392b' : '#3d2c1e';
+      ctx.fillText(`📅 ${dm}/${String(dd).padStart(2,'0')} (${WDAYS[dow]})`, cx+INNER, ty);
+      ty += 12;
+
+      // Divider
+      ctx.fillStyle='#ead8c4'; ctx.fillRect(cx+INNER, ty, CARD_W-INNER*2, 1);
+      ty += 12;
+
+      // Course image (first available)
+      if(imgCourse){
+        const img=imgMap[imgCourse.id];
+        const iw=CARD_W-INNER*2, ih=108;
+        ctx.save();
+        _posterRoundRect(ctx,cx+INNER,ty,iw,ih,8); ctx.clip();
+        const s=Math.max(iw/img.width,ih/img.height);
+        ctx.drawImage(img,cx+INNER+(iw-img.width*s)/2,ty+(ih-img.height*s)/2,img.width*s,img.height*s);
         ctx.restore();
-      } else if(courses.length > 0){
-        // Multiple / text courses → white bg + subtle image tint
-        ctx.fillStyle='#ffffff'; ctx.fillRect(cx,cy,COL_W,CELL_H);
-        if(imgCourse){
-          const img=imgMap[imgCourse.id];
-          ctx.save(); ctx.rect(cx,cy,COL_W,CELL_H); ctx.clip();
-          ctx.globalAlpha=0.10;
-          const s=Math.max(COL_W/img.width, CELL_H/img.height);
-          ctx.drawImage(img, cx+(COL_W-img.width*s)/2, cy+(CELL_H-img.height*s)/2, img.width*s, img.height*s);
-          ctx.restore();
-        }
-      } else {
-        // Empty in-month day
-        ctx.fillStyle='#e8f2fb'; ctx.fillRect(cx,cy,COL_W,CELL_H);
+        ty += ih + 12;
       }
 
-      // ── Cell border ────────────────────────────────────
-      ctx.strokeStyle='#6898c0'; ctx.lineWidth=1;
-      ctx.strokeRect(cx+0.5, cy+0.5, COL_W-1, CELL_H-1);
-
-      if(!inMonth) continue;
-
-      // ── Date number ────────────────────────────────────
-      ctx.textAlign = 'left';
-      if(singleImg){
-        ctx.fillStyle='#fff';
-        ctx.shadowColor='rgba(0,0,0,0.75)'; ctx.shadowBlur=5;
-      } else {
-        ctx.fillStyle = isWkend ? '#c0392b' : '#1a3a6b';
-      }
-      ctx.font=`bold 22px "PingFang TC","Microsoft JhengHei",Arial,sans-serif`;
-      ctx.fillText(String(dayNum), cx+6, cy+23);
-      ctx.shadowBlur=0; ctx.shadowColor='transparent';
-
-      // ── Course text (skip image-only cells) ────────────
-      if(singleImg || courses.length===0) continue;
-
-      let ty = cy + 40;
-      for(const c of courses){
-        if(ty > cy+CELL_H-16) break; // overflow guard
+      // Each course
+      courses.forEach(c=>{
         const ci = colorById(c.color);
-        const hr = parseInt(c.start.split(':')[0]);
-        const period = hr < 12 ? '上午' : '下午';
 
-        // Teacher name (small, gray) — only if multiple teachers
-        if(teachers.length > 1){
-          ctx.fillStyle='#555';
-          ctx.font=`13px "PingFang TC","Microsoft JhengHei",Arial,sans-serif`;
-          ctx.fillText(c.teacher.slice(0,8), cx+6, ty); ty+=16;
-        }
+        // Time
+        ctx.fillStyle='#8a6d5a'; ctx.font=`13px ${FONT}`;
+        ctx.fillText(`⏰ ${c.start} – ${c.end}`, cx+INNER, ty); ty+=18;
 
-        // Time period label
-        ctx.fillStyle='#666';
-        ctx.font=`14px "PingFang TC","Microsoft JhengHei",Arial,sans-serif`;
-        ctx.fillText(period, cx+6, ty); ty+=17;
-
-        // Course title (colored bold, wrapped to 2 lines)
-        ctx.fillStyle = ci.hex;
-        ctx.font=`bold 17px "PingFang TC","Microsoft JhengHei",Arial,sans-serif`;
-        _posterWrapText(ctx, c.title, COL_W-12).slice(0,2).forEach(line=>{
-          if(ty <= cy+CELL_H-16){ ctx.fillText(line, cx+6, ty); ty+=20; }
+        // Teacher | Title (colored)
+        ctx.fillStyle=ci.hex; ctx.font=`bold 16px ${FONT}`;
+        const titleFull = `${c.teacher} ｜ ${c.title}`;
+        _posterWrapText(ctx,titleFull,CARD_W-INNER*2).slice(0,2).forEach(l=>{
+          ctx.fillText(l,cx+INNER,ty); ty+=20;
         });
-        ty += 7; // gap between courses
-      }
-    }
-  }
+        ty+=8;
+      });
+    });
+    curY += rh + GAP;
+  });
 
   return canvas;
 }
