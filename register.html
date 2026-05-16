@@ -166,7 +166,7 @@ header h1{font-size:1.1rem;font-weight:800}
       </div>
       <div class="fg-row">
         <div class="fg">
-          <label>Facebook 名稱 *</label>
+          <label>Facebook 名稱 * <span style="font-weight:400;font-size:.85em">（FB / LINE 擇一必填）</span></label>
           <input type="text" id="r-fb" placeholder="FB 顯示名稱">
         </div>
         <div class="fg">
@@ -317,13 +317,22 @@ async function submitReg(){
   // Validate required fields
   let ok = true;
   const req = [
-    ['r-name', name], ['r-phone', phone], ['r-email', email], ['r-fb', fb], ['r-line', line],
+    ['r-name', name], ['r-phone', phone], ['r-email', email],
     ['r-count', count], ['r-remit-date', remitDate], ['r-remit-last5', remitLast5]
   ];
   req.forEach(([id, val])=>{
     document.getElementById(id).classList.toggle('err', !val);
     if(!val) ok = false;
   });
+  // FB 或 LINE 至少填一個
+  if(!fb && !line){
+    document.getElementById('r-fb').classList.add('err');
+    document.getElementById('r-line').classList.add('err');
+    ok = false;
+  } else {
+    document.getElementById('r-fb').classList.remove('err');
+    document.getElementById('r-line').classList.remove('err');
+  }
   if(!group){
     document.querySelectorAll('#rg-group .radio-opt').forEach(o=>o.style.borderColor='var(--red)');
     ok = false;
