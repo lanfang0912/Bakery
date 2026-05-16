@@ -319,7 +319,7 @@ tr:hover td{background:var(--primary-light)}
 <button class="btn-poster" onclick="openPoster()">🎨 月份海報</button>
     <button class="btn-paste" onclick="openPaste()">📋 貼上新增</button>
     <button class="btn-cloud" onclick="openCloudSettings()">☁️ 圖片設定</button>
-    <button class="btn-paste" onclick="openBatchReg()" style="background:#2e7d52">👥 批次報名</button>
+    <button class="btn-add" onclick="openBatchReg()" style="background:#2e7d52">👥 批次報名</button>
     <button class="btn-add" onclick="openAdd()">＋ 手動新增</button>
   </div>
 </div>
@@ -471,7 +471,11 @@ tr:hover td{background:var(--primary-light)}
     </div>
     <div style="padding:0 4px">
       <div class="fg-row">
-        <div class="fg"><label>姓名 *</label><input class="ma-input" id="br-name" type="text" placeholder="學員姓名"></div>
+        <div class="fg" style="position:relative">
+          <label>姓名 *</label>
+          <input class="ma-input" id="br-name" type="text" placeholder="學員姓名" oninput="brNameSuggest()" onblur="setTimeout(()=>document.getElementById('br-suggest').style.display='none',150)" autocomplete="off">
+          <div id="br-suggest" style="display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border:1px solid var(--border);border-radius:9px;box-shadow:var(--shadow);z-index:99;max-height:180px;overflow-y:auto"></div>
+        </div>
         <div class="fg"><label>電話 *</label><input class="ma-input" id="br-phone" type="tel" placeholder="0912-345-678"></div>
       </div>
       <div class="fg-row">
@@ -971,6 +975,45 @@ function renderTable(){
 
 // ── Batch registration ────────────────────────────────────────
 let batchSelected = {};
+
+function brNameSuggest(){
+  const q = (document.getElementById('br-name').value||'').trim();
+  const box = document.getElementById('br-suggest');
+  if(!q){ box.style.display='none'; return; }
+
+  // Collect unique students from all registrations
+  const seen = {};
+  Object.values(registrations).forEach(regs=>{
+    if(!regs||typeof regs!=='object') return;
+    Object.values(regs).forEach(r=>{
+      if(!r||!r.name) return;
+      if(r.name.includes(q)){
+        const key = r.name+'|'+(r.phone||'');
+        if(!seen[key]) seen[key] = {name:r.name, phone:r.phone||'', count:r.count||1, note:r.note||''};
+      }
+    });
+  });
+
+  const matches = Object.values(seen).slice(0,8);
+  if(!matches.length){ box.style.display='none'; return; }
+
+  box.innerHTML = matches.map(m=>`
+    <div onclick="brFill(${JSON.stringify(m).replace(/'/g,'&#39;')})"
+      style="padding:9px 14px;cursor:pointer;font-size:.86rem;border-bottom:1px solid var(--border)"
+      onmouseover="this.style.background='var(--primary-light)'" onmouseout="this.style.background=''">
+      <span style="font-weight:700">${m.name}</span>
+      <span style="color:var(--muted);font-size:.78rem;margin-left:8px">${m.phone}</span>
+    </div>`).join('');
+  box.style.display = 'block';
+}
+
+function brFill(m){
+  document.getElementById('br-name').value  = m.name;
+  document.getElementById('br-phone').value = m.phone;
+  document.getElementById('br-count').value = m.count||1;
+  document.getElementById('br-note').value  = m.note||'';
+  document.getElementById('br-suggest').style.display = 'none';
+}
 
 function openBatchReg(){
   batchSelected = {};
