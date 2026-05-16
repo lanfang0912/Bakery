@@ -414,7 +414,7 @@ function renderCal(y, m) {
       const c = colorById(e.color);
       return `<div class="chip" style="background:${c.bg};color:${c.hex}"
               onclick="showDetail(event,'${e.id}')">
-        ${e.image?`<img class="chip-img" src="${e.image}" alt="">`:''}
+        ${e.image?`<img class="chip-img" src="${e.image}" alt="" style="object-position:${e.imgPos||'center'}">`:''}
         <div class="chip-time">${e.start}</div>
         <div class="chip-teacher">${e.teacher}</div>
         <div class="chip-title">${e.title}</div>

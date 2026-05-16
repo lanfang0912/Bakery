@@ -424,6 +424,14 @@ tr:hover td{background:var(--primary-light)}
         <button type="button" class="btn-add-img" id="f-add-img-btn" onclick="addImgSlot()">＋ 新增圖片</button>
       </div>
       <div class="fg">
+        <label>月曆縮圖焦點</label>
+        <select id="f-img-pos" style="width:auto;padding:8px 12px;border:2px solid var(--border);border-radius:9px;font-size:.86rem;font-family:inherit;color:var(--text);background:var(--bg);outline:none">
+          <option value="center">置中（預設）</option>
+          <option value="top">靠上</option>
+          <option value="bottom">靠下</option>
+        </select>
+      </div>
+      <div class="fg">
         <label>標籤顏色</label>
         <div class="color-opts" id="color-opts"></div>
       </div>
@@ -940,6 +948,7 @@ function fillEventForm(e){
   const existPoster = e.imagesPoster?.length ? e.imagesPoster : (e.imagePoster ? [e.imagePoster] : []);
   resetImgSlots(existImgs, existPoster);
   document.getElementById('f-desc').value    = e.description||'';
+  document.getElementById('f-img-pos').value = e.imgPos || 'center';
   selColor = e.color || 'orange';
   buildColorPicker();
 }
@@ -981,6 +990,7 @@ async function saveEvent(e){
     imagesPoster: getImgPosterValues(),
     imagePoster:  getImgPosterValues()[0] || '',
     description: document.getElementById('f-desc').value.trim(),
+    imgPos:      document.getElementById('f-img-pos').value || 'center',
     color:       selColor,
   };
   if(data.start >= data.end){ toast('結束時間必須晚於開始時間', 'error'); return; }
