@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>查詢報名記錄 | Jen 手作烘焙</title>
+<style>
+:root{
+  --primary:#c17f3e;--primary-light:#f5e6d3;--primary-dark:#8b5a27;
+  --accent:#e8a45a;--bg:#f7f2ed;--card:#fff;--text:#3d2c1e;
+  --muted:#8a6d5a;--border:#e3cdb6;--red:#e05c5c;--green:#5c9e6e;
+  --shadow:0 2px 12px rgba(193,127,62,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI','PingFang TC','Microsoft JhengHei',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+header{background:linear-gradient(135deg,#5a3a1a,var(--primary-dark) 60%,#a0622a);color:#fff;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 18px rgba(90,58,26,.4)}
+header h1{font-size:1.15rem;font-weight:800}
+.back-link{background:rgba(255,255,255,.16);color:#fff;text-decoration:none;padding:7px 16px;border-radius:20px;font-size:.82rem;font-weight:600;border:2px solid rgba(255,255,255,.4)}
+
+main{max-width:520px;margin:32px auto;padding:0 16px 60px}
+
+.card{background:var(--card);border-radius:16px;border:1px solid var(--border);padding:28px 24px;box-shadow:var(--shadow);margin-bottom:16px}
+.card-title{font-size:1rem;font-weight:800;color:var(--primary-dark);margin-bottom:20px;display:flex;align-items:center;gap:8px}
+
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:.74rem;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.fg input{width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-size:.95rem;font-family:inherit;color:var(--text);background:var(--bg);transition:border-color .2s;outline:none}
+.fg input:focus{border-color:var(--primary)}
+.fg input.err{border-color:var(--red)}
+.hint{font-size:.76rem;color:var(--muted);margin-top:4px}
+
+.btn-query{width:100%;padding:13px;background:var(--primary);color:#fff;border:none;border-radius:22px;font-size:.95rem;font-weight:800;cursor:pointer;transition:all .2s;margin-top:4px}
+.btn-query:hover{background:var(--primary-dark)}
+.btn-query:disabled{opacity:.55;cursor:not-allowed}
+
+.err-msg{color:var(--red);font-size:.84rem;text-align:center;margin-top:12px;display:none}
+
+/* Results */
+#results{display:none}
+.result-header{font-size:.82rem;color:var(--muted);margin-bottom:14px;font-weight:600}
+
+.reg-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.reg-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.reg-title{font-weight:800;font-size:.96rem;line-height:1.4;color:var(--primary-dark)}
+.paid-tag{display:inline-block;padding:3px 10px;border-radius:12px;font-size:.76rem;font-weight:700;flex-shrink:0}
+.paid-tag.paid{background:#e8f5ed;color:var(--green)}
+.paid-tag.unpaid{background:#fdeaea;color:var(--red)}
+
+.reg-meta{font-size:.82rem;color:var(--muted);margin-bottom:5px}
+.reg-remit{font-size:.80rem;background:var(--primary-light);color:var(--primary-dark);border-radius:8px;padding:7px 10px;margin-top:8px;line-height:1.7}
+
+.empty-result{text-align:center;padding:36px 0;color:var(--muted);font-size:.9rem}
+.empty-result div{font-size:2rem;margin-bottom:10px}
+
+@media(max-width:480px){
+  .card{padding:20px 16px}
+  main{margin:20px auto}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🔍 查詢報名記錄</h1>
+  </div>
+  <a class="back-link" href="index.html">← 返回行事曆</a>
+</header>
+
+<main>
+  <div class="card">
+    <div class="card-title">📋 輸入報名資訊查詢</div>
+
+    <div class="fg">
+      <label>電話末四碼 *</label>
+      <input type="text" id="q-phone4" placeholder="例：8683" maxlength="4" inputmode="numeric">
+      <div class="hint">報名時填寫的電話號碼末四碼</div>
+    </div>
+    <div class="fg">
+      <label>電子信箱（選填）</label>
+      <input type="email" id="q-email" placeholder="填寫可讓結果更精準" autocomplete="email">
+      <div class="hint">若沒有填過 Email，留空即可</div>
+    </div>
+
+    <button class="btn-query" id="q-btn" onclick="doQuery()">查詢我的報名</button>
+    <div class="err-msg" id="q-err"></div>
+  </div>
+
+  <div id="results">
+    <div class="result-header" id="result-header"></div>
+    <div id="result-list"></div>
+  </div>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="data.js"></script>
+<script>
+firebase.initializeApp(FB_CONFIG);
+const db = firebase.database();
+
+const WEEKDAYS = ['日','一','二','三','四','五','六'];
+function formatDate(d){
+  const [y,m,dd] = d.split('-').map(Number);
+  const dow = WEEKDAYS[new Date(y,m-1,dd).getDay()];
+  return `${m}/${String(dd).padStart(2,'0')} (${dow})`;
+}
+
+async function doQuery(){
+  const phone4 = document.getElementById('q-phone4').value.trim();
+  const email  = document.getElementById('q-email').value.trim().toLowerCase();
+  const errEl  = document.getElementById('q-err');
+
+  // Validate
+  document.getElementById('q-phone4').classList.toggle('err', !phone4 || phone4.length < 4);
+  errEl.style.display = 'none';
+
+  if(!phone4 || phone4.length < 4){
+    errEl.textContent = '請填入電話末四碼';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('q-btn');
+  btn.disabled = true;
+  btn.textContent = '查詢中…';
+
+  try {
+    // Anonymous auth so Firebase rules allow reading
+    await firebase.auth().signInAnonymously();
+
+    // Fetch events & registrations
+    const [evSnap, regSnap] = await Promise.all([
+      db.ref('bakery/events').once('value'),
+      db.ref('bakery/registrations').once('value')
+    ]);
+
+    const eventsMap = {};
+    (evSnap.val() || {});
+    Object.entries(evSnap.val() || {}).forEach(([k,v]) => eventsMap[k] = {...v, id:k});
+
+    const allRegs = regSnap.val() || {};
+
+    // Filter by email + phone last 4
+    const matches = [];
+    Object.entries(allRegs).forEach(([eventId, regs]) => {
+      Object.entries(regs).forEach(([regId, r]) => {
+        const phoneMatch = (r.phone||'').replace(/\D/g,'').endsWith(phone4);
+        const emailMatch = !email || (r.email||'').toLowerCase() === email;
+        if(phoneMatch && emailMatch){
+          matches.push({ ...r, eventId, regId, event: eventsMap[eventId] });
+        }
+      });
+    });
+
+    // Sort by date
+    matches.sort((a,b) => (a.event?.date||'').localeCompare(b.event?.date||''));
+
+    renderResults(matches);
+  } catch(e) {
+    errEl.textContent = '查詢失敗，請稍後再試';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '查詢我的報名';
+  }
+}
+
+function renderResults(matches){
+  const resultsEl = document.getElementById('results');
+  const headerEl  = document.getElementById('result-header');
+  const listEl    = document.getElementById('result-list');
+  resultsEl.style.display = 'block';
+
+  if(!matches.length){
+    headerEl.textContent = '';
+    listEl.innerHTML = `
+      <div class="empty-result">
+        <div>🔍</div>
+        查無報名記錄<br>
+        <small>請確認 Email 和電話末四碼是否正確</small>
+      </div>`;
+    return;
+  }
+
+  headerEl.textContent = `找到 ${matches.length} 筆報名記錄`;
+  listEl.innerHTML = matches.map(r => {
+    const ev = r.event;
+    const title = ev ? ev.title : '（課程已移除）';
+    const dateStr = ev ? `${formatDate(ev.date)}　${ev.start} – ${ev.end}` : '';
+    const teacher = ev ? ev.teacher : '';
+
+    const remitInfo = (r.remitDate || r.remitLast5)
+      ? `<div class="reg-remit">
+           💳 匯款日期：${r.remitDate || '未填'}<br>
+           帳號末五碼：${r.remitLast5 ? `…${r.remitLast5}` : '未填'}
+         </div>`
+      : '';
+
+    return `
+      <div class="reg-card">
+        <div class="reg-card-top">
+          <div class="reg-title">${title}</div>
+          <span class="paid-tag ${r.paid ? 'paid' : 'unpaid'}">${r.paid ? '✅ 已繳費' : '⏳ 未繳費'}</span>
+        </div>
+        ${dateStr ? `<div class="reg-meta">🗓 ${dateStr}</div>` : ''}
+        ${teacher ? `<div class="reg-meta">👩‍🏫 ${teacher}</div>` : ''}
+        ${r.count > 1 ? `<div class="reg-meta">👥 ${r.count} 人</div>` : ''}
+        ${remitInfo}
+      </div>`;
+  }).join('');
+}
+
+// Allow pressing Enter to submit
+document.addEventListener('keydown', e => {
+  if(e.key === 'Enter') doQuery();
+});
+</script>
+</body>
+</html>
