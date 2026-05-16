@@ -785,11 +785,13 @@ document.getElementById('tbody').addEventListener('click', e => {
   const regBtn  = e.target.closest('[data-reg]');
   const linkBtn = e.target.closest('[data-link]');
   const copyBtn = e.target.closest('[data-copy]');
+  const hideBtn = e.target.closest('[data-hide]');
   if (editBtn) openEdit(editBtn.dataset.edit);
   if (delBtn)  confirmDelete(delBtn.dataset.del);
   if (regBtn)  openRegModal(regBtn.dataset.reg);
   if (linkBtn) copyRegLink(linkBtn.dataset.link);
   if (copyBtn) openCopy(copyBtn.dataset.copy);
+  if (hideBtn) toggleHidden(hideBtn.dataset.hide, hideBtn.dataset.hidden !== 'true');
 });
 
 function regCount(eventId) {
@@ -845,9 +847,10 @@ function renderTable(){
   } else {
     filtered.forEach(e=>{
       const c = colorById(e.color);
-      html += `<tr>
+      const hidden = !!e.hidden;
+      html += `<tr style="${hidden?'opacity:.58;background:#f7f1ea':''}">
         <td>${e.image?`<img class="img-thumb" src="${e.image}" alt="">`:'—'}</td>
-        <td><span class="cdot" style="background:${c.hex}"></span><span class="tag" style="background:${c.bg};color:${c.hex}">${e.color}</span></td>
+        <td><span class="cdot" style="background:${c.hex}"></span><span class="tag" style="background:${c.bg};color:${c.hex}">${e.color}</span>${hidden?`<span class="tag" style="background:#eee;color:#777;margin-left:4px">已隱藏</span>`:''}</td>
         <td>${formatDate(e.date)}</td>
         <td style="white-space:nowrap;font-size:.8rem">${e.start}–${e.end}</td>
         <td style="font-weight:600">${e.teacher}</td>
@@ -858,6 +861,7 @@ function renderTable(){
           <a class="btn-export" href="${location.href.replace(/admin\.html.*$/,'register.html?id='+e.id)}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center">🔗 報名頁</a>
           <button class="btn-export" data-link="${e.id}" title="複製報名頁連結" style="background:#fff3e0;color:#c17f3e">📋 複製</button>
           <button class="btn-export" data-copy="${e.id}" title="複製課程內容，建立新課程" style="background:#e8f5ed;color:#5c9e6e">⧉ 複製課程</button>
+          <button class="btn-export" data-hide="${e.id}" data-hidden="${hidden}" title="${hidden?'恢復顯示課程':'從前台與海報隱藏'}" style="background:${hidden?'#eef6ff':'#f3f0ec'};color:${hidden?'#3a5ea8':'#8b6f5b'}">${hidden?'👁 恢復顯示':'🙈 隱藏'}</button>
           <button class="btn-edit"   data-edit="${e.id}">✏️ 編輯</button>
           <button class="btn-del"    data-del="${e.id}">🗑 刪除</button>
         </div></td>
@@ -1009,6 +1013,15 @@ async function doDelete(){
   await db.ref('bakery/events/' + pendingDeleteId).remove();
   closeConfirm();
   toast('課程已刪除','success');
+}
+
+async function toggleHidden(id, hidden){
+  const ev = events.find(e=>e.id===id);
+  if(!ev || String(id).startsWith('local')) return;
+  await db.ref('bakery/events/' + id).update({hidden});
+  ev.hidden = hidden;
+  renderTable();
+  toast(hidden ? '課程已隱藏，不會顯示在前台與海報' : '課程已恢復顯示','success');
 }
 
 // ── Toast ────────────────────────────────────────────────────
@@ -2016,7 +2029,7 @@ function _buildPosterSvg(monthVal){
   const FONT = 'PingFang TC, Microsoft JhengHei, Arial, sans-serif';
 
   const monthCourses = [...events]
-    .filter(e=>{ const [y,m]=e.date.split('-').map(Number); return y===year&&m===mon; })
+    .filter(e=>{ const [y,m]=e.date.split('-').map(Number); return !e.hidden&&y===year&&m===mon; })
     .sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
   if(!monthCourses.length) return '';
 
@@ -2162,7 +2175,7 @@ function _buildPosterPptx(monthVal){
   const FONT = 'Microsoft JhengHei';
 
   const monthCourses = [...events]
-    .filter(e=>{ const [y,m]=e.date.split('-').map(Number); return y===year&&m===mon; })
+    .filter(e=>{ const [y,m]=e.date.split('-').map(Number); return !e.hidden&&y===year&&m===mon; })
     .sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
   if(!monthCourses.length) return null;
 
@@ -2336,7 +2349,7 @@ async function _buildPoster(monthVal){
   const FONT = '"PingFang TC","Microsoft JhengHei",Arial,sans-serif';
 
   const monthCourses = [...events]
-    .filter(e=>{ const [y,m]=e.date.split('-').map(Number); return y===year&&m===mon; })
+    .filter(e=>{ const [y,m]=e.date.split('-').map(Number); return !e.hidden&&y===year&&m===mon; })
     .sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
   if(!monthCourses.length) return null;
 

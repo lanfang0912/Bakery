@@ -275,7 +275,8 @@ async function loadEvent(){
   try{
     const snap = await db.ref('bakery/events/' + eventId).once('value');
     const data = snap.val();
-    if(data) renderCourse(data);
+    if(data && !data.hidden) renderCourse(data);
+    else if(data && data.hidden) showError();
     else if(!local) showError();
   }catch(e){ if(!local) showError(); }
 }

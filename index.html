@@ -316,6 +316,7 @@ const DB_ROOT = 'https://whitedessert-default-rtdb.asia-southeast1.firebasedatab
 function _applyEvents(val){
   if(!val) return;
   events = Object.entries(val).map(([key, e]) => ({...e, id: key}))
+    .filter(e=>!e.hidden)
     .sort((a,b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
   buildMonthBtns();
   renderCal(curYear, curMonth);
