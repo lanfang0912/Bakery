@@ -1860,6 +1860,11 @@ function _posterFileName(ext){
   return `${y}年${Number(m)}月課程表.${ext}`;
 }
 
+const POSTER_CONTACT_NAME = 'Jen 手作烘焙教室';
+const POSTER_CONTACT_ADDR = '宜蘭縣羅東鎮羅莊二街198號';
+const POSTER_CONTACT_PHONE = '0966-864-079';
+const POSTER_CONTACT_LINE = 'LINE ID：0966864079';
+
 function _downloadTextFile(text, filename, mime){
   const blob = new Blob([text], {type:mime});
   const url = URL.createObjectURL(blob);
@@ -1885,7 +1890,7 @@ function _buildPosterSvg(monthVal){
   const days = Object.keys(byDay).sort();
 
   // Each course = own card; same-day courses stack vertically
-  const W = 1080, PAD = 36, CARD_GAP = 16, INNER_CARD_GAP = 8, DAY_GAP = 20, COLS = 3;
+  const W = 1080, PAD = 36, CARD_GAP = 16, INNER_CARD_GAP = 8, DAY_GAP = 20, COLS = 3, FOOTER_H = 86;
   const CARD_W = Math.floor((W - PAD*2 - CARD_GAP*(COLS-1)) / COLS);
   const INNER = 16;
   const IMG_H = 200;
@@ -1903,7 +1908,7 @@ function _buildPosterSvg(monthVal){
     const maxSlots = Math.max(...row.map(d=>byDay[d].length));
     H += maxSlots * CARD_H + (maxSlots-1) * INNER_CARD_GAP + DAY_GAP;
   });
-  H += PAD;
+  H += PAD + FOOTER_H;
 
   const defs = [`<linearGradient id="posterBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fdf8f2"/><stop offset="1" stop-color="#f3e8d8"/></linearGradient>`];
   const out = [];
@@ -1961,7 +1966,7 @@ function _buildPosterSvg(monthVal){
         let ty = curY + INNER + FONT_DATE;
         // Date + time on same line
         const _dateLabel = `${dm}/${String(dd).padStart(2,'0')} (${WDAYS[dow]})`;
-        out.push(`<text x="${cx+INNER}" y="${ty}" font-family="${FONT}" font-weight="700" fill="${isWkend?'#c0392b':'#3d2c1e}"><tspan font-size="${FONT_DATE}">${_svgEsc(_dateLabel)}</tspan><tspan font-size="${FONT_TIME}" font-weight="400" fill="#a07850" dx="10">${_svgEsc(c.start+'－'+c.end)}</tspan></text>`);
+        out.push(`<text x="${cx+INNER}" y="${ty}" font-family="${FONT}" font-weight="700" fill="${isWkend?'#c0392b':'#3d2c1e'}"><tspan font-size="${FONT_DATE}">${_svgEsc(_dateLabel)}</tspan><tspan font-size="${FONT_TIME}" font-weight="400" fill="#a07850" dx="10">${_svgEsc(c.start+'－'+c.end)}</tspan></text>`);
         ty += 10;
 
         image(src, cx+INNER, ty, iw, IMG_H, 'slice', 8);
@@ -1983,13 +1988,24 @@ function _buildPosterSvg(monthVal){
     curY += DAY_GAP;
   });
 
+  const fy = H - FOOTER_H;
+  rect(0,fy,W,FOOTER_H,'#8b5a27');
+  rect(0,fy,10,FOOTER_H,'#c17f3e');
+  text(PAD,fy+35,POSTER_CONTACT_NAME,26,'#fff','700');
+  text(PAD,fy+62,`${POSTER_CONTACT_ADDR}　｜　電話 ${POSTER_CONTACT_PHONE}　｜　${POSTER_CONTACT_LINE}`,18,'#f7efe6','400');
+
   out.push('</svg>');
   out.splice(1,1,`<defs>${defs.join('')}</defs>`);
   return out.join('\n');
 }
 
+function _getPptxGen(){
+  return window.PptxGenJS || window.pptxgen || window.pptxgenjs || null;
+}
+
 function _buildPosterPptx(monthVal){
-  if(typeof PptxGenJS === 'undefined') throw new Error('PPTX 工具尚未載入，請確認網路後重新整理');
+  const PptxGen = _getPptxGen();
+  if(!PptxGen) throw new Error('PPTX 工具尚未載入，請確認網路後重新整理');
 
   const [year, mon] = monthVal.split('-').map(Number);
   const WDAYS = ['日','一','二','三','四','五','六'];
@@ -2004,7 +2020,7 @@ function _buildPosterPptx(monthVal){
   monthCourses.forEach(c=>{ (byDay[c.date]=byDay[c.date]||[]).push(c); });
   const days = Object.keys(byDay).sort();
 
-  const W = 1080, PAD = 36, CARD_GAP = 16, INNER_CARD_GAP = 8, DAY_GAP = 20, COLS = 3;
+  const W = 1080, PAD = 36, CARD_GAP = 16, INNER_CARD_GAP = 8, DAY_GAP = 20, COLS = 3, FOOTER_H = 86;
   const CARD_W = Math.floor((W - PAD*2 - CARD_GAP*(COLS-1)) / COLS);
   const INNER = 16;
   const IMG_H = 200;
@@ -2025,9 +2041,9 @@ function _buildPosterPptx(monthVal){
     const maxSlots = Math.max(...row.map(d=>byDay[d].length));
     H += maxSlots * CARD_H + (maxSlots-1) * INNER_CARD_GAP + DAY_GAP;
   });
-  H += PAD;
+  H += PAD + FOOTER_H;
 
-  const pptx = new PptxGenJS();
+  const pptx = new PptxGen();
   pptx.author = 'Jen 手作烘焙課程';
   pptx.subject = `${year}年${mon}月課程表`;
   pptx.title = `${year}年${mon}月課程總覽`;
@@ -2043,11 +2059,17 @@ function _buildPosterPptx(monthVal){
 
   const slide = pptx.addSlide();
   slide.background = { color:'FDF8F2' };
-  const addRect = (x,y,w,h,color,opts={}) => slide.addShape(pptx.ShapeType.rect, {
+  const rectShape = pptx.ShapeType?.rect
+    || pptx.ShapeType?.RECTANGLE
+    || PptxGen.ShapeType?.rect
+    || PptxGen.ShapeType?.RECTANGLE
+    || PptxGen.shapes?.RECTANGLE
+    || PptxGen.shapes?.rect
+    || 'rect';
+  const addRect = (x,y,w,h,color,opts={}) => slide.addShape(rectShape, {
     x:u(x), y:u(y), w:u(w), h:u(h),
     fill:{color:hex(color), transparency:opts.transparency||0},
-    line:{color:hex(opts.line||color), transparency:opts.line ? 0 : 100},
-    radius:u(opts.radius||0)
+    line:{color:hex(opts.line||color), transparency:opts.line ? 0 : 100}
   });
   const addText = (content,x,y,w,h,size,color,bold=false,opts={}) => slide.addText(String(content), {
     x:u(x), y:u(y), w:u(w), h:u(h),
@@ -2133,6 +2155,12 @@ function _buildPosterPptx(monthVal){
     curY += DAY_GAP;
   });
 
+  const fy = H - FOOTER_H;
+  addRect(0,fy,W,FOOTER_H,'8b5a27');
+  addRect(0,fy,10,FOOTER_H,'c17f3e');
+  addText(POSTER_CONTACT_NAME,PAD,fy+17,380,30,26,'FFFFFF',true);
+  addText(`${POSTER_CONTACT_ADDR}　｜　電話 ${POSTER_CONTACT_PHONE}　｜　${POSTER_CONTACT_LINE}`,PAD,fy+48,W-PAD*2,24,18,'FFFFFF');
+
   return pptx;
 }
 
@@ -2202,7 +2230,7 @@ async function _buildPoster(monthVal){
   document.getElementById('poster-msg').textContent = `⏳ 生成中… 圖片 ${imgLoaded}/${imgTotal} 載入成功`;
 
   // Layout: each course = own card, same-day courses stack vertically
-  const W = 1080, PAD = 36, CARD_GAP = 16, INNER_CARD_GAP = 8, DAY_GAP = 20, COLS = 3;
+  const W = 1080, PAD = 36, CARD_GAP = 16, INNER_CARD_GAP = 8, DAY_GAP = 20, COLS = 3, FOOTER_H = 86;
   const CARD_W = Math.floor((W - PAD*2 - CARD_GAP*(COLS-1)) / COLS);
   const INNER = 16;
   const IMG_H = 200;
@@ -2220,7 +2248,7 @@ async function _buildPoster(monthVal){
     const maxSlots = Math.max(...row.map(d=>byDay[d].length));
     H += maxSlots * CARD_H + (maxSlots-1) * INNER_CARD_GAP + DAY_GAP;
   });
-  H += PAD;
+  H += PAD + FOOTER_H;
 
   const canvas = document.getElementById('poster-canvas');
   canvas.width = W; canvas.height = H;
@@ -2340,6 +2368,20 @@ async function _buildPoster(monthVal){
     curY += DAY_GAP;
   });
 
+  const fy = H - FOOTER_H;
+  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+  ctx.fillStyle='#8b5a27';
+  ctx.fillRect(0,fy,W,FOOTER_H);
+  ctx.fillStyle='#c17f3e';
+  ctx.fillRect(0,fy,10,FOOTER_H);
+  ctx.textAlign='left';
+  ctx.fillStyle='#fff';
+  ctx.font=`bold 26px ${FONT}`;
+  ctx.fillText(POSTER_CONTACT_NAME,PAD,fy+35);
+  ctx.fillStyle='rgba(255,255,255,0.92)';
+  ctx.font=`18px ${FONT}`;
+  ctx.fillText(`${POSTER_CONTACT_ADDR}　｜　電話 ${POSTER_CONTACT_PHONE}　｜　${POSTER_CONTACT_LINE}`,PAD,fy+62);
+
   return canvas;
 }
 
@@ -2380,9 +2422,15 @@ async function downloadPosterPptx(){
   try {
     const pptx = _buildPosterPptx(monthVal);
     if(!pptx){ toast('該月份沒有課程','error'); return; }
-    await pptx.writeFile({ fileName:_posterFileName('pptx') });
+    const fileName = _posterFileName('pptx');
+    try {
+      await pptx.writeFile({ fileName });
+    } catch(e) {
+      await pptx.writeFile(fileName);
+    }
     toast('可編輯 PPTX 已下載 ✓','success');
   } catch(e) {
+    console.error('PPTX download failed', e);
     toast('PPTX 下載失敗：' + (e.message||e), 'error');
   }
 }
