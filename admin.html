@@ -703,25 +703,11 @@ function startFbListener() {
     updateCloudBadge();
   });
 
-  // URL reset: admin.html?pw_reset=1  → resets stored hash back to default
-  if(new URLSearchParams(location.search).get('pw_reset')==='1'){
-    try{ localStorage.removeItem('bakery_pw_hash'); }catch(e){}
-    db.ref('bakery/settings/pwHash').set(null);  // clear Firebase hash
-    history.replaceState(null,'',location.pathname); // remove ?pw_reset from URL
-    // pwHash stays null → getStoredHash() returns sha256(DEFAULT_PW)
-  } else {
-    db.ref('bakery/settings/pwHash').once('value').then(snap => {
-      if (snap.val()) {
-        pwHash = snap.val();
-      } else {
-        // migrate from localStorage if exists
-        try {
-          const local = localStorage.getItem('bakery_pw_hash');
-          if (local) { pwHash = local; db.ref('bakery/settings/pwHash').set(local); }
-        } catch(e) {}
-      }
-    });
-  }
+  // Password is always DEFAULT_PW unless changed via UI (stored in localStorage only)
+  try {
+    const local = localStorage.getItem('bakery_pw_hash');
+    if (local) pwHash = local;
+  } catch(e) {}
 
   db.ref('bakery/registrations').on('value', snap => {
     registrations = snap.val() || {};
@@ -1785,9 +1771,8 @@ async function saveNewPw(e){
   const storedHash = await getStoredHash();
   if(oldHash !== storedHash){ errEl.textContent='目前密碼錯誤'; return; }
   const newHash = await sha256(newVal);
-  await db.ref('bakery/settings/pwHash').set(newHash);
   pwHash = newHash;
-  try { localStorage.removeItem('bakery_pw_hash'); } catch(e) {}
+  try { localStorage.setItem('bakery_pw_hash', newHash); } catch(e) {}
   closeChpw();
   toast('密碼已更新 ✓','success');
 }
