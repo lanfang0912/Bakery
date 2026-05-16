@@ -2049,7 +2049,6 @@ function _buildPosterSvg(monthVal){
         const cs = byDay[dateStr];
         const c = cs[slot];
         if(!c) return;
-        const ch = cardH(c);
         const cx = PAD + ci*(CARD_W+CARD_GAP);
         const [dy,dm,dd] = dateStr.split('-').map(Number);
         const dow = new Date(dy,dm-1,dd).getDay();
@@ -2058,7 +2057,7 @@ function _buildPosterSvg(monthVal){
         const src = c.imagesPoster?.[0]||c.imagePoster||c.images?.[0]||c.image||'';
         const iw = CARD_W - INNER*2;
 
-        rect(cx,curY,CARD_W,ch,'#fff',0,`stroke="#ead9c8" stroke-width="2"`);
+        rect(cx,curY,CARD_W,slotH,'#fff',0,`stroke="#ead9c8" stroke-width="2"`);
         rect(cx,curY,CARD_W,BAR_H,accent.hex,0);
 
         let ty = curY + TOP_LINE_Y;
@@ -2225,7 +2224,6 @@ function _buildPosterPptx(monthVal){
         const cs = byDay[dateStr];
         const c = cs[slot];
         if(!c) return;
-        const ch = cardH(c);
         const cx = PAD + ci*(CARD_W+CARD_GAP);
         const [dy,dm,dd] = dateStr.split('-').map(Number);
         const dow = new Date(dy,dm-1,dd).getDay();
@@ -2235,7 +2233,7 @@ function _buildPosterPptx(monthVal){
         const src = c.imagesPoster?.[0] || c.imagePoster || '';
         const iw = CARD_W - INNER*2;
 
-        addRect(cx,curY,CARD_W,ch,'FFFFFF',{line:'EAD9C8'});
+        addRect(cx,curY,CARD_W,slotH,'FFFFFF',{line:'EAD9C8'});
         addRect(cx,curY,CARD_W,BAR_H,accentHex);
 
         let ty = curY + TOP_LINE_Y - FONT_DATE;
@@ -2431,7 +2429,6 @@ async function _buildPoster(monthVal){
         const cs = byDay[dateStr];
         const c = cs[slot];
         if(!c) return;
-        const ch = cardH(c);
         const cx = PAD + ci*(CARD_W+CARD_GAP);
         const [dy,dm,dd] = dateStr.split('-').map(Number);
         const dow = new Date(dy,dm-1,dd).getDay();
@@ -2443,10 +2440,10 @@ async function _buildPoster(monthVal){
         // Card background
         ctx.shadowBlur=0; ctx.shadowOffsetY=0;
         ctx.fillStyle='#fff';
-        ctx.fillRect(cx,curY,CARD_W,ch);
+        ctx.fillRect(cx,curY,CARD_W,slotH);
         ctx.strokeStyle='#ead9c8';
         ctx.lineWidth=2;
-        ctx.strokeRect(cx,curY,CARD_W,ch);
+        ctx.strokeRect(cx,curY,CARD_W,slotH);
 
         // Top color bar
         ctx.fillStyle=accent.hex;
