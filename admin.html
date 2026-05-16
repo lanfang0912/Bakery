@@ -859,7 +859,7 @@ function openAdd(){
   document.getElementById('event-form').reset();
   document.getElementById('edit-id').value = '';
   document.getElementById('f-desc').value = '';
-  resetImgSlots([]);
+  resetImgSlots([], []);
   selColor = 'orange';
   buildColorPicker();
   document.getElementById('overlay').classList.add('open');
@@ -875,8 +875,9 @@ function openEdit(id){
   document.getElementById('f-end').value     = e.end;
   document.getElementById('f-title').value   = e.title;
   document.getElementById('f-fee').value     = e.fee ? Number(String(e.fee).replace(/[^0-9]/g,'')) : '';
-  const existImgs = e.images?.filter(Boolean) || (e.image ? [e.image] : []);
-  resetImgSlots(existImgs);
+  const existImgs   = e.images?.filter(Boolean) || (e.image ? [e.image] : []);
+  const existPoster = e.imagesPoster?.length ? e.imagesPoster : (e.imagePoster ? [e.imagePoster] : []);
+  resetImgSlots(existImgs, existPoster);
   document.getElementById('f-desc').value    = e.description||'';
   selColor = e.color;
   buildColorPicker();
@@ -895,8 +896,10 @@ async function saveEvent(e){
     end:     document.getElementById('f-end').value,
     title:   document.getElementById('f-title').value.trim(),
     fee:         Number(document.getElementById('f-fee').value) || '',
-    images:      getImgSlotValues(),
-    image:       getImgSlotValues()[0] || '',
+    images:       getImgSlotValues(),
+    image:        getImgSlotValues()[0] || '',
+    imagesPoster: getImgPosterValues(),
+    imagePoster:  getImgPosterValues()[0] || '',
     description: document.getElementById('f-desc').value.trim(),
     color:       selColor,
   };
@@ -1022,6 +1025,7 @@ function updateCloudBadge() {
 
 // ── Multi-image slots ─────────────────────────────────────────
 let _imgSlotCount = 0;
+let _slotPosterData = {}; // idx → compressed data URL for poster (no CORS needed)
 
 function _slotHtml(i, url){
   const isHttp = url && url.startsWith('http');
@@ -1037,10 +1041,12 @@ function _slotHtml(i, url){
   </div>`;
 }
 
-function resetImgSlots(images){
+function resetImgSlots(images, posterData){
+  _slotPosterData = {};
   const arr = images && images.length ? images : [''];
   _imgSlotCount = arr.length;
   document.getElementById('f-imgs-grid').innerHTML = arr.map((u,i)=>_slotHtml(i,u)).join('');
+  if(posterData) posterData.forEach((d,i)=>{ if(d) _slotPosterData[i]=d; });
   document.getElementById('f-add-img-btn').style.display = _imgSlotCount >= 5 ? 'none' : '';
 }
 
@@ -1052,13 +1058,23 @@ function addImgSlot(){
   if(_imgSlotCount >= 5) document.getElementById('f-add-img-btn').style.display = 'none';
 }
 
-function handleSlotUpload(input, idx){
+async function handleSlotUpload(input, idx){
+  if(input.files[0]){
+    // Compress a thumbnail for poster use (local file → no CORS later)
+    _compressImgToDataUrl(input.files[0], 400, 0.72).then(d=>{ if(d) _slotPosterData[idx]=d; });
+  }
   handleImgUpload(input,`f-img-val-${idx}`,`f-img-prev-${idx}`,`f-img-ph-${idx}`,`f-img-prog-${idx}`);
 }
-function applySlotUrl(idx){
+async function applySlotUrl(idx){
   applyImgUrl(`f-img-url-${idx}`,`f-img-val-${idx}`,`f-img-prev-${idx}`,`f-img-ph-${idx}`,`f-img-clear-${idx}`);
+  const url = document.getElementById(`f-img-url-${idx}`).value.trim();
+  if(url){
+    // Try to fetch URL and compress for poster (best effort)
+    _fetchAndCompressUrl(url, 400, 0.72).then(d=>{ if(d) _slotPosterData[idx]=d; });
+  }
 }
 function clearSlot(idx){
+  delete _slotPosterData[idx];
   clearImage(`f-img-val-${idx}`,`f-img-prev-${idx}`,`f-img-ph-${idx}`,`f-img-clear-${idx}`,`f-img-url-${idx}`);
 }
 
@@ -1069,6 +1085,50 @@ function getImgSlotValues(){
     if(v) imgs.push(v);
   }
   return imgs;
+}
+
+// Returns poster thumbnail data URLs parallel to getImgSlotValues() (only for slots with an image)
+function getImgPosterValues(){
+  const posters = [];
+  for(let i=0;i<_imgSlotCount;i++){
+    const v = document.getElementById(`f-img-val-${i}`)?.value||'';
+    if(v) posters.push(_slotPosterData[i]||'');
+  }
+  return posters;
+}
+
+// Compress a File/Blob/HTMLImageElement to a small JPEG data URL
+function _compressImgToDataUrl(source, maxPx=400, quality=0.72){
+  return new Promise(res=>{
+    const draw = img => {
+      const r = Math.min(maxPx/img.naturalWidth, maxPx/img.naturalHeight, 1);
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.naturalWidth*r);
+      c.height = Math.round(img.naturalHeight*r);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      res(c.toDataURL('image/jpeg', quality));
+    };
+    if(source instanceof HTMLImageElement){ draw(source); return; }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = ()=>draw(img);
+      img.onerror = ()=>res(null);
+      img.src = ev.target.result;
+    };
+    reader.onerror = ()=>res(null);
+    reader.readAsDataURL(source);
+  });
+}
+
+// Fetch a URL (CORS) and compress it to a data URL for poster use
+async function _fetchAndCompressUrl(url, maxPx=400, quality=0.72){
+  try {
+    const resp = await fetch(url, {mode:'cors', cache:'no-store'});
+    if(!resp.ok) return null;
+    const blob = await resp.blob();
+    return _compressImgToDataUrl(blob, maxPx, quality);
+  } catch(e){ return null; }
 }
 
 // ── Image upload ─────────────────────────────────────────────
@@ -1787,38 +1847,33 @@ async function _buildPoster(monthVal){
   monthCourses.forEach(c=>{ (byDay[c.date]=byDay[c.date]||[]).push(c); });
   const days = Object.keys(byDay).sort();
 
-  // For Cloudinary URLs: add q_auto transformation → fresh CDN cache entry with CORS headers
-  function _corsUrl(url){
-    if(!url||url.startsWith('data:')) return url;
-    if(url.includes('res.cloudinary.com')&&url.includes('/image/upload/')){
-      if(!url.includes('/image/upload/q_auto'))
-        return url.replace('/image/upload/','/image/upload/q_auto/');
-    }
-    return url;
-  }
-
-  // Load images via fetch → Blob URL (canvas stays exportable)
+  // Load images — prefer stored poster thumbnail (data URL, no CORS)
+  // Fall back to CORS fetch for Cloudinary URLs that don't yet have a thumbnail
   const imgMap = {};
-  const imgTotal = monthCourses.filter(c=>c.image||c.images?.length).length;
   await Promise.all(monthCourses.map(async c=>{
-    const rawUrl = c.images?.[0] || c.image;
-    if(!rawUrl) return;
-    try {
-      let src = rawUrl;
-      if(!rawUrl.startsWith('data:')){
-        const resp = await fetch(_corsUrl(rawUrl), {cache:'reload'});
+    const posterSrc = c.imagesPoster?.[0] || c.imagePoster || '';
+    const rawUrl    = c.images?.[0] || c.image || '';
+    const src = posterSrc || rawUrl;
+    if(!src) return;
+    let imgSrc = src;
+    if(!src.startsWith('data:')){
+      // No stored thumbnail — try CORS fetch
+      const corsUrl = src.includes('res.cloudinary.com')&&src.includes('/image/upload/')&&!src.includes('q_auto')
+        ? src.replace('/image/upload/','/image/upload/q_auto/') : src;
+      try {
+        const resp = await fetch(corsUrl, {cache:'reload'});
         if(!resp.ok) return;
-        src = URL.createObjectURL(await resp.blob());
-      }
-      await new Promise(res=>{
-        const img = new Image();
-        img.onload=()=>{ imgMap[c.id]=img; res(); };
-        img.onerror=res;
-        img.src=src;
-      });
-    } catch(e){}
+        imgSrc = URL.createObjectURL(await resp.blob());
+      } catch(e){ return; }
+    }
+    await new Promise(res=>{
+      const img = new Image();
+      img.onload=()=>{ imgMap[c.id]=img; res(); };
+      img.onerror=res; img.src=imgSrc;
+    });
   }));
   const imgLoaded = Object.keys(imgMap).length;
+  const imgTotal  = monthCourses.filter(c=>c.imagePoster||c.imagesPoster?.[0]||c.image||c.images?.length).length;
   document.getElementById('poster-msg').textContent = `⏳ 生成中… 圖片 ${imgLoaded}/${imgTotal} 載入成功`;
 
   // Layout: portrait 1080px, 3 cards per row
