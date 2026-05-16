@@ -318,7 +318,6 @@ tr:hover td{background:var(--primary-light)}
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
 <button class="btn-poster" onclick="openPoster()">🎨 月份海報</button>
     <button class="btn-paste" onclick="openPaste()">📋 貼上新增</button>
-    <button class="btn-cloud" id="cloud-migrate-btn" onclick="migrateAllImageUrlsToCloudinary()">☁️ 修復圖片</button>
     <button class="btn-cloud" onclick="openCloudSettings()">☁️ 圖片設定</button>
     <button class="btn-add" onclick="openBatchReg()" style="background:#2e7d52">👥 批次報名</button>
     <button class="btn-add" onclick="openAdd()">＋ 手動新增</button>
@@ -1246,8 +1245,6 @@ function closeModalBg(e){if(e.target===document.getElementById('overlay'))closeM
 async function saveEvent(e){
   e.preventDefault();
   const eid = document.getElementById('edit-id').value;
-  await _uploadExternalSlotUrlsToCloudinary();
-  await _ensurePosterDataForSlots();
   const data = {
     date:    document.getElementById('f-date').value,
     teacher: document.getElementById('f-teacher').value.trim(),
@@ -1379,7 +1376,6 @@ function updateCloudBadge() {
 // ── Multi-image slots ─────────────────────────────────────────
 let _imgSlotCount = 0;
 let _slotPosterData = {}; // idx → compressed data URL for poster (no CORS needed)
-let _slotPosterPromises = {}; // idx → in-flight poster thumbnail compression
 
 function _slotHtml(i, url){
   const isHttp = url && url.startsWith('http');
@@ -1397,7 +1393,6 @@ function _slotHtml(i, url){
 
 function resetImgSlots(images, posterData){
   _slotPosterData = {};
-  _slotPosterPromises = {};
   const arr = images && images.length ? images : [''];
   _imgSlotCount = arr.length;
   document.getElementById('f-imgs-grid').innerHTML = arr.map((u,i)=>_slotHtml(i,u)).join('');
@@ -1415,9 +1410,7 @@ function addImgSlot(){
 
 async function handleSlotUpload(input, idx){
   if(input.files[0]){
-    // Compress a thumbnail for poster use (local file → no CORS later)
-    _slotPosterPromises[idx] = _compressImgToDataUrl(input.files[0], 400, 0.72)
-      .then(d=>{ if(d) _slotPosterData[idx]=d; return d; });
+    _compressImgToDataUrl(input.files[0], 400, 0.72).then(d=>{ if(d) _slotPosterData[idx]=d; });
   }
   handleImgUpload(input,`f-img-val-${idx}`,`f-img-prev-${idx}`,`f-img-ph-${idx}`,`f-img-prog-${idx}`);
   if(idx===0) setTimeout(updateImgPosPreview, 300);
@@ -1426,9 +1419,7 @@ async function applySlotUrl(idx){
   applyImgUrl(`f-img-url-${idx}`,`f-img-val-${idx}`,`f-img-prev-${idx}`,`f-img-ph-${idx}`,`f-img-clear-${idx}`);
   const url = document.getElementById(`f-img-url-${idx}`).value.trim();
   if(url){
-    // Try to fetch URL and compress for poster (best effort)
-    _slotPosterPromises[idx] = _fetchAndCompressUrl(_posterFetchableUrl(url), 400, 0.72)
-      .then(d=>{ if(d) _slotPosterData[idx]=d; return d; });
+    _fetchAndCompressUrl(url, 400, 0.72).then(d=>{ if(d) _slotPosterData[idx]=d; });
   }
   if(idx===0) updateImgPosPreview();
 }
@@ -1436,19 +1427,15 @@ function clearSlot(idx){
   // Collect remaining URLs and poster data (excluding removed slot)
   const newUrls = [];
   const newPoster = {};
-  const newPromises = {};
   for(let i = 0; i < _imgSlotCount; i++){
     if(i === idx) continue;
     const v = document.getElementById(`f-img-val-${i}`)?.value || '';
-    const nextIdx = newUrls.length;
     newUrls.push(v);
-    if(_slotPosterData[i]) newPoster[nextIdx] = _slotPosterData[i];
-    if(_slotPosterPromises[i]) newPromises[nextIdx] = _slotPosterPromises[i];
+    if(_slotPosterData[i]) newPoster[newUrls.length - 1] = _slotPosterData[i];
   }
   // Always keep at least one (empty) slot
   if(newUrls.length === 0) newUrls.push('');
   _slotPosterData = newPoster;
-  _slotPosterPromises = newPromises;
   _imgSlotCount = newUrls.length;
   document.getElementById('f-imgs-grid').innerHTML = newUrls.map((u,i) => _slotHtml(i,u)).join('');
   document.getElementById('f-add-img-btn').style.display = _imgSlotCount >= 5 ? 'none' : '';
@@ -1474,62 +1461,6 @@ function getImgPosterValues(){
   return posters;
 }
 
-function _isCloudinaryUrl(url){
-  return /^https?:\/\//i.test(url||'') && String(url).includes('res.cloudinary.com');
-}
-function _isExternalImageUrl(url){
-  return /^https?:\/\//i.test(url||'') && !_isCloudinaryUrl(url);
-}
-function _posterFetchableUrl(url){
-  return url && url.includes('res.cloudinary.com') && url.includes('/image/upload/') && !url.includes('q_auto')
-    ? url.replace('/image/upload/','/image/upload/q_auto/')
-    : url;
-}
-
-async function uploadImageUrlToCloudinary(url){
-  const cfg = getCloudCfg();
-  if(!cfg.cloudName || !cfg.preset) throw new Error('尚未設定 Cloudinary');
-  const fd = new FormData();
-  fd.append('file', url);
-  fd.append('upload_preset', cfg.preset);
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${cfg.cloudName}/image/upload`, {method:'POST', body:fd});
-  if(!res.ok) throw new Error(await res.text());
-  const data = await res.json();
-  return data.secure_url;
-}
-
-async function _uploadExternalSlotUrlsToCloudinary(){
-  const cfg = getCloudCfg();
-  if(!cfg.cloudName || !cfg.preset) return;
-  for(let i=0;i<_imgSlotCount;i++){
-    const hidden = document.getElementById(`f-img-val-${i}`);
-    const urlInput = document.getElementById(`f-img-url-${i}`);
-    const url = hidden?.value || '';
-    if(!_isExternalImageUrl(url)) continue;
-    const cloudUrl = await uploadImageUrlToCloudinary(url);
-    hidden.value = cloudUrl;
-    if(urlInput) urlInput.value = cloudUrl;
-    setImagePreview(`f-img-val-${i}`,`f-img-prev-${i}`,`f-img-ph-${i}`,`f-img-clear-${i}`,cloudUrl);
-    delete _slotPosterData[i];
-    _slotPosterPromises[i] = _fetchAndCompressUrl(_posterFetchableUrl(cloudUrl), 400, 0.72)
-      .then(d=>{ if(d) _slotPosterData[i]=d; return d; });
-  }
-}
-
-async function _ensurePosterDataForSlots(){
-  for(let i=0;i<_imgSlotCount;i++){
-    const v = document.getElementById(`f-img-val-${i}`)?.value||'';
-    if(!v || _slotPosterData[i]) continue;
-    if(_slotPosterPromises[i]) await _slotPosterPromises[i];
-    if(_slotPosterData[i]) continue;
-    const p = v.startsWith('data:')
-      ? _compressImgToDataUrl(v, 400, 0.72)
-      : _fetchAndCompressUrl(_posterFetchableUrl(v), 400, 0.72);
-    _slotPosterPromises[i] = p.then(d=>{ if(d) _slotPosterData[i]=d; return d; });
-    await _slotPosterPromises[i];
-  }
-}
-
 // Compress a File/Blob/HTMLImageElement to a small JPEG data URL
 function _compressImgToDataUrl(source, maxPx=400, quality=0.72){
   return new Promise(res=>{
@@ -1542,13 +1473,6 @@ function _compressImgToDataUrl(source, maxPx=400, quality=0.72){
       res(c.toDataURL('image/jpeg', quality));
     };
     if(source instanceof HTMLImageElement){ draw(source); return; }
-    if(typeof source === 'string'){
-      const img = new Image();
-      img.onload = ()=>draw(img);
-      img.onerror = ()=>res(null);
-      img.src = source;
-      return;
-    }
     const reader = new FileReader();
     reader.onload = ev => {
       const img = new Image();
@@ -1569,71 +1493,6 @@ async function _fetchAndCompressUrl(url, maxPx=400, quality=0.72){
     const blob = await resp.blob();
     return _compressImgToDataUrl(blob, maxPx, quality);
   } catch(e){ return null; }
-}
-
-async function migrateAllImageUrlsToCloudinary(){
-  const cfg = getCloudCfg();
-  if(!cfg.cloudName || !cfg.preset){ toast('請先設定 Cloudinary Cloud Name / Preset','error'); return; }
-  const targets = events.filter(e=>{
-    const imgs = e.images?.length ? e.images : (e.image ? [e.image] : []);
-    return !String(e.id).startsWith('local') && imgs.some(_isExternalImageUrl);
-  });
-  if(!targets.length){ toast('沒有需要修復的外部圖片網址','success'); return; }
-  if(!confirm(`找到 ${targets.length} 堂課有外部圖片網址，要批次搬到 Cloudinary 嗎？`)) return;
-
-  const btn = document.getElementById('cloud-migrate-btn');
-  const oldText = btn ? btn.textContent : '';
-  let moved = 0, failed = 0;
-  if(btn){ btn.disabled = true; btn.textContent = '☁️ 修復中…'; }
-
-  try {
-    for(let n=0;n<targets.length;n++){
-      const ev = targets[n];
-      if(btn) btn.textContent = `☁️ 修復中 ${n+1}/${targets.length}`;
-      const imgs = ev.images?.length ? [...ev.images] : (ev.image ? [ev.image] : []);
-      const posters = ev.imagesPoster?.length ? [...ev.imagesPoster] : (ev.imagePoster ? [ev.imagePoster] : []);
-      let changed = false;
-
-      for(let i=0;i<imgs.length;i++){
-        let src = imgs[i] || '';
-        if(_isExternalImageUrl(src)){
-          try {
-            src = await uploadImageUrlToCloudinary(src);
-            imgs[i] = src;
-            moved++;
-            changed = true;
-          } catch(e) {
-            console.warn('Cloudinary migration failed', ev.id, src, e);
-            failed++;
-            continue;
-          }
-        }
-        if(src && !posters[i]){
-          const d = src.startsWith('data:')
-            ? await _compressImgToDataUrl(src, 400, 0.72)
-            : await _fetchAndCompressUrl(_posterFetchableUrl(src), 400, 0.72);
-          if(d){ posters[i] = d; changed = true; }
-        }
-      }
-
-      if(changed){
-        const update = {
-          images: imgs,
-          image: imgs[0] || '',
-          imagesPoster: posters,
-          imagePoster: posters[0] || ''
-        };
-        await db.ref('bakery/events/' + ev.id).update(update);
-        Object.assign(ev, update);
-      }
-    }
-    renderTable();
-    toast(`圖片修復完成：搬到 Cloudinary ${moved} 張${failed?`，失敗 ${failed} 張`:''}`,'success');
-  } catch(e) {
-    toast('圖片修復中斷：' + (e.message || e), 'error');
-  } finally {
-    if(btn){ btn.disabled = false; btn.textContent = oldText || '☁️ 修復圖片'; }
-  }
 }
 
 // ── Image upload ─────────────────────────────────────────────
